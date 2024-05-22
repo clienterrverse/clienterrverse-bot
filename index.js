@@ -52,4 +52,4 @@ for (const file of commandFiles) {
   }
 }
 
-client.login(token);
+client.login(your token here);
