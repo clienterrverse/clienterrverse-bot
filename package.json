@@ -17,6 +17,7 @@
   "homepage": "https://github.com/clienterrverse/clienterrverse_economy#readme",
   "description": "",
   "dependencies": {
+    "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",
     "mongodb": "^6.6.2",
     "mongoose": "^8.4.0",
