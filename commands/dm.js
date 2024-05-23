@@ -22,7 +22,7 @@ module.exports = {
     // Check if the user is the developer
     if (interaction.user.id !== developerId) {
       return await interaction.reply({
-        content: "You don't have permission to use this command.",
+        content: "You ain't clienterr bro, you can't use this command!",
         ephemeral: true,
       });
     }
