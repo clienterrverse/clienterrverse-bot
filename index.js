@@ -3,8 +3,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const mongoose = require("mongoose");
 
-// Define your Discord token and MongoDB connection URI directly here
-
 // Require the necessary discord.js classes
 const { Client, GatewayIntentBits, Collection } = require("discord.js");
 
@@ -15,6 +13,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildInvites,
   ],
 });
 
@@ -52,7 +51,6 @@ for (const file of commandFiles) {
     );
   }
 }
-
 mongoose
   .connect(database, {
     useNewUrlParser: true,
