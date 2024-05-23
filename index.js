@@ -4,10 +4,6 @@ const path = require("node:path");
 const mongoose = require("mongoose");
 
 // Define your Discord token and MongoDB connection URI directly here
-const token =
-
-const database =
-
 
 // Require the necessary discord.js classes
 const { Client, GatewayIntentBits, Collection } = require("discord.js");
