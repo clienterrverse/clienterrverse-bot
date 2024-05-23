@@ -5,6 +5,7 @@ const profileSchema = new mongoose.Schema({
   serverId: { type: String, require: true },
   ClienterrCoins: { type: Number, default: 10 },
   dailyLastUsed: { type: Number, default: 0 },
+  coinFlipLastUsed: { type: Number, default: 0 },
 });
 
 const model = mongoose.model("clienterrversedb", profileSchema);

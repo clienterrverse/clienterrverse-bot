@@ -6,24 +6,24 @@ const {
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("timeout")
-    .setDescription("Timeout a member for a specified duration.")
+    .setName("mute")
+    .setDescription("Mute a member for a specified duration.")
     .addUserOption((option) =>
       option
         .setName("target")
-        .setDescription("The member to timeout")
+        .setDescription("The member to mute")
         .setRequired(true)
     )
     .addStringOption((option) =>
       option
         .setName("duration")
-        .setDescription("The duration of the timeout (e.g., 1m, 2h, 3d)")
+        .setDescription("The duration of the mute (e.g., 1m, 2h, 3d)")
         .setRequired(true)
     )
     .addStringOption((option) =>
       option
         .setName("reason")
-        .setDescription("The reason for the timeout")
+        .setDescription("The reason for the mute")
         .setRequired(false)
     ),
   async execute(interaction) {
@@ -90,7 +90,7 @@ module.exports = {
     }
 
     try {
-      // Timeout the member
+      // Mute the member
       await member.timeout(duration, reason);
 
       // Create an embed message
@@ -113,7 +113,7 @@ module.exports = {
     } catch (error) {
       console.error(error);
       await interaction.reply({
-        content: "There was an error trying to timeout this member!",
+        content: "There was an error trying to mute this member!",
         ephemeral: true,
       });
     }
