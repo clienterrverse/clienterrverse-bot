@@ -64,7 +64,7 @@ module.exports = {
       );
 
       await interaction.editReply(
-        `Added ${amount} coins to ${user.username}'s balance.`
+        `Added ${amount} clienterr coins to ${user.username}'s balance.`
       );
     }
 
@@ -84,7 +84,7 @@ module.exports = {
       );
 
       await interaction.editReply(
-        `Subtracted ${amount} coins from ${user.username}'s balance.`
+        `Subtracted ${amount} clienterr coins from ${user.username}'s balance.`
       );
     }
   },
