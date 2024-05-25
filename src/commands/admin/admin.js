@@ -1,7 +1,13 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
-const profileModel = require("../models/profileSchema");
+/** @format */
 
-module.exports = {
+import {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ApplicationCommandOptionType,
+} from "discord.js";
+import profileModel from "../../schemas/profileSchema.js";
+
+export default {
   data: new SlashCommandBuilder()
     .setName("admin")
     .setDescription("Access to all the admin commands")
@@ -43,31 +49,36 @@ module.exports = {
             .setRequired(true)
             .setMinValue(1)
         )
-    ),
-  async execute(interaction) {
-    await interaction.deferReply();
+    )
+    .toJSON(),
+
+  userPermissions: [PermissionFlagsBits.Administrator], // Require administrator permission
+  botPermissions: [], // No bot permissions required
+  cooldown: 5,
+  nwfwMode: false,
+  testMode: false,
+  devOnly: false,
+
+  // Function to be executed when the command is used
+  run: async (client, interaction) => {
     const adminSubcommand = interaction.options.getSubcommand();
+    await interaction.deferReply();
 
     if (adminSubcommand === "add") {
       const user = interaction.options.getUser("user");
       const amount = interaction.options.getInteger("amount");
 
       await profileModel.findOneAndUpdate(
-        {
-          userId: user.id,
-        },
-        {
-          $inc: {
-            ClienterrCoins: amount,
-          },
-        }
+        { userId: user.id },
+        { $inc: { ClienterrCoins: amount } }
       );
 
+      // Send success message
       await interaction.editReply(
         `Added ${amount} coins to ${user.username}'s balance.`
       );
+      
     }
-
     if (adminSubcommand === "subtract") {
       const user = interaction.options.getUser("user");
       const amount = interaction.options.getInteger("amount");
@@ -86,6 +97,6 @@ module.exports = {
       await interaction.editReply(
         `Subtracted ${amount} clienterr coins from ${user.username}'s balance.`
       );
-    }
-  },
-};
+  }
+},
+}

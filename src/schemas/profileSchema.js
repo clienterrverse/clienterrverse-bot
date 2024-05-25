@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
+import { Schema, model } from 'mongoose';
 
-const profileSchema = new mongoose.Schema({
+const profileSchema = new Schema({
   userId: { type: String, require: true, unique: true },
   serverId: { type: String, require: true },
   ClienterrCoins: { type: Number, default: 10 },
@@ -8,6 +8,5 @@ const profileSchema = new mongoose.Schema({
   coinFlipLastUsed: { type: Number, default: 0 },
 });
 
-const model = mongoose.model("clienterrversedb", profileSchema);
+export default model("clienterrversedb", profileSchema);
 
-module.exports = model;
