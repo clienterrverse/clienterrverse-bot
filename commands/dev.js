@@ -33,7 +33,7 @@ module.exports = {
   async execute(interaction) {
     if (interaction.user.id !== DEVELOPER_ID) {
       return interaction.reply({
-        content: "You do not have permission to use this command.",
+        content: "You ain't clienterr bro, you can't use this command!",
         ephemeral: true,
       });
     }
