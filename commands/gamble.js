@@ -13,7 +13,9 @@ module.exports = {
     .addSubcommand((subcommand) =>
       subcommand
         .setName("three-doors")
-        .setDescription("Can double, half or lose your gamble")
+        .setDescription(
+          "Can double, half or lose your gamble, 90% gamblers quit before their big win!!!"
+        )
         .addIntegerOption((option) =>
           option
             .setName("amount")
@@ -45,17 +47,17 @@ module.exports = {
 
       const Button1 = new ButtonBuilder()
         .setCustomId("one")
-        .setLabel("Door 1")
+        .setLabel("1️⃣")
         .setStyle(ButtonStyle.Primary);
 
       const Button2 = new ButtonBuilder()
         .setCustomId("two")
-        .setLabel("Door 2")
+        .setLabel("2️⃣")
         .setStyle(ButtonStyle.Primary);
 
       const Button3 = new ButtonBuilder()
         .setCustomId("three")
-        .setLabel("Door 3")
+        .setLabel("3️⃣")
         .setStyle(ButtonStyle.Primary);
 
       const row = new ActionRowBuilder().addComponents(
@@ -150,9 +152,11 @@ module.exports = {
               text: `**${username}** lost ${amtChange} clienterr coins`,
             });
         } else if (label === lose) {
-          setTitle("**Oof...** You just lost your entire gamble.").setFooter({
-            text: `**${username}** lost **${amtChange} clienterr coins**`,
-          });
+          gambleEmbed
+            .setTitle("**Oof...** You just lost your entire gamble.")
+            .setFooter({
+              text: `**${username}** lost **${amtChange} clienterr coins**`,
+            });
         }
 
         await i.update({ embeds: [gambleEmbed], components: [row] });
