@@ -51,6 +51,17 @@ for (const file of commandFiles) {
     );
   }
 }
+
+// Regular expression to match the phrase "how to tame koban" ignoring case and special characters
+const kobanRegex = /how\s*to\s*tame\s*koban/i;
+
+client.on("messageCreate", (message) => {
+  if (kobanRegex.test(message.content)) {
+    message.reply(
+      "https://cdn.discordapp.com/attachments/1204181585994186832/1243640065301807265/1223554028794024018.png?ex=66523591&is=6650e411&hm=72134eca39e36ebe4e78712523ae120bde69ceb505ea5b5fd2105dd0d727c7a0&"
+    );
+  }
+});
 mongoose
   .connect(database, {
     useNewUrlParser: true,

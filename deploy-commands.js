@@ -17,8 +17,16 @@ const commandFiles = fs
 
 // Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
 for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  commands.push(command.data.toJSON());
+  try {
+    const command = require(`./commands/${file}`);
+    if (command.data) {
+      commands.push(command.data.toJSON());
+    } else {
+      console.warn(`Command file ${file} is missing the "data" property.`);
+    }
+  } catch (error) {
+    console.error(`Error loading command file ${file}:`, error);
+  }
 }
 
 // Construct and prepare an instance of the REST module
