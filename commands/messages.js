@@ -1,46 +1,71 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const MessageCount = require("../models/messageCount");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("messages")
-    .setDescription("Get the number of messages sent by a user")
-    .addUserOption((option) =>
-      option
-        .setName("user")
-        .setDescription("The user to get the message count for")
-        .setRequired(true)
+    .setDescription("Manage the number of messages sent by a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("add")
+        .setDescription("Add messages to a user's message count")
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("The user to add messages to")
+            .setRequired(true)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("amount")
+            .setDescription("The number of messages to add")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("subtract")
+        .setDescription("Subtract messages from a user's message count")
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("The user to subtract messages from")
+            .setRequired(true)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("amount")
+            .setDescription("The number of messages to subtract")
+            .setRequired(true)
+        )
     ),
   async execute(interaction) {
-    const user = interaction.options.getUser("user");
-    const userId = user.id;
-    const guildId = interaction.guild.id;
+    await interaction.deferReply();
+    const subcommand = interaction.options.getSubcommand();
 
-    // Message count logic
-    try {
+    if (subcommand === "add" || subcommand === "subtract") {
+      const user = interaction.options.getUser("user");
+      const amount = interaction.options.getInteger("amount");
       const userId = user.id;
-      const userName = user.username;
       const guildId = interaction.guild.id;
-      await MessageCount.findOneAndUpdate(
-        { userId, guildId },
-        { $inc: { messageCount: 1 }, userName },
-        { new: true, upsert: true }
-      );
-    } catch (error) {
-      console.error("Error updating message count:", error);
-    }
 
-    // Retrieve message count
-    let messageCount = 0;
-    try {
-      const userRecord = await MessageCount.findOne({ userId, guildId });
-      messageCount = userRecord ? userRecord.messageCount : 0;
-    } catch (error) {
-      console.error("Error fetching message count:", error);
-    }
+      try {
+        await MessageCount.findOneAndUpdate(
+          { userId, guildId },
+          { $inc: { messageCount: subcommand === "add" ? amount : -amount } },
+          { new: true, upsert: true }
+        );
 
-    // Create and send embed
-    const message = `${user.username} has sent **${messageCount} messages** in this server.`;
-    await interaction.reply({ content: message });
+        await interaction.editReply(
+          `${
+            subcommand === "add" ? "Added" : "Subtracted"
+          } **${amount} messages** from **<@${userId}>** message count.`
+        );
+      } catch (error) {
+        console.error(`Error ${subcommand}ing messages:`, error);
+        await interaction.editReply(`Failed to ${subcommand} messages.`);
+      }
+    }
   },
 };
