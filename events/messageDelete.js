@@ -5,7 +5,7 @@ module.exports = {
     if (deletedMessage.author.bot) return;
 
     // Fetch the channel where you want to send the deleted messages
-    const channelId = "1243098977294090302"; // Replace with your channel ID
+    const channelId = "1243878147057782804"; // Replace with your channel ID
     const channel = deletedMessage.guild.channels.cache.get(channelId);
 
     // Check if the channel exists and the bot has permission to send messages

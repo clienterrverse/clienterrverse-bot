@@ -14,9 +14,12 @@ module.exports = {
       (member) => member.user.bot
     ).size;
 
-    // Respond with the member count including bots
+    // Get the server's name
+    const serverName = guild.name;
+
+    // Respond with the member count including bots and the server's name
     await interaction.reply(
-      `This server currently has **${memberCount} members**, including **${botCount} bots**.`
+      `**${serverName}** currently has **${memberCount} members**.`
     );
   },
 };

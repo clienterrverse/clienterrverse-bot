@@ -2,7 +2,6 @@ require("dotenv").config;
 const fs = require("node:fs");
 const path = require("node:path");
 const mongoose = require("mongoose");
-const MessageCount = require("./models/messageCount");
 
 // Require the necessary discord.js classes
 const { Client, GatewayIntentBits, Collection } = require("discord.js");
@@ -53,31 +52,12 @@ for (const file of commandFiles) {
   }
 }
 
-// Listen for the "messageCreate" event to update message counts
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-
-  try {
-    const userId = message.author.id;
-    const guildId = message.guild.id;
-
-    // Find the user's message count in the database
-    let messageCount = await MessageCount.findOne({ userId, guildId });
-
-    // If the user doesn't exist, create a new entry
-    if (!messageCount) {
-      messageCount = await MessageCount.create({
-        userId,
-        guildId,
-        messageCount: 1,
-      });
-    } else {
-      // If the user exists, increment their message count by 1
-      messageCount.messageCount++;
-      await messageCount.save();
+client.on("messageCreate", (message) => {
+  // Run the mention check for each message
+  for (const cmd of client.commands.values()) {
+    if (typeof cmd.checkMentions === "function") {
+      cmd.checkMentions(message);
     }
-  } catch (error) {
-    console.error("Error updating message count:", error);
   }
 });
 
@@ -91,6 +71,27 @@ client.on("messageCreate", (message) => {
     );
   }
 });
+
+// Regular expression to match the phrase "smash clienterr" ignoring case and special characters
+const clienterrregex = /smash\s*clienterr/i;
+
+client.on("messageCreate", (message) => {
+  if (clienterrregex.test(message.content)) {
+    message.reply(":speaking_head::fire:");
+  }
+});
+
+// Regular expression to match the phrase "promote clienterr" ignoring case and special characters
+const promoteregex = /promote\s*clienterr/i;
+
+client.on("messageCreate", (message) => {
+  if (promoteregex.test(message.content)) {
+    message.reply(
+      "https://tenor.com/view/promote-clienterr-fakepixel-koban-gif-10325616020765903574 "
+    );
+  }
+});
+
 mongoose
   .connect(database, {
     useNewUrlParser: true,
