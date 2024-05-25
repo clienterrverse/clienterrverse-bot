@@ -2,6 +2,7 @@ require("dotenv").config;
 const fs = require("node:fs");
 const path = require("node:path");
 const mongoose = require("mongoose");
+const MessageCount = require("./models/messageCount");
 
 // Require the necessary discord.js classes
 const { Client, GatewayIntentBits, Collection } = require("discord.js");
@@ -51,6 +52,34 @@ for (const file of commandFiles) {
     );
   }
 }
+
+// Listen for the "messageCreate" event to update message counts
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+
+  try {
+    const userId = message.author.id;
+    const guildId = message.guild.id;
+
+    // Find the user's message count in the database
+    let messageCount = await MessageCount.findOne({ userId, guildId });
+
+    // If the user doesn't exist, create a new entry
+    if (!messageCount) {
+      messageCount = await MessageCount.create({
+        userId,
+        guildId,
+        messageCount: 1,
+      });
+    } else {
+      // If the user exists, increment their message count by 1
+      messageCount.messageCount++;
+      await messageCount.save();
+    }
+  } catch (error) {
+    console.error("Error updating message count:", error);
+  }
+});
 
 // Regular expression to match the phrase "how to tame koban" ignoring case and special characters
 const kobanRegex = /how\s*to\s*tame\s*koban/i;
