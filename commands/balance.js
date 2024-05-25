@@ -8,8 +8,9 @@ module.exports = {
     const { ClienterrCoins } = profileData;
     const username = interaction.user.username;
 
-    await interaction.reply(
-      `${username} has ${ClienterrCoins} clienterr coins.`
-    );
+    await interaction.reply({
+      content: `${username} has ${ClienterrCoins} clienterr coins.`,
+      ephemeral: true,
+    });
   },
 };
