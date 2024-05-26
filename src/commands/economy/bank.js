@@ -1,14 +1,13 @@
-
 /** @format */
 
 import { SlashCommandBuilder } from 'discord.js';
-
 import { Balance } from '../../schemas/economy.js';
+
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("balance")
-    .setDescription("Check your balance.")
+    .setName("bank")
+    .setDescription("Check your bank balance.")
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
@@ -30,11 +29,11 @@ export default {
         await userBalance.save();
       }
 
-      // Reply with the user's balance and bank balance
-      await interaction.reply(`Your balance is ${userBalance.balance} and your bank balance is ${userBalance.bank}.`);
+      // Reply with the user's bank balance
+      await interaction.reply(`Your bank balance is ${userBalance.bank}.`);
     } catch (error) {
-      console.error('Error fetching balance:', error);
-      await interaction.reply('There was an error trying to fetch your balance.');
+      console.error('Error fetching bank balance:', error);
+      await interaction.reply('There was an error trying to fetch your bank balance.');
     }
   },
 };
