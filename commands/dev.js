@@ -29,6 +29,17 @@ module.exports = {
         .setDescription(
           "List all servers the bot is in with their invite links"
         )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("leave")
+        .setDescription("Make the bot leave a server by its ID")
+        .addStringOption((option) =>
+          option
+            .setName("id")
+            .setDescription("The ID of the server to leave")
+            .setRequired(true)
+        )
     ),
   async execute(interaction) {
     if (interaction.user.id !== DEVELOPER_ID) {
@@ -110,6 +121,34 @@ module.exports = {
       } catch (error) {
         console.error(error);
         await interaction.reply("Failed to retrieve server list.");
+      }
+    }
+
+    if (devSubcommand === "leave") {
+      const guildId = interaction.options.getString("id");
+      const guild = interaction.client.guilds.cache.get(guildId);
+
+      if (!guild) {
+        return interaction.reply({
+          content: `I am not a member of a server with ID: ${guildId}`,
+          ephemeral: true,
+        });
+      }
+
+      try {
+        await guild.leave();
+        return interaction.reply({
+          content: `Successfully left the server: ${guild.name} (ID: ${guild.id})`,
+          ephemeral: true,
+        });
+      } catch (error) {
+        console.error(
+          `Failed to leave guild: ${guild.name} (ID: ${guild.id}) due to ${error}`
+        );
+        return interaction.reply({
+          content: `Failed to leave the server: ${guild.name} (ID: ${guild.id}). Please try again later.`,
+          ephemeral: true,
+        });
       }
     }
   },
