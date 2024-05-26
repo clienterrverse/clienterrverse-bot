@@ -1,6 +1,6 @@
 /** @format */
 
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder ,EmbedBuilder} from 'discord.js';
 import { Balance ,Transaction} from '../../schemas/economy.js';
 
 
@@ -62,7 +62,7 @@ export default {
         .setDescription(`You have deposited ${amount} coins into your bank.`)
         .setColor('#00FF00')
         .setFooter({
-          text: `Requested by ${interaction.user.username}`,
+          text: `Deposit by ${interaction.user.username}`,
           iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
         })
         .setTimestamp();

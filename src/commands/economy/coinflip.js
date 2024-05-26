@@ -1,7 +1,8 @@
 /** @format */
 
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder ,EmbedBuilder} from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
+import mconfig from "../../config/messageConfig.json" assert { type: 'json' };
 
 export default {
   data: new SlashCommandBuilder()
@@ -53,20 +54,28 @@ export default {
 
       // Determine the outcome of the coinflip
       let outcome;
+      let color;
       if (rollResult === coinResult) {
         userBalance.balance += gambleAmount;
         outcome = 'You won!';
+        color = mconfig.embedColorSuccess;
+
       } else {
         userBalance.balance -= gambleAmount;
         outcome = 'You lost.';
+        color = mconfig.embedColorError;
       }
 
       // Save the updated balance to the database
       await userBalance.save();
+      const embed = new EmbedBuilder()
+        .setDescription(`${outcome} The coin landed on ${coinResult}. Your new balance is ${userBalance.balance} coins.`)
+        .setColor(color)
+
+
 
       // Reply with the outcome of the coinflip
-      await interaction.reply(`${outcome} The coin landed on ${coinResult}. Your new balance is ${userBalance.balance} coins.`);
-    } catch (error) {
+      await interaction.reply({ embeds: [embed] });    } catch (error) {
       console.error('Error processing coinflip command:', error);
       await interaction.reply('There was an error trying to process your coinflip.');
     }
