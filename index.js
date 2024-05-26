@@ -75,12 +75,25 @@ client.on("messageCreate", (message) => {
   }
 });
 
+// Regular expression to match the phrase "how to tame koban" ignoring case and special characters
+const topregex = /clienterrverse\s*on\s*top/i;
+
+client.on("messageCreate", (message) => {
+  if (topregex.test(message.content)) {
+    message.reply(
+      "https://tenor.com/view/clienterrverse-clienterr-fakepixel-kobe-gif-3978810040281653181"
+    );
+  }
+});
+
 // Regular expression to match the phrase "smash clienterr" ignoring case and special characters
 const clienterrregex = /smash\s*clienterr/i;
 
 client.on("messageCreate", (message) => {
   if (clienterrregex.test(message.content)) {
-    message.reply(":speaking_head::fire:");
+    message.reply(
+      "https://tenor.com/view/rule-1-fakepixel-rule-clienterr-clienterr-smash-fakepixel-gif-11287819569727263061"
+    );
   }
 });
 
