@@ -7,7 +7,6 @@
     "start": "node --no-warnings src/index.js",
     "dev": "nodemon src/index.js"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/clienterrverse/clienterrverse_economy.git"
@@ -20,7 +19,9 @@
   "homepage": "https://github.com/clienterrverse/clienterrverse_economy#readme",
   "description": "",
   "dependencies": {
+    "axios": "^1.7.2",
     "colors": "^1.4.0",
+    "date-fns": "^3.6.0",
     "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",
     "mongodb": "^6.6.2",
