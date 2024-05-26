@@ -1,5 +1,5 @@
 import path from 'path';
-import getAllFiles from './getAllFiles.js';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { fileURLToPath } from 'url';
 
 
@@ -11,7 +11,11 @@ export default async(exepctions = []) => {
   const buttonFiles = getAllFiles(path.join(__dirname, "..", "buttons"));
 
   for (const buttonFile of buttonFiles) {
-    const buttonObject = await import(buttonFile);
+    const buttonFileURL = pathToFileURL(buttonFile).href;
+
+
+
+    const {default: buttonObject} = await import(buttonFileURL);
 
     if (exepctions.includes(buttonObject.name)) continue;
     buttons.push(buttonObject);

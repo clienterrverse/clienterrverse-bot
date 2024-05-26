@@ -1,4 +1,5 @@
 import 'colors';
+import path from 'path'; // Import the path module
 import commandComparing from '../../utils/commandComparing.js';
 import getApplicationCommands from '../../utils/getApplicationCommands.js';
 import getLocalCommands from '../../utils/getLocalCommands.js';

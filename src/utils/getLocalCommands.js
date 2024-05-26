@@ -1,12 +1,12 @@
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import getAllFiles from './getAllFiles.js';
 
 // Get the directory name of the current module's file
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default async (exceptions = []) => {
-  let localCommands = [];
+  const localCommands = [];
   const commandCategories = getAllFiles(path.join(__dirname, '..', 'commands'), true);
 
   for (const commandCategory of commandCategories) {
@@ -14,12 +14,24 @@ export default async (exceptions = []) => {
 
     for (const commandFile of commandFiles) {
       try {
-        // Dynamically import the module and get the default export
-        const commandObject = await import(commandFile);
+        // Convert the command file path to a file URL
+        const commandFileURL = pathToFileURL(commandFile).href;
+
+        // Dynamically import the module using the file URL
+        const commandModule = await import(commandFileURL);
         
-        // Check if the commandObject has a name property
-        if (!exceptions.includes(commandObject.default.name)) {
-          localCommands.push(commandObject.default);
+        // Check if the module has a default export
+        if (commandModule.default) {
+          const commandObject = commandModule.default;
+          
+          // Check if the commandObject has a name property
+          if (commandObject.data && commandObject.data.name && !exceptions.includes(commandObject.data.name)) {
+            localCommands.push(commandObject);
+          } else {
+            console.warn(`Command file ${commandFile} does not have a valid name property.`);
+          }
+        } else {
+          console.warn(`Command file ${commandFile} does not have a default export.`);
         }
   
       } catch (error) {
