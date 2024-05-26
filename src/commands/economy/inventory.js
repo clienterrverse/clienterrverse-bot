@@ -1,5 +1,3 @@
-/** @format */
-
 import { SlashCommandBuilder } from 'discord.js';
 import { Inventory, Item } from '../../schemas/economy.js';
 
@@ -38,16 +36,19 @@ export default {
 
       const itemDetails = await Promise.all(itemDetailsPromises);
 
-      // Build the response message
-      let response = 'Your inventory:\n';
-      itemDetails.forEach(item => {
-        response += `**${item.name}**\n`;
-        response += `Quantity: ${item.quantity}\n`;
-        response += `Description: ${item.description}\n\n`;
-      });
+      // Build the response as an Embed
+      const embed = {
+        color: 0x00ff00, // Green color for positive response
+        title: 'Your Inventory',
+        description: 'Here is a list of items in your inventory:',
+        fields: itemDetails.map(item => ({
+          name: item.name,
+          value: `Quantity: ${item.quantity}\nDescription: ${item.description}`,
+        })),
+      };
 
-      // Reply with the user's inventory
-      interaction.reply(response);
+      // Reply with the user's inventory as an Embed
+      interaction.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Error fetching inventory:', error);
       interaction.reply('There was an error trying to fetch your inventory.');

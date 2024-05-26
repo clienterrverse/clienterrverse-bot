@@ -1,6 +1,6 @@
 /** @format */
 
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
 
 export default {
@@ -24,18 +24,31 @@ export default {
         userBalance = new Balance({ userId });
       }
 
-      const crimeOutcome = Math.random() < 0.5; // 50% chance of success
-      const amount = Math.floor(Math.random() * 30) + 1; // Random amount between 1 and 1000
+      const crimeOutcome = Math.random() < 0.6;
+      const amount = Math.floor(Math.random() * 30) + 1; 
+
+      let crimeMessage = '';
 
       if (crimeOutcome) {
         userBalance.balance += amount;
-        interaction.reply(`Success! You committed a crime and earned ${amount} coins. Your new balance is ${userBalance.balance} coins.`);
+        crimeMessage = `Success! You committed a crime and earned ${amount} coins. Your new balance is ${userBalance.balance} coins.`;
       } else {
         userBalance.balance -= amount;
-        interaction.reply(`Failure! You got caught and lost ${amount} coins. Your new balance is ${userBalance.balance} coins.`);
+        crimeMessage = `Failure! You got caught and lost ${amount} coins. Your new balance is ${userBalance.balance} coins.`;
       }
 
       await userBalance.save();
+
+      const color = crimeOutcome ? '#00FF00' : '#FF0000';
+
+      const rEmbed = new EmbedBuilder()
+      .setColor(color)
+      .setTitle('Crime Commitment')
+      .setDescription(crimeMessage)
+
+      await interaction.reply({ embeds: [rEmbed] });
+
+
     } catch (error) {
       console.error('Error processing crime command:', error);
       interaction.reply('There was an error processing your crime.');
