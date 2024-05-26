@@ -107,6 +107,7 @@ export default async (client, interaction) => {
     await commandObject.run(client, interaction);
 
     // Command Logging
+    console.log(`Command executed: ${interaction.commandName} by ${interaction.member.user.tag}`);
 
   } catch (err) {
     console.error(`An error occurred while validating chat input commands! ${err}`.red);

@@ -1,7 +1,7 @@
 /** @format */
 
 import { SlashCommandBuilder } from 'discord.js';
-import profileModel from "../../schemas/profileSchema.js";
+import User from "../../schemas/user.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -17,21 +17,24 @@ export default {
 
   run: async (client, interaction) => {
     try {
-      const profileData = await profileModel.findOne({ userId: interaction.user.id });
+      const userId = interaction.user.id;
 
-      const { ClienterrCoins } = profileData;
-      const username = interaction.user.username;
+      // Find the user in the database
+      const user = await User.findOne({ id: userId });
 
+      if (!user) {
+        await interaction.reply({ content: "You are not registered yet.", ephemeral: true });
+        return;
+      }
+
+      // Respond with the user's balance
       await interaction.reply({
-        content: `${username} has ${ClienterrCoins} clienterr coins.`,
-        ephemeral: true,
+        content: `Your balance: ${user.clienterrcoins} clienterr coins`,
+        ephemeral: true
       });
     } catch (error) {
-      console.error("An error occurred while fetching profile data:", error);
-      await interaction.reply({
-        content: "An error occurred while fetching your balance. Please try again later.",
-        ephemeral: true,
-      });
+      console.error("An error occurred while fetching user balance:", error);
+      await interaction.reply({ content: "An error occurred while fetching your balance.", ephemeral: true });
     }
   },
 };

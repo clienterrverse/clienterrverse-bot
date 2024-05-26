@@ -2,6 +2,7 @@ import 'colors';
 import mongoose from 'mongoose';
 import { ActivityType } from 'discord.js';
 
+
 const mongoURI = process.env.MONGODB_TOKEN;
 
 export default async (client) => {
@@ -17,8 +18,8 @@ export default async (client) => {
       return;
     }
 
-    // Configure mongoose to use strict query mode
     mongoose.set("strictQuery", true);
+
     await mongoose.connect(mongoURI);
 
     console.log(`Connected to the MongoDB database.`.green);
