@@ -1,4 +1,9 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  PermissionFlagsBits,
+} = require("discord.js");
+const profileModel = require("../models/profileSchema");
 
 const DEVELOPER_ID = "1215648186643906643"; // Replace with the developer's Discord ID
 
@@ -39,6 +44,43 @@ module.exports = {
             .setName("id")
             .setDescription("The ID of the server to leave")
             .setRequired(true)
+        )
+    )
+    // Admin commands
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("addcoins")
+        .setDescription("Add clienterr coins to a user's balance")
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("The user you want to add clienterr coins to")
+            .setRequired(true)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("amount")
+            .setDescription("The amount of clienterr coins to add")
+            .setRequired(true)
+            .setMinValue(1)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("removecoins")
+        .setDescription("Remove clienterr coins from a user's balance")
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("The user you want to remove clienterr coins from")
+            .setRequired(true)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("amount")
+            .setDescription("The amount of clienterr coins to remove")
+            .setRequired(true)
+            .setMinValue(1)
         )
     ),
   async execute(interaction) {
@@ -147,6 +189,55 @@ module.exports = {
         );
         return interaction.reply({
           content: `Failed to leave the server: ${guild.name} (ID: ${guild.id}). Please try again later.`,
+          ephemeral: true,
+        });
+      }
+    }
+
+    // Admin commands logic
+    if (devSubcommand === "addcoins") {
+      const user = interaction.options.getUser("user");
+      const amount = interaction.options.getInteger("amount");
+
+      try {
+        const profile = await profileModel.findOneAndUpdate(
+          { userId: user.id },
+          { $inc: { ClienterrCoins: amount } },
+          { new: true }
+        );
+
+        await interaction.reply({
+          content: `Added ${amount} coins to ${user.username}'s balance. New balance: ${profile.ClienterrCoins}`,
+          ephemeral: true,
+        });
+      } catch (error) {
+        console.error("Error adding coins:", error);
+        await interaction.reply({
+          content: "Failed to add coins to the user's balance.",
+          ephemeral: true,
+        });
+      }
+    }
+
+    if (devSubcommand === "removecoins") {
+      const user = interaction.options.getUser("user");
+      const amount = interaction.options.getInteger("amount");
+
+      try {
+        const profile = await profileModel.findOneAndUpdate(
+          { userId: user.id },
+          { $inc: { ClienterrCoins: -amount } },
+          { new: true }
+        );
+
+        await interaction.reply({
+          content: `Removed ${amount} coins from ${user.username}'s balance. New balance: ${profile.ClienterrCoins}`,
+          ephemeral: true,
+        });
+      } catch (error) {
+        console.error("Error removing coins:", error);
+        await interaction.reply({
+          content: "Failed to remove coins from the user's balance.",
           ephemeral: true,
         });
       }
