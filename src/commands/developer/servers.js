@@ -35,17 +35,15 @@ export default {
 
     if (subcommand === "list") {
       try {
-        // Defer the reply to give the bot time to fetch the data
         await interaction.deferReply();
 
-        // Fetch the guilds the bot is in
         const guilds = await Promise.all(
           client.guilds.cache.map(async (guild) => {
             let inviteLink = "No invite link available";
             try {
               const invite = await guild.systemChannel.createInvite({
-                maxAge: 0, // Permanent invite
-                maxUses: 0, // Unlimited uses
+                maxAge: 0,
+                maxUses: 0,
               });
               inviteLink = invite.url;
             } catch (error) {
@@ -63,28 +61,25 @@ export default {
           })
         );
 
-        // Check if there are any guilds
         if (guilds.length === 0) {
           return await interaction.editReply("The bot is not in any servers.");
         }
 
-        // Create an embed to display the server information
         const embed = new EmbedBuilder()
           .setTitle("Servers List")
           .setDescription(`The bot is in **${guilds.length}** servers.`)
           .setColor("#00FF00")
           .setThumbnail(client.user.displayAvatarURL())
           .setFooter({
-            text: `Requested by ${interaction.user.username}`, // Set the footer text as the username of the requester
+            text: `Requested by ${interaction.user.username}`,
             iconURL: interaction.user.displayAvatarURL({
               format: "png",
               dynamic: true,
               size: 1024,
-            }), // Set the footer icon as the requester's avatar
+            }),
           });
 
-        // Add fields to the embed in batches to avoid exceeding Discord's limits
-        const MAX_FIELDS = 25; // Discord's limit is 25 fields per embed
+        const MAX_FIELDS = 25;
         let fieldCount = 0;
         guilds.forEach((guild) => {
           if (fieldCount >= MAX_FIELDS) {
@@ -100,7 +95,6 @@ export default {
           fieldCount++;
         });
 
-        // Send the final embed
         await interaction.editReply({ embeds: [embed] });
       } catch (error) {
         console.error(
@@ -115,10 +109,8 @@ export default {
       const serverId = interaction.options.getString("server-id");
 
       try {
-        // Fetch the guild by ID
         const guild = client.guilds.cache.get(serverId);
 
-        // If the guild is not found, send an error message
         if (!guild) {
           return await interaction.reply({
             content: `I am not in a server with the ID ${serverId}.`,
@@ -126,10 +118,8 @@ export default {
           });
         }
 
-        // Leave the guild
         await guild.leave();
 
-        // Reply to the interaction
         await interaction.reply({
           content: `I have left the server **${guild.name}** (ID: ${serverId}).`,
           ephemeral: true,
