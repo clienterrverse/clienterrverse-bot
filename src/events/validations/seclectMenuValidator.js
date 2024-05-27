@@ -1,22 +1,23 @@
 import 'colors';
-import { EmbedBuilder } from 'discord.js';
+import { Client, EmbedBuilder } from 'discord.js';
 import config from '../../config/config.json' assert { type: 'json' };
 import mConfig from '../../config/messageConfig.json' assert { type: 'json' };
-import getModals from '../../utils/getModals.js';
+import getSelects from '../../utils/getSelects.js';
+
+
 
 export default async (client, interaction) => {
-  if (!interaction.isModalSubmit()) return;
-  const modals = await getModals();
+  if (!interaction.isAnySelectMenu()) return;
+  const selects = await getSelects();
   const { developersId, testServerId } = config;
 
-
   try {
-    const modalObject = modals.find(
-      (modal) => modal.customId === interaction.customId
+    const selectObject = selects.find(
+      (select) => select.customId === interaction.customId
     );
-    if (!modalObject) return;
+    if (!selectObject) return;
 
-    if (modalObject.devOnly) {
+    if (selectObject.devOnly) {
       if (!developersId.includes(interaction.member.id)) {
         const rEmbed = new EmbedBuilder()
           .setColor(`${mConfig.embedColorError}`)
@@ -26,7 +27,7 @@ export default async (client, interaction) => {
       }
     }
 
-    if (modalObject.testMode) {
+    if (selectObject.testMode) {
       if (interaction.guild.id !== testServerId) {
         const rEmbed = new EmbedBuilder()
           .setColor(`${mConfig.embedColorError}`)
@@ -36,8 +37,8 @@ export default async (client, interaction) => {
       }
     }
 
-    if (modalObject.userPermissions?.length) {
-      for (const permission of modalObject.userPermissions) {
+    if (selectObject.userPermissions?.length) {
+      for (const permission of selectObject.userPermissions) {
         if (interaction.member.permissions.has(permission)) {
           continue;
         }
@@ -49,8 +50,8 @@ export default async (client, interaction) => {
       }
     }
 
-    if (modalObject.botPermissions?.length) {
-      for (const permission of modalObject.botPermissions) {
+    if (selectObject.botPermissions?.length) {
+      for (const permission of selectObject.botPermissions) {
         const bot = interaction.guild.members.me;
         if (bot.permissions.has(permission)) {
           continue;
@@ -63,10 +64,20 @@ export default async (client, interaction) => {
       }
     }
 
-    await modalObject.run(client, interaction);
+    if (interaction.message.interaction) {
+        if (interaction.message.interaction.user.id !== interaction.user.id) {
+          const rEmbed = new EmbedBuilder()
+            .setColor(`${mConfig.embedColorError}`)
+            .setDescription(`${mConfig.cannotUseSelect}`);
+          interaction.reply({ embeds: [rEmbed], ephemeral: true });
+          return;
+        };
+      };
+
+    await selectObject.run(client, interaction);
   } catch (err) {
     console.log(
-      `An error occurred while validating modal commands! ${err}`.red
+      `An error occurred while validating select menus! ${err}`.red
     );
   }
 };

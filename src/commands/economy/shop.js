@@ -1,22 +1,12 @@
 /** @format */
 
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { Item, Inventory, Balance } from '../../schemas/economy.js';
+import { SlashCommandBuilder, StringSelectMenuBuilder, ActionRowBuilder, EmbedBuilder } from 'discord.js';
+import { Item } from '../../schemas/economy.js';
 
 export default {
   data: new SlashCommandBuilder()
     .setName('shop')
     .setDescription('Buy items from the shop.')
-    .addStringOption(option =>
-      option.setName('item')
-        .setDescription('The ID of the item you want to buy.')
-        .setRequired(true)
-    )
-    .addIntegerOption(option =>
-      option.setName('quantity')
-        .setDescription('The quantity of the item you want to buy.')
-        .setRequired(true)
-    )
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
@@ -28,66 +18,45 @@ export default {
   run: async (client, interaction) => {
     try {
       const userId = interaction.user.id;
-      const itemId = interaction.options.getString('item');
-      const quantity = interaction.options.getInteger('quantity');
 
-      const item = await Item.findOne({ itemId });
-      if (!item) {
-        return interaction.reply('Item not found.');
+      // Fetch items from the database
+      const items = await Item.find();
+
+      if (items.length === 0) {
+        return interaction.reply('No items available in the shop.');
       }
 
-      const cost = item.price * quantity;
-      let userBalance = await Balance.findOne({ userId });
+      // Create a select menu with items from the database
+      const shopSSM = new StringSelectMenuBuilder()
+        .setCustomId('shop')
+        .setPlaceholder('Select an item to buy')
+        .addOptions(
+          items.map(item => ({
+            label: item.name,
+            description: `${item.description} - ${item.price} clienterr coin(s)`,
+            value: item.itemId,
+          }))
+        );
 
-      if (!userBalance || userBalance.balance < cost) {
-        const embed = new EmbedBuilder()
-          .setColor('#FF0000')
-          .setTitle('Purchase Failed')
-          .setDescription('You do not have enough balance to buy this item.')
-          .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
-          .setTimestamp();
-        return interaction.reply({ embeds: [embed] });
-      }
+      const row = new ActionRowBuilder().addComponents(shopSSM);
 
-      userBalance.balance -= cost;
-      await userBalance.save();
-
-      let userInventory = await Inventory.findOne({ userId });
-      if (!userInventory) {
-        userInventory = new Inventory({ userId, items: [] });
-      }
-
-      const inventoryItem = userInventory.items.find(i => i.itemId === itemId);
-      if (inventoryItem) {
-        inventoryItem.quantity += quantity;
-      } else {
-        userInventory.items.push({ itemId, quantity });
-      }
-
-      await userInventory.save();
-
+      // Send the select menu to the user
       const embed = new EmbedBuilder()
-        .setColor('#00FF00')
-        .setTitle('Purchase Successful')
-        .setDescription(`You have successfully bought ${quantity} ${item.name}(s) for ${cost} clienterr  clienterr coin.`)
-        .addFields(
-          { name: 'Item Name', value: item.name, inline: true },
-          { name: 'Quantity', value: quantity.toString(), inline: true },
-          { name: 'Total Cost', value: `${cost}  clienterr coin`, inline: true }
-        )
-        .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
-        .setTimestamp();
+        .setColor('#00acee')
+        .setTitle('Shop')
+        .setDescription('Select an item to buy from the menu below.');
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.reply({ embeds: [embed], components: [row] , ephemeral: true});
+
     } catch (error) {
       console.error('Error processing shop command:', error);
       const embed = new EmbedBuilder()
         .setColor('#FF0000')
         .setTitle('Error')
-        .setDescription('There was an error processing your purchase.')
+        .setDescription('There was an error processing your request.')
         .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
-      await interaction.reply({ embeds: [embed] });
+      await interaction.reply({ embeds: [embed] , ephemeral: true});
     }
   },
 };
