@@ -47,10 +47,7 @@ export default {
               });
               inviteLink = invite.url;
             } catch (error) {
-              console.error(
-                `Could not create invite for guild ${guild.id}:`,
-                error
-              );
+              console.error(`Could not create invite for guild ${guild.id}:`, error);
             }
             return {
               name: guild.name,
@@ -72,22 +69,20 @@ export default {
           .setThumbnail(client.user.displayAvatarURL())
           .setFooter({
             text: `Requested by ${interaction.user.username}`,
-            iconURL: interaction.user.displayAvatarURL({
-              format: "png",
-              dynamic: true,
-              size: 1024,
-            }),
+            iconURL: interaction.user.displayAvatarURL({ format: "png", dynamic: true, size: 1024 }),
           });
 
         const MAX_FIELDS = 25;
         let fieldCount = 0;
+        let currentEmbed = new EmbedBuilder(embed);
+
         guilds.forEach((guild) => {
           if (fieldCount >= MAX_FIELDS) {
+            interaction.followUp({ embeds: [currentEmbed] });
+            currentEmbed = new EmbedBuilder(embed);
             fieldCount = 0;
-            interaction.followUp({ embeds: [embed] });
-            embed.setFields([]);
           }
-          embed.addFields({
+          currentEmbed.addFields({
             name: guild.name,
             value: `ID: ${guild.id}\nMembers: ${guild.memberCount}\n[Invite Link](${guild.inviteLink})`,
             inline: true,
@@ -95,15 +90,10 @@ export default {
           fieldCount++;
         });
 
-        await interaction.editReply({ embeds: [embed] });
+        await interaction.editReply({ embeds: [currentEmbed] });
       } catch (error) {
-        console.error(
-          "Error fetching servers or creating invite links:",
-          error
-        );
-        await interaction.editReply(
-          "There was an error trying to fetch the server list or create invite links."
-        );
+        console.error("Error fetching servers or creating invite links:", error);
+        await interaction.editReply("There was an error trying to fetch the server list or create invite links.");
       }
     } else if (subcommand === "leave") {
       const serverId = interaction.options.getString("server-id");
