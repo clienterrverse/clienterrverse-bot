@@ -41,7 +41,7 @@ export default {
       const begEmbed = new EmbedBuilder()
         .setColor('#00FF00') // Green color to indicate success
         .setTitle('Begging Results')
-        .setDescription(`${emoji} You begged and received ${amount} clienterr clienterr clienterr clienterr clienterr coins!`)
+        .setDescription(`${emoji} You begged and received ${amount} clienterr coins!`)
         .addFields(
           { name: 'New Balance', value: `${userBalance.balance} clienterr coins`, inline: true }
         )

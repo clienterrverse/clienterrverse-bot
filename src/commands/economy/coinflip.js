@@ -35,6 +35,7 @@ export default {
       const userId = interaction.user.id;
       const rollResult = interaction.options.getString('roll_result');
       const gambleAmount = interaction.options.getInteger('gamble_amount');
+      const hourlyCooldown = 60 * 60 * 1000; // 1 hour in milliseconds
 
       // Fetch the user's balance from the database
       let userBalance = await Balance.findOne({ userId });
@@ -42,6 +43,14 @@ export default {
       // If the user does not exist in the database, create a new entry
       if (!userBalance) {
         userBalance = new Balance({ userId });
+      }
+
+      const now = Date.now();
+      if (userBalance.lastcoin && (now - userBalance.lastcoin.getTime()) < hourlyCooldown) {
+        const timeLeft = hourlyCooldown - (now - userBalance.lastcoin.getTime());
+        const minutes = Math.floor(timeLeft / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+        return interaction.reply(`You have already flipped a coin in this hour. Please try again in ${minutes} minutes and ${seconds} seconds.`);
       }
 
       // Check if the user has enough balance to gamble
@@ -54,22 +63,23 @@ export default {
       }
 
       // Generate a random result (heads or tails)
-      const  coinResult = Math.random() < 0.5 ? 'heads' : 'tails';
+      const coinResult = Math.random() < 0.5 ? 'heads' : 'tails';
 
       // Determine the outcome of the clienterr coinflip
       let outcome;
       let color;
       if (rollResult === coinResult) {
         userBalance.balance += gambleAmount;
-        outcome = 'You won!';
+        outcome = `You won ${gambleAmount} clienterr coins!`;
         color = mconfig.embedColorSuccess;
       } else {
         userBalance.balance -= gambleAmount;
-        outcome = 'You lost.';
+        outcome = `You lost ${gambleAmount} clienterr coins.`;
         color = mconfig.embedColorError;
       }
 
-      // Save the updated balance to the database
+      // Save the updated balance and last coin flip time to the database
+      userBalance.lastcoin = new Date();
       await userBalance.save();
 
       const embed = new EmbedBuilder()

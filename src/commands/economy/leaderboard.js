@@ -1,5 +1,7 @@
+/** @format */
+
 import { SlashCommandBuilder } from 'discord.js';
-import { Balance } from '../../schemas/economy.js' ;
+import { Balance } from '../../schemas/economy.js';
 import pagination from '../../utils/buttonPagination.js';
 
 export default {
@@ -16,22 +18,42 @@ export default {
 
   run: async (client, interaction) => {
     try {
-      // Fetch user balances from the database
-      const balances = await Balance.find().sort({ balance: -1 }).limit(10); // Limit to top 10 balances
+      // Fetch user balances from the database, sorted by balance in descending order
+      const balances = await Balance.find().sort({ balance: -1 }).limit(100); // Fetch top 100 for pagination
 
       if (balances.length === 0) {
         return interaction.reply('No users found in the leaderboard.');
       }
 
-      // Build the leaderboard message
-      let response = 'Leaderboard:\n';
-      balances.forEach((balance, index) => {
-        const user = client.users.cache.get(balance.userId);
-        response += `${index + 1}. ${user ? user.tag : 'Unknown User'}: ${balance.balance} clienterr coinnterr coins\n`;
-      });
+      // Fetch user details for users not in the cache
+      const fetchUserDetails = async (userId) => {
+        try {
+          const user = await client.users.fetch(userId);
+          return user.tag;
+        } catch {
+          return 'Unknown User';
+        }
+      };
 
-      // Create an array of embed pages if the leaderboard has more than 10 users
-      const pages = [{ description: response, color: 0x00ff00 }]; // Green color represented as an integer
+      // Create an array to hold the leaderboard entries
+      const leaderboardEntries = await Promise.all(
+        balances.map(async (balance, index) => {
+          const user = client.users.cache.get(balance.userId);
+          const userTag = user ? user.tag : await fetchUserDetails(balance.userId);
+          return `${index + 1}. ${userTag}: ${balance.balance} clienterr coins\n`;
+        })
+      );
+
+      // Split leaderboard entries into pages of 10 entries each
+      const itemsPerPage = 10;
+      const pages = [];
+      for (let i = 0; i < leaderboardEntries.length; i += itemsPerPage) {
+        const pageContent = leaderboardEntries.slice(i, i + itemsPerPage).join('');
+        pages.push({
+          description: pageContent,
+          color: 0x00ff00, // Green color
+        });
+      }
 
       // Use pagination to display the leaderboard
       await pagination(interaction, pages);
