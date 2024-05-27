@@ -8,7 +8,7 @@ export default {
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 5,
+  cooldown: 3600,
   nwfwMode: false,
   testMode: false,
   devOnly: false,
