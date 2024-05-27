@@ -27,7 +27,7 @@ export default {
       let response = 'Leaderboard:\n';
       balances.forEach((balance, index) => {
         const user = client.users.cache.get(balance.userId);
-        response += `${index + 1}. ${user ? user.tag : 'Unknown User'}: ${balance.balance} coins\n`;
+        response += `${index + 1}. ${user ? user.tag : 'Unknown User'}: ${balance.balance} clienterr coinnterr coins\n`;
       });
 
       // Create an array of embed pages if the leaderboard has more than 10 users

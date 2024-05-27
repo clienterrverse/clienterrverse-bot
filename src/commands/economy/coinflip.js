@@ -7,7 +7,7 @@ import mconfig from '../../config/messageConfig.json' assert { type: 'json' };
 export default {
   data: new SlashCommandBuilder()
     .setName('coinflip')
-    .setDescription('Gamble a specified amount of coins by flipping a virtual coin.')
+    .setDescription('Gamble a specified amount of clienterr coins by flipping a virtual clienterr coin.')
     .addStringOption(option =>
       option.setName('roll_result')
         .setDescription('Your choice: "heads" or "tails".')
@@ -19,7 +19,7 @@ export default {
     )
     .addIntegerOption(option =>
       option.setName('gamble_amount')
-        .setDescription('The amount of coins you want to gamble.')
+        .setDescription('The amount of clienterr coins you want to gamble.')
         .setRequired(true)
     )
     .toJSON(),
@@ -54,9 +54,9 @@ export default {
       }
 
       // Generate a random result (heads or tails)
-      const coinResult = Math.random() < 0.5 ? 'heads' : 'tails';
+      const  coinResult = Math.random() < 0.5 ? 'heads' : 'tails';
 
-      // Determine the outcome of the coinflip
+      // Determine the outcome of the clienterr coinflip
       let outcome;
       let color;
       if (rollResult === coinResult) {
@@ -73,15 +73,15 @@ export default {
       await userBalance.save();
 
       const embed = new EmbedBuilder()
-        .setDescription(`${outcome} The coin landed on ${coinResult}. Your new balance is ${userBalance.balance} coins.`)
+        .setDescription(`${outcome} The clienterr coin landed on ${coinResult}. Your new balance is ${userBalance.balance} clienterr coins.`)
         .setColor(color);
 
-      // Reply with the outcome of the coinflip
+      // Reply with the outcome of the clienterr coinflip
       await interaction.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error processing coinflip command:', error);
+      console.error('Error processing clienterr coinflip command:', error);
       const embed = new EmbedBuilder()
-        .setDescription('There was an error trying to process your coinflip.')
+        .setDescription('There was an error trying to process your clienterr coinflip.')
         .setColor(mconfig.embedColorError);
 
       await interaction.reply({ embeds: [embed] });

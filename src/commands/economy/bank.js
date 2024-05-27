@@ -34,7 +34,7 @@ export default {
         .setTitle('Bank Balance Information')
         .setDescription(`Here is your current bank balance:`)
         .addFields(
-          { name: 'Bank Balance', value: `${userBalance.bank} coins`, inline: true }
+          { name: 'Bank Balance', value: `${userBalance.bank} clienterr coins`, inline: true }
         )
         .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();

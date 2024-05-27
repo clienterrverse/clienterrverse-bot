@@ -1,5 +1,3 @@
-/** @format */
-
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
 
@@ -51,7 +49,7 @@ export default {
       // Create an embed to display the reward information
       const embed = new EmbedBuilder()
         .setTitle('Hourly Reward')
-        .setDescription(`${emoji} You have claimed your hourly reward of ${amount} coins!`)
+        .setDescription(`${emoji} You have claimed your hourly reward of ${amount} clienterr coins!`)
         .setColor('#00FF00')
         .setFooter({
           text: `Requested by ${interaction.user.username}`,

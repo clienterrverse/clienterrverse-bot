@@ -1,5 +1,3 @@
-/** @format */
-
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
 
@@ -9,7 +7,7 @@ export default {
     .setDescription('Commit a crime and risk it all.'),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 3600, // 1 hour cooldown
+  cooldown: 60, // 1 hour cooldown
   nsfwMode: false,
   testMode: false,
   devOnly: false,
@@ -33,11 +31,12 @@ export default {
 
       if (crimeOutcome) {
         userBalance.balance += amount;
-        crimeMessage = `Success! You committed a crime and earned ${amount} coins. Your new balance is ${userBalance.balance} coins.`;
+        crimeMessage = `Success! You committed a crime and earned ${amount} clienterr coins. Your balance is now ${userBalance.balance} clienterr coins.`;
         color = '#00FF00'; // Green for success
       } else {
-        userBalance.balance -= amount;
-        crimeMessage = `Failure! You got caught and lost ${amount} coins. Your new balance is ${userBalance.balance} coins.`;
+        // Ensure balance doesn't go negative
+        userBalance.balance = Math.max(userBalance.balance - amount, 0);
+        crimeMessage = `Failure! You got caught and lost ${amount} clienterr coins. Your balance is now ${userBalance.balance} clienterr coins.`;
         color = '#FF0000'; // Red for failure
       }
 
@@ -57,7 +56,7 @@ export default {
       const errorEmbed = new EmbedBuilder()
         .setColor('#FF0000') // Red color for error
         .setTitle('Error')
-        .setDescription('There was an error processing your crime.');
+        .setDescription('There was an error processing your crime. Please try again later.');
 
       await interaction.reply({ embeds: [errorEmbed] });
     }

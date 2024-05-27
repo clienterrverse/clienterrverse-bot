@@ -1,11 +1,9 @@
 /** @format */
 
 import { SlashCommandBuilder } from 'discord.js';
-import mongoose from 'mongoose';
-import { Balance } from '../schemas/economy.js';
+import { Balance } from '../../schemas/economy.js';
 
 // Ensure the MongoDB connection is established
-mongoose.connect('mongodb://localhost:27017/economy', { useNewUrlParser: true, useUnifiedTopology: true });
 
 export default {
   data: new SlashCommandBuilder()

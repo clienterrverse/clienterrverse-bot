@@ -41,9 +41,9 @@ export default {
       const begEmbed = new EmbedBuilder()
         .setColor('#00FF00') // Green color to indicate success
         .setTitle('Begging Results')
-        .setDescription(`${emoji} You begged and received ${amount} coins!`)
+        .setDescription(`${emoji} You begged and received ${amount} clienterr clienterr clienterr clienterr clienterr coins!`)
         .addFields(
-          { name: 'New Balance', value: `${userBalance.balance} coins`, inline: true }
+          { name: 'New Balance', value: `${userBalance.balance} clienterr coins`, inline: true }
         )
         .setFooter({ text: `Beg by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
