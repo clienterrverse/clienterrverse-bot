@@ -59,7 +59,7 @@ export default {
       // Create an embed to display the deposit information
       const embed = new EmbedBuilder()
         .setTitle('Deposit Successful')
-        .setDescription(`You have deposited ${amount} coins into your bank.`)
+        .setDescription(`You have deposited ${amount} clienterr coinnterr coinnterr coinnterr coinnterr coinnterr coinnterr coins into your bank.`)
         .setColor('#00FF00')
         .setFooter({
           text: `Deposit by ${interaction.user.username}`,

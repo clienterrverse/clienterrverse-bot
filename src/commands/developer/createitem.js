@@ -74,11 +74,11 @@ export default {
       const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Item Created')
-        .setDescription(`Item '${name}' has been created with ID '${itemId}', priced at ${price} coins.`)
+        .setDescription(`Item '${name}' has been created with ID '${itemId}', priced at ${price} clienterr coins.`)
         .addFields(
           { name: 'ID', value: itemId, inline: true },
           { name: 'Name', value: name, inline: true },
-          { name: 'Price', value: `${price} coins`, inline: true },
+          { name: 'Price', value: `${price} clienterr coins`, inline: true },
           { name: 'Description', value: description, inline: false },
           { name: 'Category', value: category, inline: true }
         )

@@ -22,7 +22,7 @@ export default async (client) => {
 
     await mongoose.connect(mongoURI);
 
-    console.log(`Connected to the MongoDB database.`.green);
+    console.log(`Connected to the MongoDB database: ${mongoURI}`.green);
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`.red);
   }

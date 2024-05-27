@@ -10,17 +10,17 @@ export default {
     .addSubcommand((subcommand) =>
       subcommand
         .setName('add')
-        .setDescription("Add coins to a user's balance")
+        .setDescription("Add clienterr coins to a user's balance")
         .addUserOption((option) =>
           option
             .setName('user')
-            .setDescription('The user you want to add coins to')
+            .setDescription('The user you want to add clienterr coins to')
             .setRequired(true)
         )
         .addIntegerOption((option) =>
           option
             .setName('amount')
-            .setDescription('The amount of coins to add')
+            .setDescription('The amount of clienterr coins to add')
             .setRequired(true)
             .setMinValue(1)
         )
@@ -28,17 +28,17 @@ export default {
     .addSubcommand((subcommand) =>
       subcommand
         .setName('subtract')
-        .setDescription("Subtract coins from a user's balance")
+        .setDescription("Subtract clienterr coins from a user's balance")
         .addUserOption((option) =>
           option
             .setName('user')
-            .setDescription('The user you want to subtract coins from')
+            .setDescription('The user you want to subtract clienterr coins from')
             .setRequired(true)
         )
         .addIntegerOption((option) =>
           option
             .setName('amount')
-            .setDescription('The amount of coins to subtract')
+            .setDescription('The amount of clienterr coins to subtract')
             .setRequired(true)
             .setMinValue(1)
         )
@@ -46,10 +46,10 @@ export default {
     .toJSON(),
   userPermissions: [], // Adjust permissions as necessary
   botPermissions: [],
-  cooldown: 5,
+  cooldown: 3600, // Cooldown in seconds
   nwfwMode: false,
   testMode: false,
-  devOnly: false,
+  devOnly: true,
 
   run: async (client, interaction) => {
     const subcommand = interaction.options.getSubcommand();
@@ -68,25 +68,25 @@ export default {
 
       if (subcommand === 'add') {
         userBalance.balance += amount;
-        await userBalance.save();
-        responseMessage = `Added ${amount} coins to ${user.username}'s balance. New balance: ${userBalance.balance} coins.`;
+        responseMessage = `Added ${amount} clienterr coins to ${user.username}'s balance. New balance: ${userBalance.balance} clienterr coins.`;
         color = '#00FF00'; // Green for success
       } else if (subcommand === 'subtract') {
         if (userBalance.balance < amount) {
           return interaction.reply({
             embeds: [
               new EmbedBuilder()
-                .setDescription(`${user.username} does not have enough balance to subtract ${amount} coins.`)
+                .setDescription(`${user.username} does not have enough balance to subtract ${amount} clienterr coins.`)
                 .setColor('#FF0000') // Red for error
             ]
           });
         }
 
         userBalance.balance -= amount;
-        await userBalance.save();
-        responseMessage = `Subtracted ${amount} coins from ${user.username}'s balance. New balance: ${userBalance.balance} coins.`;
+        responseMessage = `Subtracted ${amount} clienterr coins from ${user.username}'s balance. New balance: ${userBalance.balance} clienterr coins.`;
         color = '#FFA500'; // Orange for warning
       }
+
+      await userBalance.save();
 
       const embed = new EmbedBuilder()
         .setDescription(responseMessage)

@@ -69,11 +69,11 @@ export default {
       const embed = new EmbedBuilder()
         .setColor('#00FF00')
         .setTitle('Purchase Successful')
-        .setDescription(`You have successfully bought ${quantity} ${item.name}(s) for ${cost} coins.`)
+        .setDescription(`You have successfully bought ${quantity} ${item.name}(s) for ${cost} clienterr coinnterr coinnterr coinnterr coinnterr coinnterr coinnterr coinnterr coins.`)
         .addFields(
           { name: 'Item Name', value: item.name, inline: true },
           { name: 'Quantity', value: quantity.toString(), inline: true },
-          { name: 'Total Cost', value: `${cost} coins`, inline: true }
+          { name: 'Total Cost', value: `${cost} clienterr coinnterr coinnterr coinnterr coinnterr coinnterr coinnterr coinnterr coins`, inline: true }
         )
         .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
