@@ -1,16 +1,15 @@
 /** @format */
 
-import { SlashCommandBuilder ,EmbedBuilder} from 'discord.js';
-import { Balance ,Transaction} from '../../schemas/economy.js';
-
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { Balance, Transaction } from '../../schemas/economy.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("deposit")
-    .setDescription("Deposit a specified amount of your balance into your bank account.")
+    .setName('withdraw')
+    .setDescription('Withdraw a specified amount of clienterr coins from your bank account.')
     .addIntegerOption(option =>
       option.setName('amount')
-        .setDescription('The amount to deposit')
+        .setDescription('The amount to withdraw')
         .setRequired(true)
     )
     .toJSON(),
@@ -27,7 +26,7 @@ export default {
       const amount = interaction.options.getInteger('amount');
 
       if (amount <= 0) {
-        return interaction.reply('Please enter a valid amount to deposit.');
+        return interaction.reply('Please enter a valid amount to withdraw.');
       }
 
       // Fetch the user's balance from the database
@@ -39,30 +38,31 @@ export default {
         await userBalance.save();
       }
 
-      // Check if the user has enough balance to deposit
-      if (userBalance.balance < amount) {
-        return interaction.reply('You do not have enough balance to deposit that amount.');
+      // Check if the user has enough bank balance to withdraw
+      if (userBalance.bank < amount) {
+        return interaction.reply('You do not have enough bank balance to withdraw that amount.');
       }
 
       // Update the user's balance and bank amount
-      userBalance.balance -= amount;
-      userBalance.bank += amount;
+      userBalance.bank -= amount;
+      userBalance.balance += amount;
       await userBalance.save();
-      const depositTransaction = new Transaction({
+      
+      // Record the transaction
+      const withdrawTransaction = new Transaction({
         userId: userId,
-        type: 'deposit', 
+        type: 'withdraw',
         amount: amount,
-      })
-      depositTransaction.save()
+      });
+      await withdrawTransaction.save();
 
-
-      // Create an embed to display the deposit information
+      // Create an embed to display the withdrawal information
       const embed = new EmbedBuilder()
-        .setTitle('Deposit Successful')
-        .setDescription(`You have deposited ${amount} clienterr coins into your bank.`)
+        .setTitle('Withdrawal Successful')
+        .setDescription(`You have withdrawn ${amount} clienterr coins from your bank.`)
         .setColor('#00FF00')
         .setFooter({
-          text: `Deposit by ${interaction.user.username}`,
+          text: `Withdrawal by ${interaction.user.username}`,
           iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
         })
         .setTimestamp();
@@ -70,8 +70,8 @@ export default {
       // Send the embed as the reply
       await interaction.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error processing deposit command:', error);
-      await interaction.reply('There was an error trying to process your deposit.');
+      console.error('Error processing withdraw command:', error);
+      await interaction.reply('There was an error trying to process your withdrawal.');
     }
   },
 };
