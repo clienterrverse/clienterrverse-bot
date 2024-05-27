@@ -1,5 +1,6 @@
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import getAllFiles from './getAllFiles.js';
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

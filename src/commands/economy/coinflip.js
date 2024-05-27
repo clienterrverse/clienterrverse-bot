@@ -1,14 +1,14 @@
 /** @format */
 
-import { SlashCommandBuilder ,EmbedBuilder} from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
-import mconfig from "../../config/messageConfig.json" assert { type: 'json' };
+import mconfig from '../../config/messageConfig.json' assert { type: 'json' };
 
 export default {
   data: new SlashCommandBuilder()
     .setName('coinflip')
     .setDescription('Gamble a specified amount of coins by flipping a virtual coin.')
-    .addStringOption(option => 
+    .addStringOption(option =>
       option.setName('roll_result')
         .setDescription('Your choice: "heads" or "tails".')
         .setRequired(true)
@@ -17,7 +17,7 @@ export default {
           { name: 'Tails', value: 'tails' }
         )
     )
-    .addIntegerOption(option => 
+    .addIntegerOption(option =>
       option.setName('gamble_amount')
         .setDescription('The amount of coins you want to gamble.')
         .setRequired(true)
@@ -46,7 +46,11 @@ export default {
 
       // Check if the user has enough balance to gamble
       if (userBalance.balance < gambleAmount) {
-        return interaction.reply('You do not have enough balance to gamble that amount.');
+        const embed = new EmbedBuilder()
+          .setDescription('You do not have enough balance to gamble that amount.')
+          .setColor(mconfig.embedColorError);
+
+        return interaction.reply({ embeds: [embed] });
       }
 
       // Generate a random result (heads or tails)
@@ -59,7 +63,6 @@ export default {
         userBalance.balance += gambleAmount;
         outcome = 'You won!';
         color = mconfig.embedColorSuccess;
-
       } else {
         userBalance.balance -= gambleAmount;
         outcome = 'You lost.';
@@ -68,16 +71,20 @@ export default {
 
       // Save the updated balance to the database
       await userBalance.save();
+
       const embed = new EmbedBuilder()
         .setDescription(`${outcome} The coin landed on ${coinResult}. Your new balance is ${userBalance.balance} coins.`)
-        .setColor(color)
-
-
+        .setColor(color);
 
       // Reply with the outcome of the coinflip
-      await interaction.reply({ embeds: [embed] });    } catch (error) {
+      await interaction.reply({ embeds: [embed] });
+    } catch (error) {
       console.error('Error processing coinflip command:', error);
-      await interaction.reply('There was an error trying to process your coinflip.');
+      const embed = new EmbedBuilder()
+        .setDescription('There was an error trying to process your coinflip.')
+        .setColor(mconfig.embedColorError);
+
+      await interaction.reply({ embeds: [embed] });
     }
   },
 };

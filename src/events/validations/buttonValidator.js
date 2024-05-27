@@ -1,80 +1,50 @@
-import 'colors';
-import { EmbedBuilder } from 'discord.js';
-import  config from '../../config/config.json' assert { type: 'json' };
-import mConfig from '../../config/messageConfig.json' assert { type: 'json' };
-import getButtons from '../../utils/getButtons.js';
+/** @format */
 
-export default async (client, interaction) => {
-  const { developersId, testServerId } = config;
-  if (!interaction.isButton()) return;
-  const buttons = await getButtons();
-  console.log(buttons)
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { Balance } from '../../schemas/economy.js';
 
-  try {
-    const buttonObject = buttons.find(
-      (btn) => btn.customId === interaction.customId
-    );
-    if (!buttonObject) return;
+export default {
+  data: new SlashCommandBuilder()
+    .setName('balance')
+    .setDescription('Check your balance.')
+    .toJSON(),
+  userPermissions: [],
+  botPermissions: [],
+  cooldown: 5,
+  nwfwMode: false,
+  testMode: false,
+  devOnly: false,
 
-    if (buttonObject.devOnly) {
-      if (!developersId.includes(interaction.member.id)) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandDevOnly}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
+  run: async (client, interaction) => {
+    try {
+      const userId = interaction.user.id;
+
+      // Fetch the user's balance from the database
+      let userBalance = await Balance.findOne({ userId });
+
+      // If the user does not exist in the database, create a new entry
+      if (!userBalance) {
+        userBalance = new Balance({ userId });
+        await userBalance.save();
       }
-    }
 
-    if (buttonObject.testMode) {
-      if (interaction.guild.id !== testServerId) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandTestMode}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
-    }
+      // Create an embed to display the user's balance
+      const balanceEmbed = new EmbedBuilder()
+        .setColor('#00FF00') // Green color for positive information
+        .setTitle('Balance Information')
+        .setDescription(`Here is your current balance information:`)
+        .addFields(
+          { name: 'Wallet Balance', value: `${userBalance.balance} coins`, inline: true },
+          { name: 'Bank Balance', value: `${userBalance.bank} coins`, inline: true }
+        )
+        .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .setTimestamp();
 
-    if (buttonObject.userPermissions?.length) {
-      for (const permission of buttonObject.userPermissions) {
-        if (interaction.member.permissions.has(permission)) {
-          continue;
-        }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.userNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+      // Reply with the embed containing the user's balance
+      await interaction.reply({ embeds: [balanceEmbed] });
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      await interaction.reply('There was an error trying to fetch your balance.');
     }
-
-    if (buttonObject.botPermissions?.length) {
-      for (const permission of buttonObject.botPermissions) {
-        const bot = interaction.guild.members.me;
-        if (bot.permissions.has(permission)) {
-          continue;
-        }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.botNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
-    }
-
-    if (interaction.message.interaction) {
-      if (interaction.message.interaction.user.id !== interaction.user.id) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.cannotUseButton}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
-    }
-
-    await buttonObject.run(client, interaction);
-  } catch (err) {
-    console.log(`An error occurred! ${err}`.red);
-  }
+  },
 };

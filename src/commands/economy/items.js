@@ -1,9 +1,8 @@
 /** @format */
 
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Item } from '../../schemas/economy.js';
 import pagination from '../../utils/buttonPagination.js';
-
 
 export default {
   data: new SlashCommandBuilder()
@@ -19,30 +18,29 @@ export default {
 
   run: async (client, interaction) => {
     try {
+
       // Fetch all items from the database
       const items = await Item.find();
 
       if (items.length === 0) {
         return interaction.reply('No items found in the economy system.');
       }
-      const pages = [];
-      let currentPage = '';
 
-      items.forEach((item, index) => {
-        currentPage += `**${item.name}**\n`;
-        currentPage += `ID: ${item.itemId}\n`;
-        currentPage += `Price: ${item.price} coins\n`;
-        currentPage += `Description: ${item.description}\n`;
-        currentPage += `Category: ${item.category}\n\n`;
-
-        // Check if the current page reaches the maximum items per page or it's the last item
-        if ((index + 1) % 10 === 0 || index === items.length - 1) {
-          pages.push({ description: currentPage });
-          currentPage = ''; // Reset the current page
-        }
+      const pages = items.map((item, index) => {
+        return new EmbedBuilder()
+          .setColor('#0099ff')
+          .setTitle('Economy Item')
+          .setFooter({ text: `Item ${index + 1} of ${items.length}` })
+          .addFields(
+            { name: 'Name', value: item.name, inline: true },
+            { name: 'ID', value: item.itemId.toString(), inline: true },
+            { name: 'Price', value: `${item.price} coins`, inline: true },
+            { name: 'Description', value: item.description, inline: false },
+            { name: 'Category', value: item.category, inline: true }
+          );
       });
 
-      // Reply with the list of items
+      // Use the pagination utility to handle pagination
       await pagination(interaction, pages);
     } catch (error) {
       console.error('Error fetching items:', error);
