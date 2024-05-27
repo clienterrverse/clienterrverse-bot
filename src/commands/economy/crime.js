@@ -7,7 +7,7 @@ export default {
     .setDescription('Commit a crime and risk it all.'),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 86400, // 1 hour cooldown
+  cooldown: 20, // 1 hour cooldown
   nsfwMode: false,
   testMode: false,
   devOnly: false,
@@ -15,11 +15,20 @@ export default {
   run: async (client, interaction) => {
     try {
       const userId = interaction.user.id;
+      const CrimeCooldown = 6 * 60 * 60 * 1000;
 
       // Fetch user's balance
       let userBalance = await Balance.findOne({ userId });
       if (!userBalance) {
         userBalance = new Balance({ userId });
+      }
+
+      const now = Date.now();
+      if (userBalance.lastCrime && (now - userBalance.lastCrime.getTime()) < CrimeCooldown) {
+        const timeLeft = CrimeCooldown - (now - userBalance.lastCrime.getTime());
+        const minutes = Math.floor(timeLeft / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+        return interaction.reply(`You have already have Committed the crime . Please try again in ${minutes} minutes and ${seconds} seconds.`);
       }
 
       // Determine the outcome of the crime
