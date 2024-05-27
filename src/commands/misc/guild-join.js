@@ -19,9 +19,7 @@ export default {
 
     run: async (client, interaction) => {
 
-        const userId = interaction.user.id;
-        const button = new ButtonBuilder
-        .s
+
 
 
       

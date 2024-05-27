@@ -1,6 +1,5 @@
-import 'dotenv/config';
-import { Client, GatewayIntentBits } from 'discord.js';
-
+import "dotenv/config";
+import { Client, GatewayIntentBits } from "discord.js";
 
 if (!process.env.TOKEN) {
   console.error("TOKEN is not defined in the environment variables");
@@ -8,7 +7,7 @@ if (!process.env.TOKEN) {
 }
 
 (async () => {
-  const { default: eventHandler } = await import('./handlers/eventHandler.js');
+  const { default: eventHandler } = await import("./handlers/eventHandler.js");
 
   const client = new Client({
     intents: [
@@ -26,8 +25,7 @@ if (!process.env.TOKEN) {
   try {
     await client.login(process.env.TOKEN);
   } catch (error) {
-    console.error('Error logging in:', error);
+    console.error("Error logging in:", error);
     process.exit(1);
   }
-  
 })();
