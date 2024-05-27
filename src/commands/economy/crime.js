@@ -7,7 +7,7 @@ export default {
     .setDescription('Commit a crime and risk it all.'),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 60, // 1 hour cooldown
+  cooldown: 86400, // 1 hour cooldown
   nsfwMode: false,
   testMode: false,
   devOnly: false,
