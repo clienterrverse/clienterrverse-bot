@@ -3,11 +3,11 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 export default {
   data: new SlashCommandBuilder()
     .setName("servers")
-    .setDescription("List server of bot")
+    .setDescription("List server of bot and send invite link")
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 5, 
+  cooldown: 5,
   nwfwMode: false,
   testMode: false,
   devOnly: true,
@@ -29,10 +29,22 @@ export default {
         return await interaction.editReply('The bot is not in any servers.');
       }
 
+      // Generate an invite link for the first guild
+      const firstGuild = client.guilds.cache.get(guilds[0].id);
+      let inviteLink = 'No invite link available';
+
+      if (firstGuild) {
+        const invite = await firstGuild.systemChannel.createInvite({
+          maxAge: 0, // Permanent invite
+          maxUses: 0 // Unlimited uses
+        });
+        inviteLink = invite.url;
+      }
+
       // Create an embed to display the server information
       const embed = new EmbedBuilder()
         .setTitle("Servers List")
-        .setDescription(`The bot is in **${guilds.length}** servers.`)
+        .setDescription(`The bot is in **${guilds.length}** servers.\n[Join our server!](${inviteLink})`)
         .setColor("#00FF00")
         .setThumbnail(client.user.displayAvatarURL())
         .setFooter({
@@ -65,8 +77,8 @@ export default {
       await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
-      console.error('Error fetching servers:', error);
-      await interaction.editReply('There was an error trying to fetch the server list.');
+      console.error('Error fetching servers or creating invite link:', error);
+      await interaction.editReply('There was an error trying to fetch the server list or create an invite link.');
     }
   }
 };
