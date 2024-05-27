@@ -3,7 +3,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 export default {
   data: new SlashCommandBuilder()
     .setName("servers")
-    .setDescription("List server of bot and send invite link")
+    .setDescription("List servers the bot is in and provide invite links")
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
@@ -18,10 +18,23 @@ export default {
       await interaction.deferReply();
 
       // Fetch the guilds the bot is in
-      const guilds = client.guilds.cache.map(guild => ({
-        name: guild.name,
-        memberCount: guild.memberCount,
-        id: guild.id
+      const guilds = await Promise.all(client.guilds.cache.map(async guild => {
+        let inviteLink = 'No invite link available';
+        try {
+          const invite = await guild.systemChannel.createInvite({
+            maxAge: 0, // Permanent invite
+            maxUses: 0 // Unlimited uses
+          });
+          inviteLink = invite.url;
+        } catch (error) {
+          console.error(`Could not create invite for guild ${guild.id}:`, error);
+        }
+        return {
+          name: guild.name,
+          memberCount: guild.memberCount,
+          id: guild.id,
+          inviteLink
+        };
       }));
 
       // Check if there are any guilds
@@ -29,22 +42,10 @@ export default {
         return await interaction.editReply('The bot is not in any servers.');
       }
 
-      // Generate an invite link for the first guild
-      const firstGuild = client.guilds.cache.get(guilds[0].id);
-      let inviteLink = 'No invite link available';
-
-      if (firstGuild) {
-        const invite = await firstGuild.systemChannel.createInvite({
-          maxAge: 0, // Permanent invite
-          maxUses: 0 // Unlimited uses
-        });
-        inviteLink = invite.url;
-      }
-
       // Create an embed to display the server information
       const embed = new EmbedBuilder()
         .setTitle("Servers List")
-        .setDescription(`The bot is in **${guilds.length}** servers.\n[Join our server!](${inviteLink})`)
+        .setDescription(`The bot is in **${guilds.length}** servers.`)
         .setColor("#00FF00")
         .setThumbnail(client.user.displayAvatarURL())
         .setFooter({
@@ -67,7 +68,7 @@ export default {
         }
         embed.addFields({
           name: guild.name,
-          value: `ID: ${guild.id}\nMembers: ${guild.memberCount}`,
+          value: `ID: ${guild.id}\nMembers: ${guild.memberCount}\n[Invite Link](${guild.inviteLink})`,
           inline: true
         });
         fieldCount++;
@@ -77,8 +78,8 @@ export default {
       await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
-      console.error('Error fetching servers or creating invite link:', error);
-      await interaction.editReply('There was an error trying to fetch the server list or create an invite link.');
+      console.error('Error fetching servers or creating invite links:', error);
+      await interaction.editReply('There was an error trying to fetch the server list or create invite links.');
     }
   }
 };
