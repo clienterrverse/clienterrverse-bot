@@ -50,6 +50,7 @@ export default {
       }
 
       // Save the updated balance to the database
+      userBalance.lastCrime = new Date()
       await userBalance.save();
 
       // Create the embed message
