@@ -19,10 +19,6 @@ export default {
 
     run: async (client, interaction) => {
 
-        const userId = interaction.user.id;
-        const button = new ButtonBuilder
-        .s
-
 
       
         await interaction.reply('Workin on it ');
