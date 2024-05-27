@@ -1,19 +1,17 @@
 /** @format */
 
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
-
-// Ensure the MongoDB connection is established
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("beg")
-    .setDescription("Beg for some money.")
+    .setName('beg')
+    .setDescription('Beg for some money.')
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 1000,
-  nwfwMode: false,
+  cooldown: 1000, // Adjust the cooldown as necessary
+  nsfwMode: false,
   testMode: false,
   devOnly: false,
 
@@ -39,8 +37,19 @@ export default {
       userBalance.balance += amount;
       await userBalance.save();
 
-      // Reply with the amount received
-      await interaction.reply(`${emoji} You begged and received ${amount} coins! Your new balance is ${userBalance.balance} coins.`);
+      // Create an embed to display the result of the beg command
+      const begEmbed = new EmbedBuilder()
+        .setColor('#00FF00') // Green color to indicate success
+        .setTitle('Begging Results')
+        .setDescription(`${emoji} You begged and received ${amount} coins!`)
+        .addFields(
+          { name: 'New Balance', value: `${userBalance.balance} coins`, inline: true }
+        )
+        .setFooter({ text: `Beg by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .setTimestamp();
+
+      // Reply with the embed
+      await interaction.reply({ embeds: [begEmbed] });
     } catch (error) {
       console.error('Error processing beg command:', error);
       await interaction.reply('There was an error trying to process your beg request.');

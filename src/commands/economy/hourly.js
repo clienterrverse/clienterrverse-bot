@@ -3,8 +3,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
 
-// Ensure the MongoDB connection is established
-
 export default {
   data: new SlashCommandBuilder()
     .setName("hourly")
@@ -65,7 +63,17 @@ export default {
       await interaction.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Error processing hourly command:', error);
-      await interaction.reply('There was an error trying to process your hourly reward.');
+      const errorEmbed = new EmbedBuilder()
+        .setTitle('Error')
+        .setDescription('There was an error trying to process your hourly reward.')
+        .setColor('#FF0000')
+        .setFooter({
+          text: `Requested by ${interaction.user.username}`,
+          iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
+        })
+        .setTimestamp();
+      
+      await interaction.reply({ embeds: [errorEmbed] });
     }
   },
 };

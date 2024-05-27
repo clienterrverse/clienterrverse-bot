@@ -1,6 +1,6 @@
 /** @format */
 
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Item } from '../../schemas/economy.js';
 
 export default {
@@ -33,7 +33,7 @@ export default {
         .setRequired(false)
     )
     .toJSON(),
-  userPermissions: [], // Ensures only users with the 'ADMINISTRATOR' permission can use this command
+  userPermissions: [], // Add permissions check here if necessary
   botPermissions: [],
   cooldown: 10,
   nsfwMode: false,
@@ -51,7 +51,12 @@ export default {
       // Check if the item ID already exists
       const existingItem = await Item.findOne({ itemId });
       if (existingItem) {
-        return interaction.reply('An item with this ID already exists.');
+        const embed = new EmbedBuilder()
+          .setColor('#FF0000')
+          .setTitle('Error')
+          .setDescription('An item with this ID already exists.');
+
+        return interaction.reply({ embeds: [embed] });
       }
 
       // Create a new item
@@ -66,10 +71,32 @@ export default {
       // Save the item to the database
       await newItem.save();
 
-      interaction.reply(`Item '${name}' has been created with ID '${itemId}', priced at ${price} coins.`);
+      const embed = new EmbedBuilder()
+        .setColor('#00FF00')
+        .setTitle('Item Created')
+        .setDescription(`Item '${name}' has been created with ID '${itemId}', priced at ${price} coins.`)
+        .addFields(
+          { name: 'ID', value: itemId, inline: true },
+          { name: 'Name', value: name, inline: true },
+          { name: 'Price', value: `${price} coins`, inline: true },
+          { name: 'Description', value: description, inline: false },
+          { name: 'Category', value: category, inline: true }
+        )
+        .setFooter({
+          text: `Requested by ${interaction.user.username}`,
+          iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
+        })
+        .setTimestamp();
+
+      interaction.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Error creating item:', error);
-      interaction.reply('There was an error creating the item.');
+      const errorEmbed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('Error')
+        .setDescription('There was an error creating the item.');
+
+      interaction.reply({ embeds: [errorEmbed] });
     }
   },
 };

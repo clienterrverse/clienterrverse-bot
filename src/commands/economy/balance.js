@@ -1,14 +1,12 @@
-
 /** @format */
 
-import { SlashCommandBuilder } from 'discord.js';
-
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("balance")
-    .setDescription("Check your balance.")
+    .setName('balance')
+    .setDescription('Check your balance.')
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
@@ -30,8 +28,20 @@ export default {
         await userBalance.save();
       }
 
-      // Reply with the user's balance and bank balance
-      await interaction.reply(`Your balance is ${userBalance.balance} and your bank balance is ${userBalance.bank}.`);
+      // Create an embed to display the user's balance
+      const balanceEmbed = new EmbedBuilder()
+        .setColor('#00FF00') // Green color for positive information
+        .setTitle('Balance Information')
+        .setDescription(`Here is your current balance information:`)
+        .addFields(
+          { name: 'Wallet Balance', value: `${userBalance.balance} coins`, inline: true },
+          { name: 'Bank Balance', value: `${userBalance.bank} coins`, inline: true }
+        )
+        .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .setTimestamp();
+
+      // Reply with the embed containing the user's balance
+      await interaction.reply({ embeds: [balanceEmbed] });
     } catch (error) {
       console.error('Error fetching balance:', error);
       await interaction.reply('There was an error trying to fetch your balance.');

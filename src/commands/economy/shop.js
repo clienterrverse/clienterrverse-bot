@@ -1,12 +1,12 @@
 /** @format */
 
-import { SlashCommandBuilder , EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Item, Inventory, Balance } from '../../schemas/economy.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName('blackmarket')
-    .setDescription('Buy items from the black market.')
+    .setName('shop')
+    .setDescription('Buy items from the shop.')
     .addStringOption(option =>
       option.setName('item')
         .setDescription('The ID of the item you want to buy.')
@@ -40,7 +40,13 @@ export default {
       let userBalance = await Balance.findOne({ userId });
 
       if (!userBalance || userBalance.balance < cost) {
-        return interaction.reply('You do not have enough balance to buy this item.');
+        const embed = new EmbedBuilder()
+          .setColor('#FF0000')
+          .setTitle('Purchase Failed')
+          .setDescription('You do not have enough balance to buy this item.')
+          .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+          .setTimestamp();
+        return interaction.reply({ embeds: [embed] });
       }
 
       userBalance.balance -= cost;
@@ -58,12 +64,30 @@ export default {
         userInventory.items.push({ itemId, quantity });
       }
 
-
       await userInventory.save();
-      interaction.reply(`You have successfully bought ${quantity} ${item.name}(s) for ${cost} coins.`);
+
+      const embed = new EmbedBuilder()
+        .setColor('#00FF00')
+        .setTitle('Purchase Successful')
+        .setDescription(`You have successfully bought ${quantity} ${item.name}(s) for ${cost} coins.`)
+        .addFields(
+          { name: 'Item Name', value: item.name, inline: true },
+          { name: 'Quantity', value: quantity.toString(), inline: true },
+          { name: 'Total Cost', value: `${cost} coins`, inline: true }
+        )
+        .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error processing blackmarket command:', error);
-      interaction.reply('There was an error processing your blackmarket purchase.');
+      console.error('Error processing shop command:', error);
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('Error')
+        .setDescription('There was an error processing your purchase.')
+        .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .setTimestamp();
+      await interaction.reply({ embeds: [embed] });
     }
   },
 };
