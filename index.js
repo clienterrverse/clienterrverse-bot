@@ -1,3 +1,5 @@
+<<<<<<< main
+=======
 require("dotenv").config();
 const fs = require("node:fs");
 const path = require("node:path");
@@ -121,3 +123,4 @@ mongoose
   });
 
 client.login(token);
+>>>>>>> es6-rewrite
