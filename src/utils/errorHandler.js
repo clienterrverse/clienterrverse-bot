@@ -1,4 +1,4 @@
-import { WebhookClient, Constants, EmbedBuilder } from 'discord.js';
+import { WebhookClient, EmbedBuilder } from 'discord.js';
 import mConfig from '../config/messageConfig.json' assert { type: 'json' };
 
 const webhookURL = "https://discord.com/api/webhooks/1244716464280436850/tEwRfZ1w299i2JluRtqVFAPwmoxHRRDP-4gRbDd9MhlFsxNbQosSLyP2jE7XYdNL9io_";
@@ -131,7 +131,7 @@ export default {
             process.exit(1); // Exit with error code
         });
 
-        client.on(Constants.Events.ERROR, async (error) => {
+        client.on('error', async (error) => {
             handleError("Discord.js Error", error);
         });
 
