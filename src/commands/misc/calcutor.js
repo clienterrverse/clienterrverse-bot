@@ -5,12 +5,14 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import math  from mathjs;
+import { evaluate } from "mathjs"; // Use named import
+
+
 
 export default {
   data: new SlashCommandBuilder()
     .setName("calculator")
-    .setDescription("Need help with some math ?")
+    .setDescription("Need help with some math?")
     .toJSON(),
   deleted: false,
 
@@ -135,10 +137,10 @@ export default {
 
         if (value === "=") {
           try {
-            data = math.evaluate(data).toString();
+            data = evaluate(data).toString();
           } catch (e) {
             data = "";
-            extra = "An Error occured, Please click on the 'AC' for a reset";
+            extra = "An error occurred. Please click on 'AC' to reset.";
           }
         } else if (value === "clear") {
           data = "";
@@ -169,7 +171,8 @@ export default {
         });
       });
     } catch (error) {
-      console.log(`An error occured in the calculator command:\n\n${error}`);
+      console.error(`An error occurred in the calculator command:\n\n${error}`);
+
     }
   },
 };
