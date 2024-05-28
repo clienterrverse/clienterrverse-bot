@@ -16,7 +16,7 @@ export default {
     try {
       const userId = interaction.user.id;
       const CrimeCooldown = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
-      const MinimumBalanceToCommitCrime = 10; // Minimum balance required to commit a crime
+      const MinimumBalanceToCommitCrime = 20; // Minimum balance required to commit a crime
 
       // Fetch user's balance
       let userBalance = await Balance.findOne({ userId });
