@@ -3,13 +3,11 @@ import { EmbedBuilder } from 'discord.js';
 
 export default async (client, message) => {
   try {
-    // Ignore messages from other bots
     if (message.author.bot) return;
 
-    // Check if the message is from the test server
-    if (message.guild.id !== config.testServerId) return;
+    const channelId = config.otherLogChannelId; // Replace with your log channel ID
 
-    const channelId = config.logChannel; // Replace with your log channel ID
+  
 
     // Fetch the logging channel
     const channel = client.channels.cache.get(channelId);
@@ -22,14 +20,15 @@ export default async (client, message) => {
     const content = message.content || '*Message content not available*';
     const time = message.createdAt.toLocaleString();
 
-    // Check for attachments
+        // Check for attachments
     let imageURL = null;
-    if (message.attachments.size > 0) {
-      const attachment = message.attachments.first();
-      if (attachment && attachment.contentType && attachment.contentType.startsWith('image/')) {
-        imageURL = attachment.url;
-      }
-    }
+        if (message.attachments.size > 0) {
+          const attachment = message.attachments.first();
+          if (attachment && attachment.contentType && attachment.contentType.startsWith('image/')) {
+            imageURL = attachment.url;
+          }
+        }
+    
 
     // Create the embed
     const embed = new EmbedBuilder()
@@ -46,22 +45,23 @@ export default async (client, message) => {
       )
       .setFooter({ text: `Message Logger | ${client.user.tag}`, iconURL: client.user.displayAvatarURL() })
       .setTimestamp();
-
-    if (imageURL) {
-      embed.setImage(imageURL);
-    }
+    
+      if (imageURL) {
+        embed.setImage(imageURL);
+      }
+  
 
     // Send the embed to the logging channel
     await channel.send({ embeds: [embed] });
-
   } catch (error) {
     console.error('Error logging message:', error);
 
     // Attempt to log the error in the logging channel
     try {
-      const errorChannel = client.channels.cache.get(config.logChannel);
+      const channelId = config.logChannel; // Replace with your log channel ID
+      const errorChannel = client.channels.cache.get(channelId);
       if (!errorChannel) {
-        console.error(`Log channel with ID ${config.logChannel} not found.`);
+        console.error(`Log channel with ID ${channelId} not found.`);
         return;
       }
 
@@ -75,7 +75,6 @@ export default async (client, message) => {
 
       // Send the error embed to the logging channel
       await errorChannel.send({ embeds: [errorEmbed] });
-
     } catch (innerError) {
       console.error('Error logging the error:', innerError);
     }
