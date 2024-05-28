@@ -53,36 +53,7 @@ export default {
           value: "[Check out my GitHub Organisation](https://clienterr.com/clienterrverse)",
           inline: true,
         },
-        {
-          name: "Twitter",
-          value: "[Follow me on Twitter](https://clienterr.com/twitter)",
-          inline: true,
-        },
-        {
-          name: "Instagram",
-          value: "[Follow me on Instagram](https://clienterr.com/instagram)",
-          inline: true,
-        },
-        {
-          name: "LinkedIn",
-          value: "[Connect with me on LinkedIn](https://clienterr.com/linkedin)",
-          inline: true,
-        },
-        {
-          name: "Facebook",
-          value: "[Like my Facebook Page](https://clienterr.com/facebook)",
-          inline: true,
-        },
-        {
-          name: "TikTok",
-          value: "[Follow me on TikTok](https://clienterr.com/tiktok)",
-          inline: true,
-        },
-        {
-          name: "Reddit",
-          value: "[Join my Reddit Community](https://clienterr.com/reddit)",
-          inline: true,
-        }
+
       )
       .setTimestamp();
 
