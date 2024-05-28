@@ -6,8 +6,6 @@ import {
   ButtonStyle,
 } from "discord.js";
 
-
-
 export default {
   data: new SlashCommandBuilder()
     .setName("calculator")
@@ -16,7 +14,6 @@ export default {
   deleted: false,
 
   run: async (client, interaction) => {
-    
-    interaction.relpy("this command currently disable")
+    await interaction.reply("This command is currently disabled.");
   },
 };
