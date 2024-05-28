@@ -63,6 +63,7 @@ export default {
       for (let i = 0; i < leaderboardEntries.length; i += itemsPerPage) {
         const pageContent = leaderboardEntries.slice(i, i + itemsPerPage).join('');
         pages.push({
+          title: 'Leaderboard',
           description: pageContent,
           color: 0x00ff00, // Green color
         });
@@ -72,7 +73,7 @@ export default {
       await pagination(interaction, pages);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      interaction.reply('There was an error trying to fetch the leaderboard.');
+      interaction.reply('There was an error trying to fetch the leaderboard. Please try again later.');
     }
   },
 };
