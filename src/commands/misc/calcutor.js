@@ -1,13 +1,13 @@
-const {
+import {
   SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-} = require("discord.js");
-const math = require("mathjs");
+} from "discord.js";
+import math  from mathjs;
 
-module.exports = {
+export default {
   data: new SlashCommandBuilder()
     .setName("calculator")
     .setDescription("Need help with some math ?")
