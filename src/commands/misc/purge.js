@@ -21,17 +21,6 @@ export default {
   run: async (client, interaction) => {
     const amount = interaction.options.getInteger("amount");
 
-    // Check if the user has permission to manage messages
-    if (
-      !interaction.member.permissions.has(
-        PermissionsBitField.Flags.MANAGE_MESSAGES
-      )
-    ) {
-      return await interaction.reply({
-        content: "You don't have permission to use this command.",
-        ephemeral: true,
-      });
-    }
 
     if (isNaN(amount) || amount <= 0) {
       return await interaction.reply({
