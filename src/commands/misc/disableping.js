@@ -26,16 +26,7 @@ export default {
   devOnly: false,
 
   run: async (client, interaction) => {
-    if (
-      !interaction.member.permissions.has(
-        PermissionsBitField.Flags.ADMINISTRATOR
-      )
-    ) {
-      return interaction.reply({
-        content: "You do not have permission to use this command.",
-        ephemeral: true,
-      });
-    }
+
 
     const action = interaction.options.getString("action");
 
