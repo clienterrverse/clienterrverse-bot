@@ -7,7 +7,7 @@ export default {
     .setDescription('Commit a crime and risk it all.'),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 20, // 1 hour cooldown
+  cooldown: 20, // 20 seconds cooldown
   nsfwMode: false,
   testMode: false,
   devOnly: false,
@@ -15,12 +15,18 @@ export default {
   run: async (client, interaction) => {
     try {
       const userId = interaction.user.id;
-      const CrimeCooldown = 6 * 60 * 60 * 1000;
+      const CrimeCooldown = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+      const MinimumBalanceToCommitCrime = 20; // Minimum balance required to commit a crime
 
       // Fetch user's balance
       let userBalance = await Balance.findOne({ userId });
       if (!userBalance) {
-        userBalance = new Balance({ userId });
+        userBalance = new Balance({ userId, balance: 0 });
+      }
+
+      // Check if the user has enough balance to commit a crime
+      if (userBalance.balance < MinimumBalanceToCommitCrime) {
+        return interaction.reply(`You need at least ${MinimumBalanceToCommitCrime} clienterr coins to commit a crime. Your current balance is ${userBalance.balance} clienterr coins.`);
       }
 
       const now = Date.now();
@@ -28,11 +34,11 @@ export default {
         const timeLeft = CrimeCooldown - (now - userBalance.lastCrime.getTime());
         const minutes = Math.floor(timeLeft / (1000 * 60));
         const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-        return interaction.reply(`You have already have Committed the crime . Please try again in ${minutes} minutes and ${seconds} seconds.`);
+        return interaction.reply(`You have already committed a crime. Please try again in ${minutes} minutes and ${seconds} seconds.`);
       }
 
       // Determine the outcome of the crime
-      const crimeOutcome = Math.random() < 0.6;
+      const crimeOutcome = Math.random() < 0.6; // 60% success rate
       const amount = Math.floor(Math.random() * 30) + 1; // Random amount between 1 and 30
 
       let crimeMessage = '';
@@ -50,7 +56,7 @@ export default {
       }
 
       // Save the updated balance to the database
-      userBalance.lastCrime = new Date()
+      userBalance.lastCrime = new Date();
       await userBalance.save();
 
       // Create the embed message

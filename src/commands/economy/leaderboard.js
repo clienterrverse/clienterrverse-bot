@@ -7,7 +7,7 @@ import pagination from '../../utils/buttonPagination.js';
 export default {
   data: new SlashCommandBuilder()
     .setName('leaderboard')
-    .setDescription('Displays the leaderboard based on user balances.')
+    .setDescription('Displays the leaderboard based on user balances and bank.')
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
@@ -18,8 +18,20 @@ export default {
 
   run: async (client, interaction) => {
     try {
-      // Fetch user balances from the database, sorted by balance in descending order
-      const balances = await Balance.find().sort({ balance: -1 }).limit(100); // Fetch top 100 for pagination
+      // Use aggregation to fetch user balances sorted by the sum of balance and bank in descending order
+      const balances = await Balance.aggregate([
+        {
+          $addFields: {
+            totalBalance: { $sum: ['$balance', '$bank'] }
+          }
+        },
+        {
+          $sort: { totalBalance: -1 }
+        },
+        {
+          $limit: 100
+        }
+      ]);
 
       if (balances.length === 0) {
         return interaction.reply('No users found in the leaderboard.');
@@ -40,7 +52,8 @@ export default {
         balances.map(async (balance, index) => {
           const user = client.users.cache.get(balance.userId);
           const userTag = user ? user.tag : await fetchUserDetails(balance.userId);
-          return `${index + 1}. ${userTag}: ${balance.balance} clienterr coins\n`;
+          const totalBalance = balance.totalBalance;
+          return `${index + 1}. ${userTag}: ${totalBalance} clienterr coins (Wallet: ${balance.balance}, Bank: ${balance.bank})\n`;
         })
       );
 
@@ -50,6 +63,7 @@ export default {
       for (let i = 0; i < leaderboardEntries.length; i += itemsPerPage) {
         const pageContent = leaderboardEntries.slice(i, i + itemsPerPage).join('');
         pages.push({
+          title: 'Leaderboard',
           description: pageContent,
           color: 0x00ff00, // Green color
         });
@@ -59,7 +73,7 @@ export default {
       await pagination(interaction, pages);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      interaction.reply('There was an error trying to fetch the leaderboard.');
+      interaction.reply('There was an error trying to fetch the leaderboard. Please try again later.');
     }
   },
 };
