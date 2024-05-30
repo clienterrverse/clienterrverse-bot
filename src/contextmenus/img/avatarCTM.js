@@ -2,37 +2,29 @@ import {
   ContextMenuCommandBuilder,
   ApplicationCommandType,
   EmbedBuilder,
-  PermissionFlagsBits,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
 } from 'discord.js';
-
-import mConfig from '../config/messageConfig.json' assert { type: 'json' };
 
 export default {
   data: new ContextMenuCommandBuilder()
     .setName("User Avatar")
     .setType(ApplicationCommandType.User),
-  userPermissions: [PermissionFlagsBits.ManageMessages],
+  userPermissions: [],
   botPermissions: [],
 
   run: async (client, interaction) => {
     try {
-      const member =
-        interaction.guild.members.cache.find((m) => m.user.id === interaction.user.id) ||
-        interaction.member;
+      const user = interaction.targetUser;
 
-      // Get the avatar URL of the user
-      const avatar = member.user.displayAvatarURL({
+      // Get the avatar URL of the targeted user
+      const avatar = user.displayAvatarURL({
         format: "png",
         dynamic: true,
         size: 1024,
       });
 
-      // Construct embed to display the user's avatar
+      // Construct embed to display the targeted user's avatar
       const embed = new EmbedBuilder()
-        .setTitle(`${member.user.username}'s Avatar`) // Set the title as the username followed by "Avatar"
+        .setTitle(`${user.username}'s Avatar`) // Set the title as the username followed by "Avatar"
         .setURL(avatar) // Set the URL of the embed to the avatar URL
         .setImage(avatar) // Set the image of the embed to the avatar URL
         .setFooter({
@@ -45,7 +37,7 @@ export default {
         })
         .setColor("#eb3434"); // Set the embed color
 
-      // Send the embed containing the user's avatar as a reply
+      // Send the embed containing the targeted user's avatar as a reply
       await interaction.reply({ embeds: [embed] });
 
     } catch (error) {
