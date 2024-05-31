@@ -9,8 +9,11 @@ export default {
     .setDescription('Play the slot machine.')
     .addNumberOption(option =>
       option.setName('bet')
-        .setDescription('Amount to bet (max 10)')
-        .setRequired(true))
+          .setDescription('Amount to bet (max 10)')
+          .setRequired(true)
+          .setMaxValue(10)
+  )
+
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
@@ -29,6 +32,11 @@ export default {
         const rembed = new EmbedBuilder().setDescription('The maximum bet amount is 10 coins.');
         return interaction.reply({ embeds: [rembed], ephemeral: true });
       }
+      if (bet < 0) {
+        const embed = new EmbedBuilder().setDescription('The bet amount cannot be negative.');
+        return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
 
       const userBalance = await Balance.findOne({ userId });
       if (!userBalance || userBalance.balance < bet) {

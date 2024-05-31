@@ -20,6 +20,9 @@ export default {
     .addIntegerOption(option =>
       option.setName('gamble_amount')
         .setDescription('The amount of clienterr coins you want to gamble.')
+        .setMinValue(1)
+        .setMaxValue(30)
+
         .setRequired(true)
     )
     .toJSON(),
@@ -36,6 +39,10 @@ export default {
       const rollResult = interaction.options.getString('roll_result');
       const gambleAmount = interaction.options.getInteger('gamble_amount');
       const hourlyCooldown = 60 * 60 * 1000; // 1 hour in milliseconds
+      if (gambleAmount < 0) {
+        const embed = new EmbedBuilder().setDescription('The bet amount cannot be negative.');
+        return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
 
       // Fetch the user's balance from the database
       let userBalance = await Balance.findOne({ userId });
