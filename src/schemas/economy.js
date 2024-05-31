@@ -9,6 +9,7 @@ const balanceSchema = new mongoose.Schema({
   bank: { type: Number, default: 0 },
   lastWeekly: { type: Date, default: null },
   lastHourly: { type: Date, default: null },
+  lastDaily: { type: Date, default: null },
   lastBeg: { type: Date, default: null },
   lastcoin: { type: Date, default: null },
   lastWork: { type: Date, default: null },
