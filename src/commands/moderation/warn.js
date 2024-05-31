@@ -88,7 +88,7 @@ export default {
         });
 
         const warnEmbed = new EmbedBuilder()
-            .setTitle(`Submitted: warn`)
+            .setTitle(`Submitted: Warn`)
             .setColor("#800080")
             .setDescription(`User: <@!${target.id}>\nID: ${infractionId}`)
         await channel.send({
