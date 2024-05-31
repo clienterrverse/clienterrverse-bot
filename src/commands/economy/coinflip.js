@@ -21,7 +21,7 @@ export default {
       option.setName('gamble_amount')
         .setDescription('The amount of clienterr coins you want to gamble.')
         .setMinValue(1)
-        .setMaxValue(25)
+        .setMaxValue(30)
 
         .setRequired(true)
     )
