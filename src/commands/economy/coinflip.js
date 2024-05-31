@@ -21,14 +21,14 @@ export default {
       option.setName('gamble_amount')
         .setDescription('The amount of clienterr coins you want to gamble.')
         .setMinValue(1)
-        .setMaxValue(30)
+        .setMaxValue(25)
 
         .setRequired(true)
     )
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 21600,
+  cooldown: 600,
   nsfwMode: false,
   testMode: false,
   devOnly: false,
