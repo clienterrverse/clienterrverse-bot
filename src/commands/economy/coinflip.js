@@ -37,7 +37,7 @@ export default {
       const userId = interaction.user.id;
       const rollResult = interaction.options.getString('roll_result');
       const gambleAmount = interaction.options.getInteger('gamble_amount');
-      const hourlyCooldown = 60 * 60 * 1000; // 1 hour in milliseconds
+      const hourlyCooldown = 10 * 60 * 1000; // 1 hour in milliseconds
 
       if (gambleAmount < 1 || gambleAmount > 25) {
         const embed = new EmbedBuilder().setDescription('The bet amount must be between 1 and 25 clienterr coins.');
