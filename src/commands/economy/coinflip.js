@@ -28,7 +28,7 @@ export default {
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 21600,
+  cooldown: 600,
   nsfwMode: false,
   testMode: false,
   devOnly: false,
