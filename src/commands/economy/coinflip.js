@@ -28,7 +28,7 @@ export default {
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 600,
+  cooldown: 21600,
   nsfwMode: false,
   testMode: false,
   devOnly: false,
@@ -43,11 +43,6 @@ export default {
         const embed = new EmbedBuilder().setDescription('The bet amount cannot be negative.');
         return interaction.reply({ embeds: [embed], ephemeral: true });
     }
-    if (gambleAmount > 15) {
-      const rembed = new EmbedBuilder().setDescription('The maximum bet amount is 25 coins.');
-      return interaction.reply({ embeds: [rembed], ephemeral: true });
-    }
-
 
       // Fetch the user's balance from the database
       let userBalance = await Balance.findOne({ userId });
