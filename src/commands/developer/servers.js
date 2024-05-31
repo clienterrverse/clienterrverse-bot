@@ -1,7 +1,7 @@
 /** @format */
 
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import paginateEmbeds from '../../utils/buttonPagination.js'; // Correct import statement
+import paginateEmbeds from "../../utils/buttonPagination.js"; // Correct import statement
 
 export default {
   data: new SlashCommandBuilder()
@@ -66,7 +66,7 @@ export default {
         }
 
         const embeds = [];
-        const MAX_FIELDS = 9;
+        const MAX_FIELDS = 8;
 
         for (let i = 0; i < guilds.length; i += MAX_FIELDS) {
           const currentGuilds = guilds.slice(i, i + MAX_FIELDS);
