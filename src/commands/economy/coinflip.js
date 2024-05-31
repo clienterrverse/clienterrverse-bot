@@ -44,7 +44,7 @@ export default {
         return interaction.reply({ embeds: [embed], ephemeral: true });
     }
     if (gambleAmount > 15) {
-      const rembed = new EmbedBuilder().setDescription('The maximum bet amount is 10 coins.');
+      const rembed = new EmbedBuilder().setDescription('The maximum bet amount is 25 coins.');
       return interaction.reply({ embeds: [rembed], ephemeral: true });
     }
 
