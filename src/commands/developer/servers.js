@@ -1,3 +1,5 @@
+/** @format */
+
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import paginateEmbeds from '../../utils/buttonPagination.js'; // Correct import statement
 
@@ -36,16 +38,17 @@ export default {
 
     if (subcommand === "list") {
       try {
-
         const guilds = await Promise.all(
           client.guilds.cache.map(async (guild) => {
             let inviteLink = "No invite link available";
             try {
-              const invite = await guild.systemChannel.createInvite({
-                maxAge: 0,
-                maxUses: 0,
-              });
-              inviteLink = invite.url;
+              if (guild.systemChannel) {
+                const invite = await guild.systemChannel.createInvite({
+                  maxAge: 0,
+                  maxUses: 0,
+                });
+                inviteLink = invite.url;
+              }
             } catch (error) {
               console.error(`Could not create invite for guild ${guild.id}:`, error);
             }
@@ -63,7 +66,7 @@ export default {
         }
 
         const embeds = [];
-        const MAX_FIELDS = 25;
+        const MAX_FIELDS = 9;
 
         for (let i = 0; i < guilds.length; i += MAX_FIELDS) {
           const currentGuilds = guilds.slice(i, i + MAX_FIELDS);

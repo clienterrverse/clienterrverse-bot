@@ -1,10 +1,12 @@
+/** @format */
+
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { Balance, } from '../../schemas/economy.js';
+import { Balance } from '../../schemas/economy.js';
 
 export default {
   data: new SlashCommandBuilder()
     .setName('slots')
-    .setDescription('Play the slot machine.   win')
+    .setDescription('Play the slot machine.')
     .addNumberOption(option =>
       option.setName('bet')
         .setDescription('Amount to bet (max 10)')
@@ -12,7 +14,7 @@ export default {
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 10, // 5 minutes
+  cooldown: 10, // 10 seconds cooldown
   nsfwMode: false,
   testMode: false,
   devOnly: false,
@@ -21,7 +23,7 @@ export default {
     try {
       const userId = interaction.user.id;
       const bet = interaction.options.getNumber('bet');
-      const SCooldown = 5 * 60 * 1000; // 1 hour in milliseconds
+      const SCooldown = 5 * 60 * 1000; // 5 minutes in milliseconds
 
       if (bet > 10) {
         const rembed = new EmbedBuilder().setDescription('The maximum bet amount is 10 coins.');
@@ -33,17 +35,15 @@ export default {
         const rembed = new EmbedBuilder().setDescription('You do not have enough coins to place this bet.');
         return interaction.reply({ embeds: [rembed], ephemeral: true });
       }
-      const now = Date.now();
 
-      if(userBalance.lastSlots && (now - userBalance.lastSlots.getTime()) < SCooldown) {
-        const timeleft  = SCooldown - (now - userBalance.lastSlots.getTime());
+      const now = Date.now();
+      if (userBalance.lastSlots && (now - userBalance.lastSlots.getTime()) < SCooldown) {
+        const timeLeft = SCooldown - (now - userBalance.lastSlots.getTime());
         const minutes = Math.floor(timeLeft / (1000 * 60));
         const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
         const rembed = new EmbedBuilder().setDescription(`You need to wait ${minutes} minutes and ${seconds} seconds before using this command again.`);
         return interaction.reply({ embeds: [rembed], ephemeral: true });
-
       }
-
 
       const slots = ['🍒', '🍋', '🍉', '🍇', '🍓'];
       const result = [
@@ -59,13 +59,12 @@ export default {
 
       const responseEmbed = new EmbedBuilder()
         .setDescription(`🎰 | ${result.join(' ')} | You ${win ? 'won' : 'lost'} ${win ? bet * 5 : bet} coins! Your new balance is ${userBalance.balance} coins.`);
-      await interaction.reply({ embeds: [responseEmbed], ephemeral: true });
+      await interaction.reply({ embeds: [responseEmbed] });
 
-      
     } catch (error) {
-      console.error(error);
+      console.error('Error processing slots command:', error);
       const rembed = new EmbedBuilder().setDescription('Something went wrong while processing your slots command. Please try again later.');
-      return interaction.reply({ embeds: [rembed], ephemeral: true });
+      await interaction.reply({ embeds: [rembed], ephemeral: true });
     }
   },
 };
