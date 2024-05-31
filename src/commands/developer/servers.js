@@ -63,7 +63,7 @@ export default {
         }
 
         const embeds = [];
-        const MAX_FIELDS = 25;
+        const MAX_FIELDS = 9;
 
         for (let i = 0; i < guilds.length; i += MAX_FIELDS) {
           const currentGuilds = guilds.slice(i, i + MAX_FIELDS);
