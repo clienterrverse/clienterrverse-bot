@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import paginateEmbeds from '../../utils/buttonPagination.js'; // Correct import statement
 
 export default {
   data: new SlashCommandBuilder()
@@ -26,7 +27,7 @@ export default {
   userPermissions: [],
   botPermissions: [],
   cooldown: 5,
-  nwfwMode: false,
+  nsfwMode: false,
   testMode: false,
   devOnly: true,
 
@@ -35,7 +36,6 @@ export default {
 
     if (subcommand === "list") {
       try {
-        await interaction.deferReply();
 
         const guilds = await Promise.all(
           client.guilds.cache.map(async (guild) => {
@@ -62,35 +62,33 @@ export default {
           return await interaction.editReply("The bot is not in any servers.");
         }
 
-        const embed = new EmbedBuilder()
-          .setTitle("Servers List")
-          .setDescription(`The bot is in **${guilds.length}** servers.`)
-          .setColor("#00FF00")
-          .setThumbnail(client.user.displayAvatarURL())
-          .setFooter({
-            text: `Requested by ${interaction.user.username}`,
-            iconURL: interaction.user.displayAvatarURL({ format: "png", dynamic: true, size: 1024 }),
-          });
-
+        const embeds = [];
         const MAX_FIELDS = 25;
-        let fieldCount = 0;
-        let currentEmbed = new EmbedBuilder(embed);
 
-        guilds.forEach((guild) => {
-          if (fieldCount >= MAX_FIELDS) {
-            interaction.followUp({ embeds: [currentEmbed] });
-            currentEmbed = new EmbedBuilder(embed);
-            fieldCount = 0;
-          }
-          currentEmbed.addFields({
-            name: guild.name,
-            value: `ID: ${guild.id}\nMembers: ${guild.memberCount}\n[Invite Link](${guild.inviteLink})`,
-            inline: true,
+        for (let i = 0; i < guilds.length; i += MAX_FIELDS) {
+          const currentGuilds = guilds.slice(i, i + MAX_FIELDS);
+          const embed = new EmbedBuilder()
+            .setTitle("Servers List")
+            .setDescription(`The bot is in **${guilds.length}** servers.`)
+            .setColor("#00FF00")
+            .setThumbnail(client.user.displayAvatarURL())
+            .setFooter({
+              text: `Requested by ${interaction.user.username}`,
+              iconURL: interaction.user.displayAvatarURL({ format: "png", dynamic: true, size: 1024 }),
+            });
+
+          currentGuilds.forEach((guild) => {
+            embed.addFields({
+              name: guild.name,
+              value: `ID: ${guild.id}\nMembers: ${guild.memberCount}\n[Invite Link](${guild.inviteLink})`,
+              inline: true,
+            });
           });
-          fieldCount++;
-        });
 
-        await interaction.editReply({ embeds: [currentEmbed] });
+          embeds.push(embed);
+        }
+
+        await paginateEmbeds(interaction, embeds);
       } catch (error) {
         console.error("Error fetching servers or creating invite links:", error);
         await interaction.editReply("There was an error trying to fetch the server list or create invite links.");

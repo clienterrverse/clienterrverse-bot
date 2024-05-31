@@ -6,8 +6,9 @@ import getLocalContextMenus from '../../utils/getLocalContextMenus.js';
 
 export default async (client, interaction) => {
   if (!interaction.isContextMenuCommand()) return;
-  const localContextMenus = getLocalContextMenus();
+  const localContextMenus = await getLocalContextMenus();
   const { developersId, testServerId } = config;
+
 
 
   try {

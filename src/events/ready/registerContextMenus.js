@@ -9,10 +9,11 @@ export default async (client) => {
 
     const localContextMenus = await getLocalContextMenus();
     const applicationContextMenus = await getApplicationContextMenus(client, testServerId);
+    const localContextMenuNames = new Set(localContextMenus.map(cmd => cmd.data.name))
 
 
-    for (const localContextMenuModule of localContextMenus) {
-      const localContextMenu = localContextMenuModule.default; // Access the default property
+
+    for (const localContextMenu of localContextMenus) {
       const { data } = localContextMenu; // Destructure data from localContextMenu
 
       const contextMenuName = data.name;

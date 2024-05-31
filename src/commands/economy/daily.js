@@ -22,7 +22,7 @@ export default {
       const userId = interaction.user.id;
       const emoji = '🎁'; // Using a gift emoji for the daily reward
       const minAmount = 1; // Minimum amount to be received
-      const maxAmount = 20; // Maximum amount to be received
+      const maxAmount = 30; // Maximum amount to be received
       const dailyCooldown = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
       // Fetch the user's balance from the database
