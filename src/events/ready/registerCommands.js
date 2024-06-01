@@ -6,8 +6,10 @@ import getLocalCommands from '../../utils/getLocalCommands.js';
 import config from '../../config/config.json' assert { type: 'json' };
 import { ApplicationCommandType } from 'discord.js';
 
+
 export default async (client) => {
   try {
+
     const { testServerId } = config;
     const localCommands = await getLocalCommands();
     const applicationCommands = await getApplicationCommands(client, testServerId);
