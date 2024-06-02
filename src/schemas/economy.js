@@ -1,15 +1,12 @@
-/** @format */
-
 import mongoose from 'mongoose';
 
-// Schema for user balances
 const balanceSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true, index: true },
   balance: { type: Number, default: 0 },
   bank: { type: Number, default: 0 },
+  lastDaily: { type: Date, default: null },
   lastWeekly: { type: Date, default: null },
   lastHourly: { type: Date, default: null },
-  lastDaily: { type: Date, default: null },
   lastBeg: { type: Date, default: null },
   lastcoin: { type: Date, default: null },
   lastWork: { type: Date, default: null },
