@@ -61,7 +61,7 @@ export default {
       ];
       const win = result[0] === result[1] && result[1] === result[2];
 
-      userBalance.balance += win ? bet * 5 : -bet; // 5x payout on win
+      userBalance.balance += win ? bet * 10 : -bet; // 5x payout on win
       userBalance.lastSlots = new Date();
       await userBalance.save();
 
