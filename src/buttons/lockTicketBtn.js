@@ -1,6 +1,5 @@
 import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import ticketSchema from "../schemas/ticketSchema.js";
-import ticketSetupSchema from "../schemas/ticketSetupSchema.js";
 
 export default {
   customId: "lockTicketBtn",
@@ -12,7 +11,7 @@ export default {
 
       await interaction.deferReply({ ephemeral: true });
 
-      // Get the ticket creator from the database (assuming ticketSchema is imported)
+      // Get the ticket creator from the database
       const ticket = await ticketSchema.findOne({ ticketChannelID: channel.id });
 
       if (!ticket) {
@@ -22,30 +21,49 @@ export default {
         });
       }
 
-      // Lock the channel by updating permissions
-      await channel.permissionOverwrites.edit(ticket.ticketMemberID, {
-        SendMessages: false
-      });
+      // Check current permissions to determine if the ticket is locked
+      const currentPermissions = channel.permissionsFor(ticket.ticketMemberID);
+      const isLocked = !currentPermissions.has(PermissionFlagsBits.SendMessages);
 
-      await interaction.editReply({
-        content: "This ticket has been locked.",
-        ephemeral: true,
-      });
+      if (isLocked) {
+        // Unlock the ticket by updating permissions
+        await channel.permissionOverwrites.edit(ticket.ticketMemberID, {
+          SendMessages: true
+        });
 
-      const lockedEmbed = new EmbedBuilder()
-        .setColor("Orange")
-        .setTitle("Ticket Locked")
-        .setDescription(`This ticket has been locked by ${member.user.tag}.`);
+        await interaction.editReply({
+          content: "This ticket has been unlocked.",
+          ephemeral: true,
+        });
 
-      const unlockEmbed = new EmbedBuilder()
-        .setColor("DarkBlue")
-        .setTitle("Ti")
-      await channel.send({ embeds: [lockedEmbed] });
+        const unlockedEmbed = new EmbedBuilder()
+          .setColor("Green")
+          .setTitle("Ticket Unlocked")
+          .setDescription(`This ticket has been unlocked by ${member.user.tag}.`);
 
+        await channel.send({ embeds: [unlockedEmbed] });
+      } else {
+        // Lock the ticket by updating permissions
+        await channel.permissionOverwrites.edit(ticket.ticketMemberID, {
+          SendMessages: false
+        });
+
+        await interaction.editReply({
+          content: "This ticket has been locked.",
+          ephemeral: true,
+        });
+
+        const lockedEmbed = new EmbedBuilder()
+          .setColor("Orange")
+          .setTitle("Ticket Locked")
+          .setDescription(`This ticket has been locked by ${member.user.tag}.`);
+
+        await channel.send({ embeds: [lockedEmbed] });
+      }
     } catch (err) {
-      console.error('Error locking ticket:', err);
+      console.error('Error toggling ticket lock:', err);
       await interaction.editReply({
-        content: 'There was an error locking the ticket. Please try again later.',
+        content: 'There was an error toggling the ticket lock. Please try again later.',
         ephemeral: true,
       });
     }
