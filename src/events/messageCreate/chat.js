@@ -40,6 +40,14 @@ export default async (client, message) => {
           `<:whip:1223554028794024018>`
         );
       },
+    },
+    {
+      regex: /how\s*to\s*tame\s*darkgladiator_26/i,
+      action: () => {
+        message.reply(
+          `<:whip:1223554028794024018>`
+        );
+      },
     }
   ];
 
