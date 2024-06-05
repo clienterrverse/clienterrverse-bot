@@ -1,16 +1,19 @@
 import { model, Schema } from 'mongoose';
 
 const ticketSchema = new Schema({
-    guildID: String,
-    ticketMemberID: String,
-    ticketChannelID: String,
-    parentTicketChannelID: String,
-    rating: Number,
-    feedback: String,
-    closed: Boolean, // Fixed from 'close' to 'closed' to match the command file
-    membersAdded: Array, // Fixed from 'memberAdded' to 'membersAdded' to match the command file
+  guildID: { type: String, required: true },
+  ticketMemberID: { type: String, required: true },
+  ticketChannelID: { type: String, required: true },
+  parentTicketChannelID: { type: String, required: true },
+  closed: { type: Boolean, default: false },
+  membersAdded: { type: [String], default: [] },
+  claimedBy: { type: String, default: null }, // ID of the member who claimed the ticket
+  createdAt: { type: Date, default: Date.now }, // Timestamp of ticket creation
+  status: { type: String, enum: ['open', 'closed', 'locked'], default: 'open' }, // Ticket status
+  actionLog: { type: [String], default: [] }, // Log of actions taken on the ticket
 }, {
-    strict: false
+  strict: false,
+  timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
 });
 
-export default model('Ticket', ticketSchema); 
+export default model('Ticket', ticketSchema);

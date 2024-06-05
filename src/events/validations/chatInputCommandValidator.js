@@ -8,7 +8,8 @@ import getLocalCommands from '../../utils/getLocalCommands.js';
 const cooldowns = new Collection();
 
 export default async (client, interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isChatInputCommand() && !interaction.isAutocomplete()) return;
+
 
   const localCommands = await getLocalCommands();
   const { developersId, testServerId } = config;
@@ -102,20 +103,17 @@ export default async (client, interaction) => {
         }
       }
     }
+    if (interaction.isAutocomplete()) {
+      await commandObject.autocomplete(client, interaction);
+    } else {
+      await commandObject.run(client, interaction);S
+    };
 
-    // Command Execution
-    await commandObject.run(client, interaction);
 
     // Command Logging
-    console.log(`Command executed: ${interaction.commandName} by ${interaction.member.user.tag}`);
+    console.log(`Command executed: ${interaction.commandName} by ${interaction.member.user.tag}`.green);
 
   } catch (err) {
     console.error(`An error occurred while validating chat input commands! ${err}`.red);
-    
-    // Notify Admins
-    const admin = await client.users.fetch(developersId); // assuming the first developerId is the main admin
-    if (admin) {
-      admin.send(`An error occurred: ${err.message}`);
-    }
   }
 };

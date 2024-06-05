@@ -18,7 +18,8 @@ export default {
 
   userPermissions: [], // No user permissions required
   botPermissions: [], // No bot permissions required
-  cooldown: 5, 
+  cooldown: 5,
+  deleted: false, 
   nwfwMode: false,
   testMode: false,
   devOnly: false,

@@ -5,14 +5,14 @@ export default {
     data: new SlashCommandBuilder()
         .setName('ticket-add-member')
         .setDescription('Add a member to a ticket.')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageThreads)
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
         .addUserOption(option =>
             option.setName('member')
                 .setDescription('The member to add to the ticket.')
                 .setRequired(true))
         .toJSON(),
 
-    userPermissions: [PermissionFlagsBits.ManageThreads],
+    userPermissions: [PermissionFlagsBits.ManageChannels],
     botPermissions: [],
 
     run: async (client, interaction) => {
@@ -59,7 +59,7 @@ export default {
             });
         } catch (err) {
             console.log(err);
-            return await interaction.editReply({
+             return await interaction.editReply({
                 content: 'An error occurred while adding the member to the ticket.',
             });
         }
