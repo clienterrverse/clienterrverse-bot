@@ -10,6 +10,14 @@ export default async (client, message) => {
       },
     },
     {
+      regex: /how\s*to\s*tame\s*ChronoUK/i,
+      action: () => {
+        message.reply(
+          `<:whip:1223554028794024018>`
+        );
+      },
+    },
+    {
       regex: /smash\s*clienterr/i,
       action: () => {
         message.reply(
