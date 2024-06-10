@@ -3,12 +3,10 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
 
-// Ensure the MongoDB connection is established
-
 export default {
   data: new SlashCommandBuilder()
-    .setName("weekly")
-    .setDescription("Claim your weekly reward.")
+    .setName('weekly')
+    .setDescription('Claim your weekly reward.')
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
@@ -35,8 +33,9 @@ export default {
 
       // Check if the user has already claimed their weekly reward
       const now = Date.now();
-      if (userBalance.lastWeekly && (now - userBalance.lastWeekly.getTime()) < weeklyCooldown) {
-        const timeLeft = weeklyCooldown - (now - userBalance.lastWeekly.getTime());
+      const timeSinceLastWeekly = now - (userBalance.lastWeekly ? userBalance.lastWeekly.getTime() : 0);
+      if (userBalance.lastWeekly && timeSinceLastWeekly < weeklyCooldown) {
+        const timeLeft = weeklyCooldown - timeSinceLastWeekly;
         const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
         const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));

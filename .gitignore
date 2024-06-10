@@ -131,3 +131,4 @@ dist
 .pnp.*
 src/config/config.json
 my/
+.vscode/
