@@ -32,13 +32,12 @@ export default {
       // Fetch the user's balance from the database
       let userBalance = await Balance.findOne({ userId });
 
-      // If the user does not exist in the database, create a new entry
       if (!userBalance) {
         userBalance = new Balance({ userId });
         await userBalance.save();
+        return interaction.reply('You do not have an account yet. Please deposit some coins first.');
       }
 
-      // Check if the user has enough bank balance to withdraw
       if (userBalance.bank < amount) {
         return interaction.reply('You do not have enough bank balance to withdraw that amount.');
       }
@@ -47,12 +46,12 @@ export default {
       userBalance.bank -= amount;
       userBalance.balance += amount;
       await userBalance.save();
-      
+
       // Record the transaction
       const withdrawTransaction = new Transaction({
-        userId: userId,
+        userId,
         type: 'withdraw',
-        amount: amount,
+        amount,
       });
       await withdrawTransaction.save();
 
@@ -61,6 +60,10 @@ export default {
         .setTitle('Withdrawal Successful')
         .setDescription(`You have withdrawn ${amount} clienterr coins from your bank.`)
         .setColor('#00FF00')
+        .addFields(
+          { name: 'New Bank Balance', value: userBalance.bank.toString(), inline: true },
+          { name: 'New Wallet Balance', value: userBalance.balance.toString(), inline: true }
+        )
         .setFooter({
           text: `Withdrawal by ${interaction.user.username}`,
           iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
@@ -71,7 +74,7 @@ export default {
       await interaction.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Error processing withdraw command:', error);
-      await interaction.reply('There was an error trying to process your withdrawal.');
+      await interaction.reply('There was an error trying to process your withdrawal. Please try again later.');
     }
   },
 };
