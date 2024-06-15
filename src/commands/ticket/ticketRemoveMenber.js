@@ -11,7 +11,7 @@ export default {
         .setDescription('The member to remove from the ticket.')
         .setRequired(true))
     .toJSON(),
-  
+
   userPermissions: [PermissionFlagsBits.ManageThreads],
   botPermissions: [],
 
@@ -63,10 +63,10 @@ export default {
       await channel.members.remove(memberToRemove.id);
 
       return await interaction.editReply({
-        content: `Successfully removed ${memberToRemove} from the ticket.`
+        content: `Successfully removed ${memberToRemove.tag} from the ticket.` // Added .tag for better readability
       });
     } catch (err) {
-      console.log('Error removing member from ticket:', err);
+      console.error('Error removing member from ticket:', err);
       return await interaction.editReply({
         content: 'An error occurred while trying to remove the member from the ticket.'
       });

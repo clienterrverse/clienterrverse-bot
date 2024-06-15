@@ -55,11 +55,11 @@ export default {
             await channel.members.add(memberToAdd.id);
 
             return await interaction.editReply({
-                content: `Successfully added ${memberToAdd} to the ticket.`,
+                content: `Successfully added ${memberToAdd.tag} to the ticket.`, // Added .tag for better readability
             });
         } catch (err) {
-            console.log(err);
-             return await interaction.editReply({
+            console.error('Error adding member to ticket:', err); // Improved error logging
+            return await interaction.editReply({
                 content: 'An error occurred while adding the member to the ticket.',
             });
         }
