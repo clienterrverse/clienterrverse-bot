@@ -50,10 +50,7 @@ export default {
                 .setStyle(TextInputStyle.Paragraph)
             )
           );
-        return interaction.showModal(ticketModal);
-      } else {
-        await interaction.deferReply({ ephemeral: true });
-
+        return interaction.showModal
         const category = guild.channels.cache.get(ticketSetup.categoryID);
         const logChannel = guild.channels.cache.get(ticketSetup.logChannelID);
         const staffRole = guild.roles.cache.get(ticketSetup.staffRoleID);
@@ -122,15 +119,30 @@ export default {
           parentTicketChannelID: channel.id,
           closed: false,
           membersAdded: [],
-          claimedBy: null, // Initially, no one has claimed the ticket
+          claimedBy: null,
           status: 'open',
-          actionLog: [`Ticket created by ${member.user.tag}`] // Initial action log entry
+          actionLog: [`Ticket created by ${member.user.tag} (${member.id}) at ${new Date().toISOString()}`]
         });
 
         await ticket.save();
 
+        // Log the ticket creation in the log channel
+        if (logChannel) {
+          const logEmbed = new EmbedBuilder()
+            .setColor("Green")
+            .setTitle("Ticket Created")
+            .setDescription(`Ticket created by ${member.user.tag}`)
+            .addFields(
+              { name: "Ticket Channel", value: `<#${ticketChannel.id}>` },
+              { name: "Created At", value: new Date().toISOString() }
+            )
+            .setTimestamp();
+
+          await logChannel.send({ embeds: [logEmbed] });
+        }
+
         return await interaction.editReply({
-          content: `Your ticket has been created in ${ticketChannel}`,
+          content: `Your ticket has been created: <#${ticketChannel.id}>`,
           ephemeral: true
         });
       }

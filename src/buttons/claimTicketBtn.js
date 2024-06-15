@@ -53,16 +53,19 @@ export default {
         });
       }
 
+      // Update channel permissions to allow the staff member to manage the ticket
       await channel.permissionOverwrites.edit(member.id, {
         [PermissionFlagsBits.ViewChannel]: true,
         [PermissionFlagsBits.SendMessages]: true,
         [PermissionFlagsBits.ManageChannels]: true,
       });
 
+      // Update channel permissions to restrict others from viewing the channel
       await channel.permissionOverwrites.edit(channel.guild.roles.everyone.id, {
         [PermissionFlagsBits.ViewChannel]: false,
       });
 
+      // Allow the ticket member to still view and send messages in the channel
       await channel.permissionOverwrites.edit(ticket.ticketMemberID, {
         [PermissionFlagsBits.ViewChannel]: true,
         [PermissionFlagsBits.SendMessages]: true,
@@ -75,6 +78,7 @@ export default {
 
       await channel.send({ embeds: [claimEmbed] });
 
+      // Update ticket status in the database
       ticket.claimedBy = member.id;
       await ticket.save();
 

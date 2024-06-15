@@ -85,35 +85,34 @@ export default {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      let setupTicket = await ticketSetupSchema.findOne({
-        ticketChannelID: ticketChannel.id,
-      });
+      let setupTicket = await ticketSetupSchema.findOne({ ticketChannelID: ticketChannel.id });
 
       if (setupTicket) {
         return await interaction.editReply({
           content: 'This channel is already registered as a ticket channel.',
         });
-      } else {
-        setupTicket = await ticketSetupSchema.create({
-          guildID: guild.id,
-          ticketChannelID: ticketChannel.id,
-          staffRoleID: staffRole.id,
-          ticketType: ticketType,
-          categoryID: category.id,
-          logChannelID: logChannel.id,
-        });
+      } 
 
-        await setupTicket.save().catch(err => console.log(err));
-      }
+      setupTicket = await ticketSetupSchema.create({
+        guildID: guild.id,
+        ticketChannelID: ticketChannel.id,
+        staffRoleID: staffRole.id,
+        ticketType: ticketType,
+        categoryID: category.id,
+        logChannelID: logChannel.id,
+      });
+
+      await setupTicket.save();
 
       await ticketChannel.send({
         embeds: [ticketCreateEmbed],
         components: [openTicketButton],
       });
 
-      return await interaction.editReply({
+      await interaction.editReply({
         embeds: [ticketSetupEmbed],
       });
+      
 
     } catch (error) {
       console.error('Error during ticket setup:', error);

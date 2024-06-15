@@ -7,10 +7,10 @@ const ticketSchema = new Schema({
   parentTicketChannelID: { type: String, required: true },
   closed: { type: Boolean, default: false },
   membersAdded: { type: [String], default: [] },
-  claimedBy: { type: String, default: null }, // ID of the member who claimed the ticket
-  createdAt: { type: Date, default: Date.now }, // Timestamp of ticket creation
-  status: { type: String, enum: ['open', 'closed', 'locked'], default: 'open' }, // Ticket status
-  actionLog: { type: [String], default: [] }, // Log of actions taken on the ticket
+  claimedBy: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ['open', 'closed', 'locked'], default: 'open' },
+  actionLog: { type: [String], default: [] },
 }, {
   strict: false,
   timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },

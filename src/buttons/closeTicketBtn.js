@@ -1,9 +1,9 @@
-import { 
-  PermissionFlagsBits, 
-  EmbedBuilder, 
-  ButtonBuilder, 
-  ButtonStyle, 
-  ActionRowBuilder 
+import {
+  PermissionFlagsBits,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder
 } from 'discord.js';
 
 export default {
@@ -14,29 +14,28 @@ export default {
     try {
       await interaction.deferReply({ ephemeral: true });
 
-      const confirmCloseTicketEmbed = new EmbedBuilder()
-        .setColor("DarkRed")
-        .setTitle("Close Ticket")
-        .setDescription("Are you sure you want to close this ticket?");
+      const closeTicketModal = new ModalBuilder()
+        .setCustomId('closeTicketModal')
+        .setTitle('Close Ticket Confirmation');
 
-      const confirmCloseTicketBtn = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("confirmCloseTicketBtn")
-          .setLabel("Confirm")
-          .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-          .setCustomId("cancelCloseTicketBtn")
-          .setLabel("Cancel")
-          .setStyle(ButtonStyle.Success)
-      );
+      const reasonInput = new TextInputBuilder()
+        .setCustomId('closeTicketReason')
+        .setLabel('Reason for closing (optional)')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false);
 
-      await interaction.editReply({
-        embeds: [confirmCloseTicketEmbed],
-        components: [confirmCloseTicketBtn]
-      });
+      const actionRow = new ActionRowBuilder().addComponents(reasonInput);
+      closeTicketModal.addComponents(actionRow);
 
+      await interaction.showModal(closeTicketModal);
+
+      await interaction.editReply({ content: 'Please confirm ticket closure.', ephemeral: true });
     } catch (err) {
       console.error('Error presenting close ticket confirmation:', err);
+      await interaction.editReply({
+        content: 'There was an error presenting the close ticket confirmation. Please try again later.',
+        ephemeral: true,
+      });
     }
   }
 };
