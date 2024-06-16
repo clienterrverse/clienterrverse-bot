@@ -30,6 +30,19 @@ export default {
         });
       }
 
+      const existingTicket = await ticketSchema.findOne({
+        guildID: guild.id,
+        ticketMemberID: member.id,
+        closed: false
+      });
+
+      if (existingTicket) {
+        return await interaction.reply({
+          content: "You already have an open ticket!",
+          ephemeral: true
+        });
+      }
+
       if (ticketSetup.ticketType === "modal") {
         const ticketModal = new ModalBuilder()
           .setTitle("Ticket System")
@@ -50,102 +63,90 @@ export default {
                 .setStyle(TextInputStyle.Paragraph)
             )
           );
-        return interaction.showModal
-        const category = guild.channels.cache.get(ticketSetup.categoryID);
-        const logChannel = guild.channels.cache.get(ticketSetup.logChannelID);
-        const staffRole = guild.roles.cache.get(ticketSetup.staffRoleID);
-        const username = member.user.username;
 
-        const ticketEmbed = new EmbedBuilder()
-          .setColor("DarkNavy")
-          .setAuthor({ name: username, iconURL: member.user.displayAvatarURL() })
+        await interaction.showModal(ticketModal);
+        return;
+      }
+
+      const category = guild.channels.cache.get(ticketSetup.categoryID);
+      const logChannel = guild.channels.cache.get(ticketSetup.logChannelID);
+      const staffRole = guild.roles.cache.get(ticketSetup.staffRoleID);
+      const username = member.user.username;
+
+      const ticketEmbed = new EmbedBuilder()
+        .setColor("DarkNavy")
+        .setAuthor({ name: username, iconURL: member.user.displayAvatarURL() })
+        .setTitle("Ticket Created")
+        .setDescription("Staff will be with you shortly. Please explain your issue in as much detail as possible.")
+        .setFooter({
+          text: `${guild.name} - Ticket`,
+          iconURL: guild.iconURL()
+        })
+        .setTimestamp();
+
+      const ticketCount = await ticketSchema.countDocuments({
+        guildID: guild.id,
+        closed: true
+      });
+
+      const ticketChannel = await guild.channels.create({
+        name: `${ticketCount + 1}-${username}`,
+        type: ChannelType.GuildText,
+        parent: category.id,
+        permissionOverwrites: [
+          {
+            id: guild.id,
+            deny: [PermissionFlagsBits.ViewChannel]
+          },
+          {
+            id: member.id,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+          },
+          {
+            id: staffRole.id,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+          }
+        ]
+      });
+
+      await ticketChannel.send({
+        content: `${staffRole} - Ticket created by ${member}`,
+        embeds: [ticketEmbed]
+      });
+
+      const newTicket = new ticketSchema({
+        guildID: guild.id,
+        ticketMemberID: member.id,
+        ticketChannelID: ticketChannel.id,
+        parentTicketChannelID: channel.id,
+        closed: false,
+        membersAdded: [],
+        claimedBy: null,
+        status: 'open',
+        actionLog: [`Ticket created by ${member.user.tag} (${member.id}) at ${new Date().toISOString()}`]
+      });
+
+      await newTicket.save();
+
+      if (logChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setColor("Green")
           .setTitle("Ticket Created")
-          .setDescription("Staff will be with you shortly. Please explain your issue in as much detail as possible.")
-          .setFooter({
-            text: `${guild.name} - Ticket`,
-            iconURL: guild.iconURL()
-          })
+          .setDescription(`Ticket created by ${member.user.tag}`)
+          .addFields(
+            { name: "Ticket Channel", value: `<#${ticketChannel.id}>` },
+            { name: "Created At", value: new Date().toISOString() }
+          )
           .setTimestamp();
 
-        let ticket = await ticketSchema.findOne({
-          guildID: guild.id,
-          ticketMemberID: member.id,
-          parentTicketChannelID: channel.id,
-          closed: false
-        });
-
-        if (ticket) {
-          return await interaction.editReply({
-            content: "You already have an open ticket.",
-            ephemeral: true
-          });
-        }
-
-        const ticketCount = await ticketSchema.countDocuments({
-          guildID: guild.id,
-          parentTicketChannelID: channel.id,
-          closed: true
-        });
-
-        const ticketChannel = await guild.channels.create({
-          name: `${ticketCount + 1}-${username}`,
-          type: ChannelType.GuildText,
-          parent: category.id,
-          permissionOverwrites: [
-            {
-              id: guild.id,
-              deny: [PermissionFlagsBits.ViewChannel]
-            },
-            {
-              id: member.id,
-              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-            },
-            {
-              id: staffRole.id,
-              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-            }
-          ]
-        });
-
-        await ticketChannel.send({
-          content: `${staffRole} - Ticket created by ${member}`,
-          embeds: [ticketEmbed]
-        });
-
-        ticket = await ticketSchema.create({
-          guildID: guild.id,
-          ticketMemberID: member.id,
-          ticketChannelID: ticketChannel.id,
-          parentTicketChannelID: channel.id,
-          closed: false,
-          membersAdded: [],
-          claimedBy: null,
-          status: 'open',
-          actionLog: [`Ticket created by ${member.user.tag} (${member.id}) at ${new Date().toISOString()}`]
-        });
-
-        await ticket.save();
-
-        // Log the ticket creation in the log channel
-        if (logChannel) {
-          const logEmbed = new EmbedBuilder()
-            .setColor("Green")
-            .setTitle("Ticket Created")
-            .setDescription(`Ticket created by ${member.user.tag}`)
-            .addFields(
-              { name: "Ticket Channel", value: `<#${ticketChannel.id}>` },
-              { name: "Created At", value: new Date().toISOString() }
-            )
-            .setTimestamp();
-
-          await logChannel.send({ embeds: [logEmbed] });
-        }
-
-        return await interaction.editReply({
-          content: `Your ticket has been created: <#${ticketChannel.id}>`,
-          ephemeral: true
-        });
+        await logChannel.send({ embeds: [logEmbed] });
       }
+
+      await interaction.reply({
+        content: `Your ticket has been created: <#${ticketChannel.id}>`,
+        ephemeral: true
+      });
+
     } catch (error) {
       console.error('Error creating ticket:', error);
       await interaction.reply({

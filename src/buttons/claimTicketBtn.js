@@ -14,7 +14,6 @@ export default {
       // Fetch the ticket setup from the database
       const setupTicket = await ticketSetupSchema.findOne({
         guildID: guild.id,
-        ticketChannelID: channel.id
       });
 
       // Check if the setupTicket exists

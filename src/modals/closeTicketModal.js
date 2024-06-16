@@ -2,10 +2,11 @@ import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import ticketSchema from '../schemas/ticketSchema.js';
 import ticketSetupSchema from '../schemas/ticketSetupSchema.js';
 import axios from 'axios'; // Import axios for GitHub interaction
+import dht from "discord-html-transcripts";
 
 export default {
   customId: 'closeTicketModal',
-  userPermissions: [PermissionFlagsBits.ManageChannels],
+  userPermissions: [],
   botPermissions: [],
   run: async (client, interaction) => {
     try {
@@ -63,12 +64,13 @@ export default {
       // Send transcript to the user via DM
       const userDM = await user.createDM();
       await userDM.send({
-        content: `Your transcript is available at the following link: ${transcriptURL}`,
+        content: `Your ticket has been closed. Reason: ${reason}. Your transcript is available at the following link: ${transcriptURL}`,
         files: [{
           attachment: transcript,
           name: `transcript-${channel.id}.html`
         }]
       });
+      
 
       // Send transcript to the log channel
       if (logChannel) {
