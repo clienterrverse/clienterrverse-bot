@@ -10,14 +10,14 @@ export default {
   run: async (client, interaction) => {
     try {
       const { member, channel, guild } = interaction;
-      
+
       // Fetch the ticket setup from the database
-      const setupTicket = await ticketSetupSchema.findOne({
+      const ticketSetup = await ticketSetupSchema.findOne({
         guildID: guild.id,
       });
 
-      // Check if the setupTicket exists
-      if (!setupTicket) {
+      // Check if the ticket setup exists
+      if (!ticketSetup) {
         return await interaction.reply({
           content: 'Ticket setup not found.',
           ephemeral: true,
@@ -25,7 +25,7 @@ export default {
       }
 
       // Check if the user has the required role to claim tickets
-      const staffRoleId = setupTicket.staffRoleID;
+      const staffRoleId = ticketSetup.staffRoleID;
       if (!member.roles.cache.has(staffRoleId)) {
         return await interaction.reply({
           content: 'You do not have the necessary permissions to claim this ticket.',
@@ -60,7 +60,7 @@ export default {
       });
 
       // Update channel permissions to restrict others from viewing the channel
-      await channel.permissionOverwrites.edit(channel.guild.roles.everyone.id, {
+      await channel.permissionOverwrites.edit(guild.roles.everyone.id, {
         [PermissionFlagsBits.ViewChannel]: false,
       });
 
@@ -69,6 +69,14 @@ export default {
         [PermissionFlagsBits.ViewChannel]: true,
         [PermissionFlagsBits.SendMessages]: true,
       });
+
+      // Restrict the staff role from viewing the ticket channel (optional, if required)
+      const staffRole = guild.roles.cache.get(staffRoleId);
+      if (staffRole) {
+        await channel.permissionOverwrites.edit(staffRole.id, {
+          [PermissionFlagsBits.ViewChannel]: false,
+        });
+      }
 
       const claimEmbed = new EmbedBuilder()
         .setColor('#00FF00')

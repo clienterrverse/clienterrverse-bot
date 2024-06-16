@@ -10,6 +10,7 @@ export default {
     try {
       const { channel, guild, member } = interaction;
 
+      // Defer the reply to give more time to process the interaction
       await interaction.deferReply({ ephemeral: true });
 
       // Get the ticket from the database
@@ -49,6 +50,17 @@ export default {
         });
       }
 
+      // Ensure only the staff member who claimed the ticket or an admin can lock/unlock
+      const isClaimer = member.id === ticket.claimedBy;
+      const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
+
+      if (!isClaimer && !isAdmin) {
+        return await interaction.editReply({
+          content: "Only the staff member who claimed this ticket or an administrator can lock/unlock it.",
+          ephemeral: true,
+        });
+      }
+
       let ticketMember = guild.members.cache.get(ticket.ticketMemberID);
       if (!ticketMember) {
         // Manually fetch the member if not in cache
@@ -78,7 +90,8 @@ export default {
       if (isLocked) {
         // Unlock the ticket by updating permissions
         await channel.permissionOverwrites.edit(ticket.ticketMemberID, {
-          SendMessages: true
+          [PermissionFlagsBits.SendMessages]: true,
+          [PermissionFlagsBits.ViewChannel]: true
         });
 
         await interaction.editReply({
@@ -95,7 +108,8 @@ export default {
       } else {
         // Lock the ticket by updating permissions
         await channel.permissionOverwrites.edit(ticket.ticketMemberID, {
-          SendMessages: false
+          [PermissionFlagsBits.SendMessages]: false,
+          [PermissionFlagsBits.ViewChannel]: true
         });
 
         await interaction.editReply({

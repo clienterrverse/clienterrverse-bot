@@ -53,11 +53,28 @@ export default {
       }
       const username = member.user.username;
 
+      // Check if the user has any previous tickets
+      const closedTickets = await ticketSchema.find({
+        guildID: guild.id,
+        ticketMemberID: member.id,
+        closed: true,
+      }).sort({ closedAt: -1 }).limit(3);
+
+      let previousTicketsField = 'No previous tickets';
+      if (closedTickets.length > 0) {
+        previousTicketsField = closedTickets.map((ticket, index) => {
+          const claimedBy = ticket.claimedBy ? `<@${ticket.claimedBy}>` : 'Unclaimed';
+          const closeReason = ticket.closeReason ? ticket.closeReason : 'No reason provided';
+          return `Ticket ${index + 1}:\n- Claimed by: ${claimedBy}\n- Close reason: ${closeReason}`;
+        }).join('\n\n');
+      }
+
       // Create the ticket embed
       const ticketEmbed = new EmbedBuilder()
         .setColor('#9861FF')
         .setAuthor({ name: username, iconURL: member.user.displayAvatarURL({ dynamic: true }) })
         .setDescription(`**Subject:** ${subject}\n**Description:** ${description}`)
+        .addFields({ name: 'Previous Tickets', value: previousTicketsField })
         .setFooter({
           text: `${guild.name} - Ticket`,
           iconURL: guild.iconURL(),
@@ -86,6 +103,10 @@ export default {
         ticketMemberID: member.id,
         closed: false,
       });
+      const ticketCount = await ticketSchema.countDocuments({
+        guildID: guild.id,
+        closed: true
+      });
 
       if (ticket) {
         return await interaction.editReply({
@@ -96,7 +117,7 @@ export default {
 
       // Create a new channel in the specified category
       const ticketChannel = await guild.channels.create({
-        name: `${username}-${Date.now()}`, // Unique name based on username and timestamp
+        name: `${username}-${ticketCount + 1}`, 
         type: ChannelType.GuildText,
         parent: category.id,
         permissionOverwrites: [
@@ -131,7 +152,8 @@ export default {
         membersAdded: [],
         claimedBy: null, // Initially, no one has claimed the ticket
         status: 'open',
-        actionLog: [`Ticket created by ${member.user.tag}`] // Initial action log entry
+        actionLog: [`Ticket created by ${member.user.tag}`], // Initial action log entry
+        closeReason: '' // Add this field to store the close reason
       });
 
       await ticket.save();

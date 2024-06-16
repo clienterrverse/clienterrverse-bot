@@ -69,7 +69,6 @@ export default {
       }
 
       const category = guild.channels.cache.get(ticketSetup.categoryID);
-      const logChannel = guild.channels.cache.get(ticketSetup.logChannelID);
       const staffRole = guild.roles.cache.get(ticketSetup.staffRoleID);
       const username = member.user.username;
 
@@ -128,19 +127,7 @@ export default {
 
       await newTicket.save();
 
-      if (logChannel) {
-        const logEmbed = new EmbedBuilder()
-          .setColor("Green")
-          .setTitle("Ticket Created")
-          .setDescription(`Ticket created by ${member.user.tag}`)
-          .addFields(
-            { name: "Ticket Channel", value: `<#${ticketChannel.id}>` },
-            { name: "Created At", value: new Date().toISOString() }
-          )
-          .setTimestamp();
 
-        await logChannel.send({ embeds: [logEmbed] });
-      }
 
       await interaction.reply({
         content: `Your ticket has been created: <#${ticketChannel.id}>`,

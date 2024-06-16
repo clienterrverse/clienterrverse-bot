@@ -70,7 +70,6 @@ export default {
           name: `transcript-${channel.id}.html`
         }]
       });
-      
 
       // Send transcript to the log channel
       if (logChannel) {
@@ -122,21 +121,24 @@ export default {
       await axios.put(url, data, { headers });
 
       const staffRole = guild.roles.cache.get(setupTicket.staffRoleID);
-      const hasRole = guild.members.cache.get(ticket.ticketMemberID)?.roles.cache.has(staffRole.id);
+      const ticketMember = guild.members.cache.get(ticket.ticketMemberID);
 
-      if (!hasRole) {
-        for (const memberID of ticket.membersAdded) {
-          const member = guild.members.cache.get(memberID);
-          if (member) await channel.permissionOverwrites.delete(member);
+      if (staffRole && ticketMember) {
+        const hasRole = ticketMember.roles.cache.has(staffRole.id);
+        if (!hasRole) {
+          for (const memberID of ticket.membersAdded) {
+            const addedMember = guild.members.cache.get(memberID);
+            if (addedMember) await channel.permissionOverwrites.delete(addedMember);
+          }
+          await channel.permissionOverwrites.delete(ticketMember);
         }
-        const ticketMember = guild.members.cache.get(ticket.ticketMemberID);
-        if (ticketMember) await channel.permissionOverwrites.delete(ticketMember);
       }
 
       // Update the ticket to closed in the database
       await ticketSchema.findOneAndUpdate(
         { guildID: guild.id, ticketChannelID: channel.id, closed: false },
-        { closed: true }
+        { closed: true, closeReason: reason },
+        { new: true }
       );
 
       const closedEmbed = new EmbedBuilder()

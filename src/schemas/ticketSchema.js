@@ -10,6 +10,7 @@ const ticketSchema = new Schema({
   claimedBy: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
   status: { type: String, enum: ['open', 'closed', 'locked'], default: 'open' },
+  closeReason: { type: String, default: '' },
   actionLog: { type: [String], default: [] },
 }, {
   strict: false,
