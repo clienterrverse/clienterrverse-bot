@@ -25,6 +25,18 @@ export default {
             .setRequired(true)
         )
     )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("check")
+        .setDescription("Check if the bot is in a specified server by its ID.")
+        .addStringOption((option) =>
+          option
+            .setName("server-id")
+            .setDescription("The ID of the server to check.")
+            .setRequired(true)
+        )
+    )
+
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
@@ -122,6 +134,21 @@ export default {
           ephemeral: true,
         });
       }
-    }
+    } else if (subcommand === "check") {
+      const serverId = interaction.options.getString("server-id");
+
+      const guild = client.guilds.cache.get(serverId);
+
+      if (guild) {
+        await interaction.reply({
+          content: `The bot is in the server **${guild.name}** (ID: ${serverId}).`,
+        });
+      } else {
+        await interaction.reply({
+          content: `The bot is not in a server with the ID ${serverId}.`,
+          ephemeral: true,
+        });
+      }
+    } 
   },
 };
