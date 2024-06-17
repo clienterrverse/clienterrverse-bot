@@ -11,8 +11,8 @@ export default async (client) => {
 
     client.user.setPresence({
       activities: [{
-        name: 'Clienterring in Clienterrverse',
-        type: ActivityType.Watching,
+        name: 'Clienterring in Clienterrverse ',
+        type: ActivityType.Competing,
         url: 'https://clienterr.com'
       }],
       status: 'online'
