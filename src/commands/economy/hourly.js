@@ -18,7 +18,7 @@ export default {
       const userId = interaction.user.id;
       const emoji = '⏳'; // Using an hourglass emoji for the hourly reward
       const minAmount = 1; // Minimum amount to be received
-      const maxAmount = 5; // Maximum amount to be received
+      const maxAmount = 7; // Maximum amount to be received
       const hourlyCooldown = 60 * 60 * 1000; // 1 hour in milliseconds
 
       // Fetch the user's balance from the database
