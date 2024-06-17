@@ -83,20 +83,25 @@ export default {
         .setDescription(`${member} has claimed this ticket.`)
         .setTimestamp();
 
-      await channel.send({ embeds: [claimEmbed] });
 
       // Update ticket status in the database
       ticket.claimedBy = member.id;
       await ticket.save();
 
-      return await interaction.reply({
-        content: 'You have claimed this ticket.',
-        ephemeral: true,
-      });
+      return await interaction.reply({ embeds: [claimEmbed] });
     } catch (error) {
       console.error('Error claiming ticket:', error);
-      // Notify the user if an error occurs
-      await interaction.reply({
+
+      // Handle specific DiscordAPIError
+      if (error.code === 10062) {
+        return interaction.followUp({
+          content: 'This interaction has expired. Please try again.',
+          ephemeral: true,
+        });
+      }
+
+      // General error message
+      await interaction.followUp({
         content: 'There was an error claiming the ticket. Please try again later.',
         ephemeral: true,
       });

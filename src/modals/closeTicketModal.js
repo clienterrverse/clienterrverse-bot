@@ -55,7 +55,7 @@ export default {
         const logEmbed = new EmbedBuilder()
           .setColor('Red')
           .setTitle('Ticket Closed')
-          .setDescription(`Ticket <#${channel.id}> has been closed by ${member}.\n**Reason:** ${reason}\n[Transcript Link](${transcriptURL})`)
+          .setDescription(`Ticket has been closed by ${member}.\n**Reason:** ${reason}\n[Transcript Link](${transcriptURL})`)
           .setTimestamp();
 
         await logChannel.send({ embeds: [logEmbed] });
