@@ -12,7 +12,7 @@ export default {
                 .setRequired(true))
         .toJSON(),
 
-    userPermissions: [PermissionFlagsBits.ManageChannels],
+    userPermissions: [],
     botPermissions: [],
 
     run: async (client, interaction) => {
