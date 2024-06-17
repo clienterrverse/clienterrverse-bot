@@ -47,12 +47,16 @@ export default {
       // Generate the transcript
       const transcript = await dht.createTranscript(channel, {
         returnType: 'buffer',
-        poweredBy: false, // Whether to include the "Powered by discord-html-transcripts" footer
+        poweredBy: false,
       });
 
+      // Define the transcript link
+      const transcriptURL = `https://transcript.clienterr.com/api/transcript/${channel.id}`;
+
       // Send transcript to the user via DM
-      const dmChannel = await user.createDM();
-      await dmChannel.send({
+      const userDM = await user.createDM();
+      await userDM.send({
+        content: `Your transcript is will available after some time at the following link: ${transcriptURL}`,
         files: [{
           attachment: transcript,
           name: `transcript-${channel.id}.html`
@@ -71,7 +75,7 @@ export default {
       }
 
       // Upload the transcript to GitHub
-      const githubToken = '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';
+      const githubToken = process.env.GITHUB_TOKEN; // Use environment variable for security
       const owner = 'GrishMahat';
       const repo = 'discordbot-html-transcript';
       const filePath = `transcripts/transcript-${channel.id}.html`;
@@ -88,7 +92,7 @@ export default {
       const data = {
         message: commitMessage,
         content: content,
-        branch: 'main' // or the branch you want to upload to
+        branch: 'main'
       };
 
       // Check if the file already exists

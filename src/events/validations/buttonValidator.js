@@ -71,7 +71,7 @@ export default async (client, interaction) => {
         return;
       }
     }
-
+  
     await buttonObject.run(client, interaction);
   } catch (err) {
     console.log(`An error occurred! ${err}`.red);

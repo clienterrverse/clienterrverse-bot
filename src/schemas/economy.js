@@ -7,6 +7,7 @@ const balanceSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true, index: true },
   balance: { type: Number, default: 0 },
   bank: { type: Number, default: 0 },
+  lastDaily: { type: Date, default: null },
   lastWeekly: { type: Date, default: null },
   lastHourly: { type: Date, default: null },
   lastDaily: { type: Date, default: null },
@@ -47,6 +48,18 @@ const inventorySchema = new mongoose.Schema({
     },
   ],
 }, { timestamps: true });
+
+// Schema for quests
+const questSchema = new mongoose.Schema({
+  questId: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  description: { type: String, required: true },
+  reward: { type: Number, required: true },
+  createdBy: { type: String, required: true }, // User ID of the developer who created the quest
+}, { timestamps: true });
+
+const Quest = mongoose.model('Quest', questSchema);
+
 
 // Create models
 const Balance = mongoose.model('Balance', balanceSchema);
