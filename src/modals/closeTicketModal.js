@@ -10,7 +10,7 @@ export default {
   botPermissions: [],
   run: async (client, interaction) => {
     try {
-      const { channel, member, guild, user, fields } = interaction;
+      const { channel, member, guild, fields } = interaction;
 
       await interaction.deferReply({ ephemeral: true });
 
@@ -61,15 +61,19 @@ export default {
         await logChannel.send({ embeds: [logEmbed] });
       }
 
-      // Send transcript to the user via DM
-      const userDM = await user.createDM();
-      await userDM.send({
-        content: `Your ticket has been closed. Reason: ${reason}. Your transcript is available at the following link: ${transcriptURL}`,
-        files: [{
-          attachment: transcript,
-          name: `transcript-${channel.id}.html`
-        }]
-      });
+      // Fetch the ticket member
+      const ticketMember = await guild.members.fetch(ticket.ticketMemberID);
+
+      if (ticketMember) {
+        const userDM = await ticketMember.createDM();
+        await userDM.send({
+          content: `Your ticket has been closed. Reason: ${reason}. Your transcript is available at the following link: ${transcriptURL}`,
+          files: [{
+            attachment: transcript,
+            name: `transcript-${channel.id}.html`
+          }]
+        });
+      }
 
       // Send transcript to the log channel
       if (logChannel) {
@@ -121,7 +125,6 @@ export default {
       await axios.put(url, data, { headers });
 
       const staffRole = guild.roles.cache.get(setupTicket.staffRoleID);
-      const ticketMember = guild.members.cache.get(ticket.ticketMemberID);
 
       if (staffRole && ticketMember) {
         const hasRole = ticketMember.roles.cache.has(staffRole.id);
