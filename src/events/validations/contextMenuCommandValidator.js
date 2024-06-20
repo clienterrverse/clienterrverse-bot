@@ -6,10 +6,9 @@ import getLocalContextMenus from '../../utils/getLocalContextMenus.js';
 
 export default async (client, interaction) => {
   if (!interaction.isContextMenuCommand()) return;
+
   const localContextMenus = await getLocalContextMenus();
   const { developersId, testServerId } = config;
-
-
 
   try {
     const menuObject = localContextMenus.find(
@@ -17,58 +16,63 @@ export default async (client, interaction) => {
     );
     if (!menuObject) return;
 
+    // Developer Only Check
     if (menuObject.devOnly) {
       if (!developersId.includes(interaction.member.id)) {
         const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandDevOnly}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
+          .setColor(mConfig.embedColorError)
+          .setDescription(mConfig.commandDevOnly);
+        await interaction.reply({ embeds: [rEmbed], ephemeral: true });
         return;
       }
     }
 
+    // Test Server Only Check
     if (menuObject.testMode) {
       if (interaction.guild.id !== testServerId) {
         const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandTestMode}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
+          .setColor(mConfig.embedColorError)
+          .setDescription(mConfig.commandTestMode);
+        await interaction.reply({ embeds: [rEmbed], ephemeral: true });
         return;
       }
     }
 
-
+    // User Permissions Check
     if (menuObject.userPermissions?.length) {
       for (const permission of menuObject.userPermissions) {
-        if (interaction.member.permissions.has(permission)) {
-          continue;
+        if (!interaction.member.permissions.has(permission)) {
+          const rEmbed = new EmbedBuilder()
+            .setColor(mConfig.embedColorError)
+            .setDescription(mConfig.userNoPermissions);
+          await interaction.reply({ embeds: [rEmbed], ephemeral: true });
+          return;
         }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.userNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
       }
     }
 
+    // Bot Permissions Check
     if (menuObject.botPermissions?.length) {
+      const bot = interaction.guild.members.me;
       for (const permission of menuObject.botPermissions) {
-        const bot = interaction.guild.members.me;
-        if (bot.permissions.has(permission)) {
-          continue;
+        if (!bot.permissions.has(permission)) {
+          const rEmbed = new EmbedBuilder()
+            .setColor(mConfig.embedColorError)
+            .setDescription(mConfig.botNoPermissions);
+          await interaction.reply({ embeds: [rEmbed], ephemeral: true });
+          return;
         }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.botNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
       }
     }
 
+    // Execute the context menu command
     await menuObject.run(client, interaction);
+
   } catch (err) {
-    console.log(
-      `An error occurred while validating context menu's! ${err}`.red
-    );
+    console.error(`An error occurred while validating context menu commands! ${err}`.red);
+    const rEmbed = new EmbedBuilder()
+      .setColor(mConfig.embedColorError)
+      .setDescription(`An unexpected error occurred. Please try again later or contact support if the problem persists.`);
+    await interaction.reply({ embeds: [rEmbed], ephemeral: true });
   }
 };
