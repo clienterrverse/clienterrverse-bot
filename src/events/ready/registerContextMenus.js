@@ -11,39 +11,34 @@ export default async (client) => {
     const applicationContextMenus = await getApplicationContextMenus(client, testServerId);
     const localContextMenuNames = new Set(localContextMenus.map(cmd => cmd.data.name));
 
-    // Delete application context menus not present in local context menus
-    await Promise.all(applicationContextMenus.cache.map(async (applicationContextMenu) => {
-      try {
-        if (!localContextMenuNames.has(applicationContextMenu.name)) {
-          await applicationContextMenus.delete(applicationContextMenu.id);
-          console.log(`🗑 Application command ${applicationContextMenu.name} has been deleted because it was not found in local context menus.`.red);
-        }
-      } catch (err) {
-        console.error(`Failed to delete application command ${applicationContextMenu.name}: ${err.message}`.red);
-      }
-    }));
+    for (const localContextMenu of localContextMenus) {
+      const { data } = localContextMenu;
+      const contextMenuName = data.name;
+      const contextMenuType = data.type;
 
-    // Register or update local context menus
-    await Promise.all(localContextMenus.map(async (localContextMenu) => {
-      const { data: { name: contextMenuName, type: contextMenuType } } = localContextMenu;
       const existingContextMenu = applicationContextMenus.cache.find(cmd => cmd.name === contextMenuName);
 
       try {
         if (existingContextMenu) {
           if (localContextMenu.deleted) {
             await applicationContextMenus.delete(existingContextMenu.id);
-            console.log(`🗑 Application command ${contextMenuName} has been deleted.`.red);
+            console.log(`Application context menu ${contextMenuName} has been deleted.`.red);
           }
-        } else if (!localContextMenu.deleted) {
-          await applicationContextMenus.create({ name: contextMenuName, type: contextMenuType });
-          console.log(`Application command ${contextMenuName} has been registered.`.green);
         } else {
-          console.log(`Application command ${contextMenuName} has been skipped, since property "deleted" is set to "true".`.grey);
+          if (localContextMenu.deleted) {
+            console.log(`Application context menu ${contextMenuName} has been skipped, since property "deleted" is set to "true".`.grey);
+          } else {
+            await applicationContextMenus.create({
+              name: contextMenuName,
+              type: contextMenuType,
+            });
+            console.log(`Application context menu ${contextMenuName} has been registered.`.green);
+          }
         }
       } catch (err) {
-        console.error(`Failed to process application command ${contextMenuName}: ${err.message}`.red);
+        console.error(`Failed to process application context menu ${contextMenuName}: ${err.message}`.red);
       }
-    }));
+    }
   } catch (err) {
     console.error(`An error occurred while registering context menus: ${err.message}`.red);
   }

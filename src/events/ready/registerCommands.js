@@ -24,29 +24,33 @@ export default async (client) => {
     await Promise.all(applicationCommandsToDelete.map(async (applicationCommand) => {
       try {
         await applicationCommands.delete(applicationCommand.id);
-        console.log(`🗑 Application command ${applicationCommand.name} has been deleted because it was not found in local commands.`.red);
+        console.log(`[${new Date().toISOString()}] Application command ${applicationCommand.name} has been deleted because it was not found in local commands.`.red);
       } catch (err) {
-        console.error(`Failed to delete application command ${applicationCommand.name}: ${err.message}`.red);
+        console.error(`[${new Date().toISOString()}] Failed to delete application command ${applicationCommand.name}: ${err.message}`.red);
       }
     }));
 
     // Register or update local commands
     await Promise.all(localCommands.map(async (localCommand) => {
-      const { data: { name: commandName, description: commandDescription, options: commandOptions } } = localCommand;
+      const { data } = localCommand;
+      const commandName = data.name;
+      const commandDescription = data.description;
+      const commandOptions = data.options;
+
       const existingCommand = applicationCommands.cache.find(cmd => cmd.name === commandName);
 
       try {
         if (existingCommand) {
           if (localCommand.deleted) {
             await applicationCommands.delete(existingCommand.id);
-            console.log(`🗑 Application command ${commandName} has been deleted.`.red);
+            console.log(`[${new Date().toISOString()}] Application command ${commandName} has been deleted.`.red);
           } else if (commandComparing(existingCommand, localCommand)) {
             await applicationCommands.edit(existingCommand.id, {
               name: commandName,
               description: commandDescription,
               options: commandOptions,
             });
-            console.log(`Application command ${commandName} has been edited.`.yellow);
+            console.log(`[${new Date().toISOString()}] Application command ${commandName} has been edited.`.yellow);
           }
         } else if (!localCommand.deleted) {
           await applicationCommands.create({
@@ -54,15 +58,15 @@ export default async (client) => {
             description: commandDescription,
             options: commandOptions,
           });
-          console.log(`Application command ${commandName} has been registered.`.green);
+          console.log(`[${new Date().toISOString()}] Application command ${commandName} has been registered.`.green);
         } else {
-          console.log(`Application command ${commandName} has been skipped, since property "deleted" is set to "true".`.grey);
+          console.log(`[${new Date().toISOString()}] Application command ${commandName} has been skipped, since property "deleted" is set to "true".`.grey);
         }
       } catch (err) {
-        console.error(`Failed to process application command ${commandName}: ${err.message}`.red);
+        console.error(`[${new Date().toISOString()}] Failed to process application command ${commandName}: ${err.message}`.red);
       }
     }));
   } catch (err) {
-    console.error(`An error occurred while registering commands: ${err.message}`.red);
+    console.error(`[${new Date().toISOString()}] An error occurred while registering commands: ${err.message}`.red);
   }
 };
