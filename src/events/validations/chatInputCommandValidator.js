@@ -10,7 +10,6 @@ const cooldowns = new Collection();
 export default async (client, interaction) => {
   if (!interaction.isChatInputCommand() && !interaction.isAutocomplete()) return;
 
-
   const localCommands = await getLocalCommands();
   const { developersId, testServerId } = config;
 
@@ -67,7 +66,7 @@ export default async (client, interaction) => {
     }
 
     // NSFW Channel Check
-    if (commandObject.nwfwMode) {
+    if (commandObject.nsfwMode) {
       if (!interaction.channel.nsfw) {
         const rEmbed = new EmbedBuilder()
           .setColor(`${mConfig.embedColorError}`)
@@ -103,12 +102,12 @@ export default async (client, interaction) => {
         }
       }
     }
+    
     if (interaction.isAutocomplete()) {
       await commandObject.autocomplete(client, interaction);
     } else {
-      await commandObject.run(client, interaction);S
-    };
-
+      await commandObject.run(client, interaction);
+    }
 
     // Command Logging
     console.log(`Command executed: ${interaction.commandName} by ${interaction.member.user.tag}`.green);
