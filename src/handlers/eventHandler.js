@@ -23,12 +23,12 @@ export default async (client) => {
             const { default: eventFunction } = await import(`file://${eventFile}`);
             await eventFunction(client, ...args);
           } catch (error) {
-            console.error(`Error loading event file ${eventFile}:`, error);
+            console.error(`Error loading event file ${eventFile} for event ${eventName}:`, error);
           }
         }
       });
     }
-    console.log('All event handlers registered successfully.'.green);
+    console.log('All event handlers registered successfully.');
   } catch (error) {
     console.error('Error setting up event handlers:', error);
   }
