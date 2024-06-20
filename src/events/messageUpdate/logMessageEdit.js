@@ -23,6 +23,10 @@ export default async (client, oldMessage, newMessage) => {
         const newContent = newMessage.content || '*Message content not available*';
         const time = newMessage.editedAt ? newMessage.editedAt.toLocaleString() : new Date().toLocaleString();
 
+        // Check for embeds
+        const oldEmbeds = oldMessage.embeds.length > 0 ? oldMessage.embeds.map(embed => embed.toJSON()) : '*No embeds*';
+        const newEmbeds = newMessage.embeds.length > 0 ? newMessage.embeds.map(embed => embed.toJSON()) : '*No embeds*';
+
         // Create the embed
         const embed = new EmbedBuilder()
             .setColor('#0099ff')
@@ -39,6 +43,14 @@ export default async (client, oldMessage, newMessage) => {
             )
             .setFooter({ text: `Message Logger | ${client.user.tag}`, iconURL: client.user.displayAvatarURL() })
             .setTimestamp();
+
+        // Include embed details if present
+        if (oldEmbeds !== '*No embeds*') {
+            embed.addFields({ name: 'Old Embeds', value: JSON.stringify(oldEmbeds, null, 2).slice(0, 1024) });
+        }
+        if (newEmbeds !== '*No embeds*') {
+            embed.addFields({ name: 'New Embeds', value: JSON.stringify(newEmbeds, null, 2).slice(0, 1024) });
+        }
 
         // Send the embed to the logging channel
         await channel.send({ embeds: [embed] });

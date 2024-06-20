@@ -7,6 +7,14 @@ import getLocalCommands from '../../utils/getLocalCommands.js';
 // Command cooldowns
 const cooldowns = new Collection();
 
+// Helper function to send embed replies
+const sendEmbedReply = async (interaction, color, description, ephemeral = true) => {
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setDescription(description);
+  await interaction.reply({ embeds: [embed], ephemeral });
+};
+
 export default async (client, interaction) => {
   if (!interaction.isChatInputCommand() && !interaction.isAutocomplete()) return;
 
@@ -15,7 +23,7 @@ export default async (client, interaction) => {
 
   try {
     const commandObject = localCommands.find(
-      (cmd) => cmd.data.name === interaction.commandName || cmd.aliases?.includes(interaction.commandName)
+      cmd => cmd.data.name === interaction.commandName || cmd.aliases?.includes(interaction.commandName)
     );
     if (!commandObject) return;
 
@@ -29,14 +37,9 @@ export default async (client, interaction) => {
 
     if (timestamps.has(interaction.member.id)) {
       const expirationTime = timestamps.get(interaction.member.id) + cooldownAmount;
-
       if (now < expirationTime) {
-        const timeLeft = (expirationTime - now) / 1000;
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandCooldown.replace('{time}', timeLeft.toFixed(1))}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
+        const timeLeft = ((expirationTime - now) / 1000).toFixed(1);
+        return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandCooldown.replace('{time}', timeLeft));
       }
     }
 
@@ -44,65 +47,40 @@ export default async (client, interaction) => {
     setTimeout(() => timestamps.delete(interaction.member.id), cooldownAmount);
 
     // Developer Only Check
-    if (commandObject.devOnly) {
-      if (!developersId.includes(interaction.member.id)) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandDevOnly}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    if (commandObject.devOnly && !developersId.includes(interaction.member.id)) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandDevOnly);
     }
 
     // Test Server Only Check
-    if (commandObject.testMode) {
-      if (interaction.guild.id !== testServerId) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandTestMode}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    if (commandObject.testMode && interaction.guild.id !== testServerId) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandTestMode);
     }
 
     // NSFW Channel Check
-    if (commandObject.nsfwMode) {
-      if (!interaction.channel.nsfw) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.nsfw}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    if (commandObject.nsfwMode && !interaction.channel.nsfw) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.nsfw);
     }
 
     // User Permissions Check
     if (commandObject.userPermissions?.length) {
       for (const permission of commandObject.userPermissions) {
         if (!interaction.member.permissions.has(permission)) {
-          const rEmbed = new EmbedBuilder()
-            .setColor(`${mConfig.embedColorError}`)
-            .setDescription(`${mConfig.userNoPermissions}`);
-          interaction.reply({ embeds: [rEmbed], ephemeral: true });
-          return;
+          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.userNoPermissions);
         }
       }
     }
 
     // Bot Permissions Check
     if (commandObject.botPermissions?.length) {
+      const bot = interaction.guild.members.me;
       for (const permission of commandObject.botPermissions) {
-        const bot = interaction.guild.members.me;
         if (!bot.permissions.has(permission)) {
-          const rEmbed = new EmbedBuilder()
-            .setColor(`${mConfig.embedColorError}`)
-            .setDescription(`${mConfig.botNoPermissions}`);
-          interaction.reply({ embeds: [rEmbed], ephemeral: true });
-          return;
+          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.botNoPermissions);
         }
       }
     }
-    
+
+    // Execute the command
     if (interaction.isAutocomplete()) {
       await commandObject.autocomplete(client, interaction);
     } else {
@@ -111,8 +89,7 @@ export default async (client, interaction) => {
 
     // Command Logging
     console.log(`Command executed: ${interaction.commandName} by ${interaction.member.user.tag}`.green);
-
   } catch (err) {
-    console.error(`An error occurred while validating chat input commands! ${err}`.red);
+    console.error(`An error occurred while processing command: ${interaction.commandName}. Error: ${err.message}`.red);
   }
 };
