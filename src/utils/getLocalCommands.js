@@ -19,23 +19,23 @@ export default async (exceptions = []) => {
 
         // Dynamically import the module using the file URL
         const commandModule = await import(commandFileURL);
-        
-        // Check if the module has a default export
-        if (commandModule.default) {
-          const commandObject = commandModule.default;
-          
-          // Check if the commandObject has a name property
-          if (commandObject.data && commandObject.data.name && !exceptions.includes(commandObject.data.name)) {
-            localCommands.push(commandObject);
-          } else {
-            console.warn(`Command file ${commandFile} does not have a valid name property.`);
-          }
-        } else {
+
+        // Validate command module
+        if (!commandModule || !commandModule.default) {
           console.warn(`Command file ${commandFile} does not have a default export.`);
+          continue;
         }
-  
+
+        const commandObject = commandModule.default;
+
+        // Check if the commandObject has a valid data structure and name property
+        if (commandObject.data && commandObject.data.name && !exceptions.includes(commandObject.data.name)) {
+          localCommands.push(commandObject);
+        } else {
+          console.warn(`Command file ${commandFile} does not have a valid name property or is in the exceptions list.`);
+        }
       } catch (error) {
-        console.error(`Error importing command file ${commandFile}: ${error}`);
+        console.error(`Error importing command file ${commandFile}: ${error.message}`);
       }
     }
   }

@@ -1,4 +1,4 @@
-import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import ticketSchema from '../schemas/ticketSchema.js';
 import ticketSetupSchema from '../schemas/ticketSetupSchema.js';
 import axios from 'axios'; // Import axios for GitHub interaction
@@ -54,11 +54,28 @@ export default {
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
           .setColor('Red')
-          .setTitle('Ticket Closed')
-          .setDescription(`Ticket has been closed by ${member}.\n**Reason:** ${reason}\n[Transcript Link](${transcriptURL})`)
+          .addFields(
+            { name: ':id: Ticket ID', value: ticket.ticketChannelID.toString(), inline: true },
+            { name: ':open_file_folder: Opened By', value: `<@${ticket.ticketMemberID}>`, inline: true },
+            { name: ':timer: Closed By', value: `<@${member.id}>`, inline: true },
+            { name: ':hourglass_flowing_sand: Open Time', value: `<t:${Math.floor(new Date(ticket.createdAt).getTime() / 1000)}:F>`, inline: true },
+            { name: ':hourglass: Close Time', value: `<t:${Math.floor(new Date().getTime() / 1000)}:F>`, inline: true },
+            { name: ':clapper: Claimed By', value: ticket.claimedBy ? `<@${ticket.claimedBy}>` : 'Not claimed', inline: true },
+            { name: ':receipt: Reason', value: reason || 'No reason specified', inline: false }
+          )
           .setTimestamp();
+        
+        
 
-        await logChannel.send({ embeds: [logEmbed] });
+        const transcriptButton = new ButtonBuilder()
+        .setLabel('View Transcript')
+        .setStyle(ButtonStyle.Link)
+        .setURL(transcriptURL)
+        .setEmoji('<:website:1162289689290620929>');
+
+        const row = new ActionRowBuilder().addComponents(transcriptButton);
+
+        await logChannel.send({ embeds: [logEmbed], components: [row] });
       }
 
       // Fetch the ticket member
@@ -75,15 +92,6 @@ export default {
         });
       }
 
-      // Send transcript to the log channel
-      if (logChannel) {
-        await logChannel.send({
-          files: [{
-            attachment: transcript,
-            name: `transcript-${channel.id}.html`
-          }]
-        });
-      }
 
       // Upload the transcript to GitHub
       const githubToken = process.env.GITHUB_TOKEN; // Use environment variable for security
