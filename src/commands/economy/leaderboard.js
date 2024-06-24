@@ -37,7 +37,6 @@ export default {
         return interaction.reply('No users found in the leaderboard.');
       }
 
-      // Fetch user details for users not in the cache
       const fetchUserDetails = async (userId) => {
         try {
           const user = await client.users.fetch(userId);
@@ -73,7 +72,7 @@ export default {
       await pagination(interaction, pages);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      interaction.reply('There was an error trying to fetch the leaderboard. Please try again later.');
+      await interaction.reply('There was an error trying to fetch the leaderboard. Please try again later.');
     }
   },
 };

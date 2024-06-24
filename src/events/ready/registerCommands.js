@@ -16,17 +16,22 @@ export default async (client) => {
     const localCommandNames = new Set(localCommands.map(cmd => cmd.data.name));
 
     // Filter out context menus from the deletion process
-    const applicationCommandsToDelete = applicationCommands.cache.filter(cmd => 
+    const applicationCommandsToDelete = applicationCommands.cache.filter(cmd =>
       cmd.type === ApplicationCommandType.ChatInput && !localCommandNames.has(cmd.name)
     );
 
     // Delete application commands not present in local commands and of type ChatInput
-    for (const [id, applicationCommand] of applicationCommandsToDelete) {
-      await applicationCommands.delete(id);
-      console.log(`Application command ${applicationCommand.name} has been deleted because it was not found in local commands.`.red);
-    }
+    await Promise.all(applicationCommandsToDelete.map(async (applicationCommand) => {
+      try {
+        await applicationCommands.delete(applicationCommand.id);
+        console.log(`[${new Date().toISOString()}] Application command ${applicationCommand.name} has been deleted because it was not found in local commands.`.red);
+      } catch (err) {
+        console.error(`[${new Date().toISOString()}] Failed to delete application command ${applicationCommand.name}: ${err.message}`.red);
+      }
+    }));
 
-    for (const localCommand of localCommands) {
+    // Register or update local commands
+    await Promise.all(localCommands.map(async (localCommand) => {
       const { data } = localCommand;
       const commandName = data.name;
       const commandDescription = data.description;
@@ -34,36 +39,34 @@ export default async (client) => {
 
       const existingCommand = applicationCommands.cache.find(cmd => cmd.name === commandName);
 
-      if (existingCommand) {
-        if (localCommand.deleted) {
-          await applicationCommands.delete(existingCommand.id);
-          console.log(`Application command ${commandName} has been deleted.`.red);
-          continue;
-        }
-
-        if (commandComparing(existingCommand, localCommand)) {
-          await applicationCommands.edit(existingCommand.id, {
+      try {
+        if (existingCommand) {
+          if (localCommand.deleted) {
+            await applicationCommands.delete(existingCommand.id);
+            console.log(`[${new Date().toISOString()}] Application command ${commandName} has been deleted.`.red);
+          } else if (commandComparing(existingCommand, localCommand)) {
+            await applicationCommands.edit(existingCommand.id, {
+              name: commandName,
+              description: commandDescription,
+              options: commandOptions,
+            });
+            console.log(`[${new Date().toISOString()}] Application command ${commandName} has been edited.`.yellow);
+          }
+        } else if (!localCommand.deleted) {
+          await applicationCommands.create({
             name: commandName,
             description: commandDescription,
             options: commandOptions,
           });
-          console.log(`Application command ${commandName} has been edited.`.yellow);
+          console.log(`[${new Date().toISOString()}] Application command ${commandName} has been registered.`.green);
+        } else {
+          console.log(`[${new Date().toISOString()}] Application command ${commandName} has been skipped, since property "deleted" is set to "true".`.grey);
         }
-      } else {
-        if (localCommand.deleted) {
-          console.log(`Application command ${commandName} has been skipped, since property "deleted" is set to "true".`.grey);
-          continue;
-        }
-
-        await applicationCommands.create({
-          name: commandName,
-          description: commandDescription,
-          options: commandOptions,
-        });
-        console.log(`Application command ${commandName} has been registered.`.green);
+      } catch (err) {
+        console.error(`[${new Date().toISOString()}] Failed to process application command ${commandName}: ${err.message}`.red);
       }
-    }
+    }));
   } catch (err) {
-    console.log(`An error occurred while registering commands! ${err}`.red);
+    console.error(`[${new Date().toISOString()}] An error occurred while registering commands: ${err.message}`.red);
   }
 };

@@ -10,7 +10,7 @@ export default {
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 86400, // Adjust the cooldown as necessary
+  cooldown: 10, // Adjust the cooldown as necessary
   nsfwMode: false,
   testMode: false,
   devOnly: false,
@@ -21,6 +21,7 @@ export default {
       const emoji = '🙏'; // Using a praying hands emoji for begging
       const minAmount = 1; // Minimum amount to be received
       const maxAmount = 10; // Maximum amount to be received
+      const hourlyCooldown = 60 * 60 * 1000; // 1 hour in milliseconds
 
       // Fetch the user's balance from the database
       let userBalance = await Balance.findOne({ userId });
@@ -30,11 +31,20 @@ export default {
         userBalance = new Balance({ userId });
       }
 
+      const now = Date.now();
+      if (userBalance.lastBeg && (now - userBalance.lastBeg.getTime()) < hourlyCooldown) {
+        const timeLeft = hourlyCooldown - (now - userBalance.lastBeg.getTime());
+        const minutes = Math.floor(timeLeft / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+        return interaction.reply(`You have already begged in this hour. Please try again in ${minutes} minutes and ${seconds} seconds.`);
+      }
+
       // Generate a random amount for the beg
       const amount = Math.floor(Math.random() * (maxAmount - minAmount + 1)) + minAmount;
 
-      // Update the user's balance
+      // Update the user's balance and last beg time
       userBalance.balance += amount;
+      userBalance.lastBeg = new Date();
       await userBalance.save();
 
       // Create an embed to display the result of the beg command
@@ -52,7 +62,10 @@ export default {
       await interaction.reply({ embeds: [begEmbed] });
     } catch (error) {
       console.error('Error processing beg command:', error);
-      await interaction.reply('There was an error trying to process your beg request.');
+      const errorEmbed = new EmbedBuilder()
+        .setColor('#FF0000') // Red color to indicate error
+        .setDescription('There was an error trying to process your beg request.');
+      await interaction.reply({ embeds: [errorEmbed] });
     }
   },
 };

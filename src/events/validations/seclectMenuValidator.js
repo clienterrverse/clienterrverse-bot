@@ -4,10 +4,16 @@ import config from '../../config/config.json' assert { type: 'json' };
 import mConfig from '../../config/messageConfig.json' assert { type: 'json' };
 import getSelects from '../../utils/getSelects.js';
 
-
+const sendEmbedReply = async (interaction, color, description, ephemeral = true) => {
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setDescription(description);
+  await interaction.reply({ embeds: [embed], ephemeral });
+};
 
 export default async (client, interaction) => {
   if (!interaction.isAnySelectMenu()) return;
+
   const selects = await getSelects();
   const { developersId, testServerId } = config;
 
@@ -17,67 +23,46 @@ export default async (client, interaction) => {
     );
     if (!selectObject) return;
 
-    if (selectObject.devOnly) {
-      if (!developersId.includes(interaction.member.id)) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandDevOnly}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    // Developer Only Check
+    if (selectObject.devOnly && !developersId.includes(interaction.member.id)) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandDevOnly);
     }
 
-    if (selectObject.testMode) {
-      if (interaction.guild.id !== testServerId) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandTestMode}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    // Test Server Only Check
+    if (selectObject.testMode && interaction.guild.id !== testServerId) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandTestMode);
     }
 
+    // User Permissions Check
     if (selectObject.userPermissions?.length) {
       for (const permission of selectObject.userPermissions) {
-        if (interaction.member.permissions.has(permission)) {
-          continue;
+        if (!interaction.member.permissions.has(permission)) {
+          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.userNoPermissions);
         }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.userNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
       }
     }
 
+    // Bot Permissions Check
     if (selectObject.botPermissions?.length) {
+      const bot = interaction.guild.members.me;
       for (const permission of selectObject.botPermissions) {
-        const bot = interaction.guild.members.me;
-        if (bot.permissions.has(permission)) {
-          continue;
+        if (!bot.permissions.has(permission)) {
+          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.botNoPermissions);
         }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.botNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
       }
     }
 
-    if (interaction.message.interaction) {
-        if (interaction.message.interaction.user.id !== interaction.user.id) {
-          const rEmbed = new EmbedBuilder()
-            .setColor(`${mConfig.embedColorError}`)
-            .setDescription(`${mConfig.cannotUseSelect}`);
-          interaction.reply({ embeds: [rEmbed], ephemeral: true });
-          return;
-        };
-      };
+    // Interaction User Check
+    if (interaction.message.interaction && interaction.message.interaction.user.id !== interaction.user.id) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.cannotUseSelect);
+    }
 
+    // Execute the select menu command
     await selectObject.run(client, interaction);
+    console.log(`Select menu executed: ${interaction.customId} by ${interaction.member.user.tag}`.green);
+
   } catch (err) {
-    console.log(
-      `An error occurred while validating select menus! ${err}`.red
-    );
+    console.error(`An error occurred while processing select menu: ${interaction.customId}. Error: ${err.message}`.red);
+    await sendEmbedReply(interaction, mConfig.embedColorError, `An unexpected error occurred. Please try again later or contact support if the problem persists.`);
   }
 };

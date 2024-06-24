@@ -6,25 +6,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default async (client) => {
-  const eventFolders = getAllFiles(path.join(__dirname, "..", "events"), true);
+  try {
+    const eventFolders = getAllFiles(path.join(__dirname, '..', 'events'), true);
 
-  for (const eventFolder of eventFolders) {
-    const eventFiles = getAllFiles(eventFolder);
-    let eventName = eventFolder.replace(/\\/g, "/").split("/").pop();
+    for (const eventFolder of eventFolders) {
+      const eventFiles = getAllFiles(eventFolder);
+      let eventName = eventFolder.replace(/\\/g, '/').split('/').pop();
 
-    if (eventName === "validations") {
-      eventName = "interactionCreate";
-    }
-
-    client.on(eventName, async (...args) => {
-      for (const eventFile of eventFiles) {
-        try {
-          const { default: eventFunction } = await import(`file://${eventFile}`);
-          await eventFunction(client, ...args);
-        } catch (error) {
-          console.error(`Error loading event file ${eventFile}:`, error);
-        }
+      if (eventName === 'validations') {
+        eventName = 'interactionCreate';
       }
-    });
+
+      client.on(eventName, async (...args) => {
+        for (const eventFile of eventFiles) {
+          try {
+            const { default: eventFunction } = await import(`file://${eventFile}`);
+            await eventFunction(client, ...args);
+          } catch (error) {
+            console.error(`Error loading event file ${eventFile} for event ${eventName}:`, error);
+          }
+        }
+      });
+    }
+    console.log('All event handlers registered successfully.');
+  } catch (error) {
+    console.error('Error setting up event handlers:', error);
   }
 };

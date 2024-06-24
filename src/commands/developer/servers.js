@@ -25,6 +25,28 @@ export default {
             .setRequired(true)
         )
     )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("check")
+        .setDescription("Check if the bot is in specified servers by their IDs.")
+        .addStringOption((option) =>
+          option
+            .setName("server-ids")
+            .setDescription("Comma-separated IDs of the servers to check.")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("user")
+        .setDescription("Show the number of servers a user owns.")
+        .addStringOption((option) =>
+          option
+            .setName("user-id")
+            .setDescription("The ID of the user to check.")
+            .setRequired(true)
+        )
+    )
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
@@ -43,10 +65,7 @@ export default {
             let inviteLink = "No invite link available";
             try {
               if (guild.systemChannel) {
-                const invite = await guild.systemChannel.createInvite({
-                  maxAge: 0,
-                  maxUses: 0,
-                });
+                const invite = await guild.systemChannel.createInvite({ maxAge: 0, maxUses: 0 });
                 inviteLink = invite.url;
               }
             } catch (error) {
@@ -122,6 +141,29 @@ export default {
           ephemeral: true,
         });
       }
+    } else if (subcommand === "check") {
+      const serverIds = interaction.options.getString("server-ids").split(",").map(id => id.trim());
+
+      const results = serverIds.map(serverId => {
+        const guild = client.guilds.cache.get(serverId);
+        return guild
+          ? `The bot is in the server **${guild.name}** (ID: ${serverId}).`
+          : `The bot is not in a server with the ID ${serverId}.`;
+      }).join("\n");
+
+      await interaction.reply({
+        content: results,
+        ephemeral: true,
+      });
+    } else if (subcommand === "user") {
+      const userId = interaction.options.getString("user-id");
+
+      const userServers = client.guilds.cache.filter(guild => guild.ownerId === userId);
+      const serverCount = userServers.size;
+
+      await interaction.reply({
+        content: `User with ID ${userId} owns **${serverCount}** server(s) that the bot is in.`,
+      });
     }
   },
 };

@@ -22,13 +22,12 @@ export default {
         .setDescription('The amount of clienterr coins you want to gamble.')
         .setMinValue(1)
         .setMaxValue(30)
-
         .setRequired(true)
     )
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
-  cooldown: 21600,
+  cooldown: 10,
   nsfwMode: false,
   testMode: false,
   devOnly: false,
@@ -38,11 +37,12 @@ export default {
       const userId = interaction.user.id;
       const rollResult = interaction.options.getString('roll_result');
       const gambleAmount = interaction.options.getInteger('gamble_amount');
-      const hourlyCooldown = 60 * 60 * 1000; // 1 hour in milliseconds
-      if (gambleAmount < 0) {
-        const embed = new EmbedBuilder().setDescription('The bet amount cannot be negative.');
+      const hourlyCooldown = 10 * 60 * 1000; // 1 hour in milliseconds
+
+      if (gambleAmount < 1 || gambleAmount > 25) {
+        const embed = new EmbedBuilder().setDescription('The bet amount must be between 1 and 25 clienterr coins.');
         return interaction.reply({ embeds: [embed], ephemeral: true });
-    }
+      }
 
       // Fetch the user's balance from the database
       let userBalance = await Balance.findOne({ userId });
@@ -66,7 +66,7 @@ export default {
           .setDescription('You do not have enough balance to gamble that amount.')
           .setColor(mconfig.embedColorError);
 
-        return interaction.reply({ embeds: [embed] });
+        return interaction.reply({ embeds: [embed], ephemeral: true });
       }
 
       // Generate a random result (heads or tails)

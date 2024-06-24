@@ -4,11 +4,18 @@ import config from '../../config/config.json' assert { type: 'json' };
 import mConfig from '../../config/messageConfig.json' assert { type: 'json' };
 import getModals from '../../utils/getModals.js';
 
+const sendEmbedReply = async (interaction, color, description, ephemeral = true) => {
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setDescription(description);
+  await interaction.reply({ embeds: [embed], ephemeral });
+};
+
 export default async (client, interaction) => {
   if (!interaction.isModalSubmit()) return;
+
   const modals = await getModals();
   const { developersId, testServerId } = config;
-
 
   try {
     const modalObject = modals.find(
@@ -16,57 +23,41 @@ export default async (client, interaction) => {
     );
     if (!modalObject) return;
 
-    if (modalObject.devOnly) {
-      if (!developersId.includes(interaction.member.id)) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandDevOnly}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    // Developer Only Check
+    if (modalObject.devOnly && !developersId.includes(interaction.member.id)) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandDevOnly);
     }
 
-    if (modalObject.testMode) {
-      if (interaction.guild.id !== testServerId) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandTestMode}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    // Test Server Only Check
+    if (modalObject.testMode && interaction.guild.id !== testServerId) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandTestMode);
     }
 
+    // User Permissions Check
     if (modalObject.userPermissions?.length) {
       for (const permission of modalObject.userPermissions) {
-        if (interaction.member.permissions.has(permission)) {
-          continue;
+        if (!interaction.member.permissions.has(permission)) {
+          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.userNoPermissions);
         }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.userNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
       }
     }
 
+    // Bot Permissions Check
     if (modalObject.botPermissions?.length) {
+      const bot = interaction.guild.members.me;
       for (const permission of modalObject.botPermissions) {
-        const bot = interaction.guild.members.me;
-        if (bot.permissions.has(permission)) {
-          continue;
+        if (!bot.permissions.has(permission)) {
+          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.botNoPermissions);
         }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.botNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
       }
     }
 
+    // Execute the modal command
     await modalObject.run(client, interaction);
+    console.log(`Modal command executed: ${interaction.customId} by ${interaction.member.user.tag}`.green);
+
   } catch (err) {
-    console.log(
-      `An error occurred while validating modal commands! ${err}`.red
-    );
+    console.error(`An error occurred while processing modal command: ${interaction.customId}. Error: ${err.message}`.red);
+    await sendEmbedReply(interaction, mConfig.embedColorError, `An unexpected error occurred. Please try again later or contact support if the problem persists.`);
   }
 };

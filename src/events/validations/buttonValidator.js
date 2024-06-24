@@ -1,79 +1,64 @@
 import 'colors';
 import { EmbedBuilder } from 'discord.js';
-import  config from '../../config/config.json' assert { type: 'json' };
+import config from '../../config/config.json' assert { type: 'json' };
 import mConfig from '../../config/messageConfig.json' assert { type: 'json' };
 import getButtons from '../../utils/getButtons.js';
 
 export default async (client, interaction) => {
-  const { developersId, testServerId } = config;
   if (!interaction.isButton()) return;
+
+  const { developersId, testServerId } = config;
   const buttons = await getButtons();
 
   try {
-    const buttonObject = buttons.find(
-      (btn) => btn.customId === interaction.customId
-    );
+    const buttonObject = buttons.find(btn => btn.customId === interaction.customId);
     if (!buttonObject) return;
 
-    if (buttonObject.devOnly) {
-      if (!developersId.includes(interaction.member.id)) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandDevOnly}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    // Check for developer-only restriction
+    if (buttonObject.devOnly && !developersId.includes(interaction.member.id)) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandDevOnly, true);
     }
 
-    if (buttonObject.testMode) {
-      if (interaction.guild.id !== testServerId) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.commandTestMode}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    // Check for test mode restriction
+    if (buttonObject.testMode && interaction.guild.id !== testServerId) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandTestMode, true);
     }
 
+    // Check user permissions
     if (buttonObject.userPermissions?.length) {
       for (const permission of buttonObject.userPermissions) {
-        if (interaction.member.permissions.has(permission)) {
-          continue;
+        if (!interaction.member.permissions.has(permission)) {
+          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.userNoPermissions, true);
         }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.userNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
       }
     }
 
+    // Check bot permissions
     if (buttonObject.botPermissions?.length) {
+      const bot = interaction.guild.members.me;
       for (const permission of buttonObject.botPermissions) {
-        const bot = interaction.guild.members.me;
-        if (bot.permissions.has(permission)) {
-          continue;
+        if (!bot.permissions.has(permission)) {
+          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.botNoPermissions, true);
         }
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.botNoPermissions}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
       }
     }
 
-    if (interaction.message.interaction) {
-      if (interaction.message.interaction.user.id !== interaction.user.id) {
-        const rEmbed = new EmbedBuilder()
-          .setColor(`${mConfig.embedColorError}`)
-          .setDescription(`${mConfig.cannotUseButton}`);
-        interaction.reply({ embeds: [rEmbed], ephemeral: true });
-        return;
-      }
+    // Check if the interaction user matches the original message interaction user
+    if (interaction.message.interaction && interaction.message.interaction.user.id !== interaction.user.id) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.cannotUseButton, true);
     }
 
+    // Run the button action
     await buttonObject.run(client, interaction);
   } catch (err) {
-    console.log(`An error occurred! ${err}`.red);
+    console.error(`An error occurred while handling button interaction: ${err.message}`.red);
   }
+};
+
+// Helper function to send an embed reply
+const sendEmbedReply = (interaction, color, description, ephemeral = false) => {
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setDescription(description);
+  interaction.reply({ embeds: [embed], ephemeral });
 };
