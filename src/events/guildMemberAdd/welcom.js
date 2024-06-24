@@ -17,10 +17,10 @@ export default async (client, member) => {
 
   try {
     // Send a welcome message
-    const welcomeMessage = await welcomeChannel.send(` Welcome to Clienterrverse, ${member}!`);
+    const welcomeMessage = await welcomeChannel.send(`Welcome to Clienterrverse, ${member}!`);
 
-    // Add emoji reaction
-    const emoji = '👋🏼'; // Unicode emoji; custom emojis would be in the format <:name:id>
+    // Add custom emoji reaction
+    const emoji = '<:whip:1223554028794024018>'; // Custom emoji format
     await welcomeMessage.react(emoji);
 
     // Add the auto role to the member

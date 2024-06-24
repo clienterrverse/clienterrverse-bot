@@ -23,7 +23,6 @@
     "colors": "^1.4.0",
     "date-fns": "^3.6.0",
     "discord-html-transcripts": "^3.2.0",
-    "discord-image-generation": "^1.4.25",
     "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",
     "mathjs": "^12.4.2",
