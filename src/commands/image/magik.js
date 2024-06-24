@@ -6,16 +6,22 @@ const magikCommand = {
         .setName('magik')
         .setDescription('Create a magik image')
         .addUserOption(option => option.setName('target').setDescription('User to magik').setRequired(false))
-        .setDMPermission(false),
+        .setDMPermission(false)
+        .toJSON(),
+        nwfwMode: false,
+        testMode: false,
+        devOnly: false,
+      
+        userPermissionsBitField: [],
+        bot: [],
+
 
     run: async (client, interaction) => {
         try {
             await interaction.deferReply();
 
-            // Get the target user, defaulting to the command user if no target is specified
             const targetUser = interaction.options.getUser('target') || interaction.user;
 
-            // Get the user's avatar URL
             const avatarURL = targetUser.displayAvatarURL({ size: 512, extension: 'jpg', forceStatic: true });
 
             // Fetch the magik image
