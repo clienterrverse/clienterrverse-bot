@@ -53,6 +53,7 @@ export default {
 
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
+          .setTitle("Ticket Close")
           .setColor('Red')
           .addFields(
             { name: ':id: Ticket ID', value: ticket.ticketChannelID.toString(), inline: true },
