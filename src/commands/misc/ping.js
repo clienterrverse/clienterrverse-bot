@@ -22,9 +22,9 @@ export default {
                 return;
             }
 
-            let pingColor = '';
             const ping = interaction.client.ws.ping;
 
+            let pingColor = '';
             if (ping < 150) {
                 pingColor = '#00ff00'; // Green
             } else if (ping >= 150 && ping <= 250) {
@@ -33,24 +33,30 @@ export default {
                 pingColor = '#ff0000'; // Red
             }
 
-            const uptime = formatDistanceToNow(client.readyAt, { includeSeconds: true });
+            let uptime = 'Bot not ready'; // Default value if client.readyAt is not set
+            if (client.readyAt) {
+                uptime = formatDistanceToNow(client.readyAt, { includeSeconds: true });
+            }
 
+            // Initialize commandStats if not already initialized
             if (!client.commandStats) {
                 client.commandStats = {
-                    ping: 0,
+                    pingCount: 0,
                     totalPing: 0
                 };
             }
 
-            client.commandStats.ping += 1;
+            // Update commandStats
+            client.commandStats.pingCount += 1;
             client.commandStats.totalPing += ping;
 
-            const averagePing = client.commandStats.totalPing / client.commandStats.ping;
+            // Calculate average ping only if there have been pings
+            const averagePing = client.commandStats.pingCount > 0 ? client.commandStats.totalPing / client.commandStats.pingCount : 0;
 
             const pongEmbed = new EmbedBuilder()
-                .setColor(pingColor) 
-                .setTitle('Pong') 
-                .setDescription(`**Ping:** ${ping} ms\n**Average Ping:** ${averagePing.toFixed(2)} ms\n**Uptime:** ${uptime}\n**Command Usage:** ${client.commandStats.ping}`)
+                .setColor(pingColor)
+                .setTitle('Pong')
+                .setDescription(`**Ping:** ${ping} ms\n**Average Ping:** ${averagePing.toFixed(2)} ms\n**Uptime:** ${uptime}\n**Command Usage:** ${client.commandStats.pingCount}`)
                 .setFooter({
                     text: `Requested by ${interaction.user.username}`,
                     iconURL: `${interaction.user.displayAvatarURL({ dynamic: true })}`,

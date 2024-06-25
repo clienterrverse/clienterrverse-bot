@@ -25,7 +25,15 @@ export default async (client, interaction) => {
     const commandObject = localCommands.find(
       cmd => cmd.data.name === interaction.commandName || cmd.aliases?.includes(interaction.commandName)
     );
-    if (!commandObject) return;
+
+    if (!commandObject) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, 'Command not found.');
+    }
+
+    // Guild Check
+    if (!interaction.guild && !commandObject.dmAllowed) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, 'This command can only be used within a server.');
+    }
 
     // Command Cooldown Check
     if (!cooldowns.has(commandObject.data.name)) {
@@ -35,19 +43,19 @@ export default async (client, interaction) => {
     const timestamps = cooldowns.get(commandObject.data.name);
     const cooldownAmount = (commandObject.cooldown || 3) * 1000;
 
-    if (timestamps.has(interaction.member.id)) {
-      const expirationTime = timestamps.get(interaction.member.id) + cooldownAmount;
+    if (timestamps.has(interaction.user.id)) {
+      const expirationTime = timestamps.get(interaction.user.id) + cooldownAmount;
       if (now < expirationTime) {
         const timeLeft = ((expirationTime - now) / 1000).toFixed(1);
         return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandCooldown.replace('{time}', timeLeft));
       }
     }
 
-    timestamps.set(interaction.member.id, now);
-    setTimeout(() => timestamps.delete(interaction.member.id), cooldownAmount);
+    timestamps.set(interaction.user.id, now);
+    setTimeout(() => timestamps.delete(interaction.user.id), cooldownAmount);
 
     // Developer Only Check
-    if (commandObject.devOnly && !developersId.includes(interaction.member.id)) {
+    if (commandObject.devOnly && !developersId.includes(interaction.user.id)) {
       return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandDevOnly);
     }
 
@@ -88,8 +96,9 @@ export default async (client, interaction) => {
     }
 
     // Command Logging
-    console.log(`Command executed: ${interaction.commandName} by ${interaction.member.user.tag}`.green);
+    console.log(`Command executed: ${interaction.commandName} by ${interaction.user.tag}`.green);
   } catch (err) {
     console.error(`An error occurred while processing command: ${interaction.commandName}. Error: ${err.message}`.red);
+    sendEmbedReply(interaction, mConfig.embedColorError, 'An error occurred while processing the command.');
   }
 };

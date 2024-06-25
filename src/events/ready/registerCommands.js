@@ -6,6 +6,13 @@ import getLocalCommands from '../../utils/getLocalCommands.js';
 import config from '../../config/config.json' assert { type: 'json' };
 import { ApplicationCommandType } from 'discord.js';
 
+/**
+ * Registers, updates, or deletes application commands based on local command files.
+ * 
+ * This script should be run to sync your application's commands with the local commands
+ * 
+ * @param {Client} client - The Discord client instance.
+ */
 export default async (client) => {
   try {
     const { testServerId } = config;
