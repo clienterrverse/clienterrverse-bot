@@ -30,12 +30,16 @@ export default async (client, interaction) => {
       return sendEmbedReply(interaction, mConfig.embedColorError, 'Command not found.');
     }
 
+    // Handle Autocomplete Interaction Separately
+    if (interaction.isAutocomplete()) {
+      return await commandObject.autocomplete(client, interaction);
+    }
+
     // Guild Check
     if (!interaction.guild && !commandObject.dmAllowed) {
       return sendEmbedReply(interaction, mConfig.embedColorError, 'This command can only be used within a server.');
     }
 
-    // Command Cooldown Check
     if (!cooldowns.has(commandObject.data.name)) {
       cooldowns.set(commandObject.data.name, new Collection());
     }
@@ -52,7 +56,9 @@ export default async (client, interaction) => {
     }
 
     timestamps.set(interaction.user.id, now);
-    setTimeout(() => timestamps.delete(interaction.user.id), cooldownAmount);
+    setTimeout(() => {
+      timestamps.delete(interaction.user.id);
+    }, cooldownAmount);
 
     // Developer Only Check
     if (commandObject.devOnly && !developersId.includes(interaction.user.id)) {
@@ -89,11 +95,7 @@ export default async (client, interaction) => {
     }
 
     // Execute the command
-    if (interaction.isAutocomplete()) {
-      await commandObject.autocomplete(client, interaction);
-    } else {
-      await commandObject.run(client, interaction);
-    }
+    await commandObject.run(client, interaction);
 
     // Command Logging
     console.log(`Command executed: ${interaction.commandName} by ${interaction.user.tag}`.green);

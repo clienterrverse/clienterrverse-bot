@@ -32,8 +32,8 @@ export default {
       if (userBalance.balance < item.price) {
         const embed = new EmbedBuilder()
           .setColor(mconfig.embedColorError)
-          .setTitle('Purchase Failed')
-          .setDescription('You do not have enough balance to buy this item.')
+          .setTitle('❌ Purchase Failed')
+          .setDescription('💸 You do not have enough balance to buy this item.')
           .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
           .setTimestamp();
         return interaction.reply({ embeds: [embed], ephemeral: true});
@@ -70,26 +70,26 @@ export default {
       // Create an embed to display the purchase information
       const embed = new EmbedBuilder()
         .setColor(mconfig.embedColorSuccess)
-        .setTitle('Purchase Successful')
-        .setDescription(`You have successfully bought ${item.name} for ${item.price} clienterr coins.`)
+        .setTitle('🎉 Purchase Successful')
+        .setDescription(`🛒 You have successfully bought **${item.name}** for **${item.price}** clienterr coins.`)
         .addFields(
-          { name: 'Item Name', value: item.name, inline: true },
-          { name: 'Price', value: `${item.price} clienterr coins`, inline: true }
+          { name: '📦 Item Name', value: item.name, inline: true },
+          { name: '💰 Price', value: `${item.price} clienterr coins`, inline: true }
         )
         .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
 
       // Send the embed as the reply
-      await interaction.reply({ embeds: [embed] , ephemeral: true});
+      await interaction.reply({ embeds: [embed], ephemeral: true });
     } catch (error) {
       console.error('Error processing shop command:', error);
       const embed = new EmbedBuilder()
-        .setColor(mconfig.embedColorSuccess)
-        .setTitle('Error')
-        .setDescription('There was an error processing your purchase.')
+        .setColor(mconfig.embedColorError)
+        .setTitle('❌ Error')
+        .setDescription('⚠️ There was an error processing your purchase.')
         .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
-      await interaction.reply({ embeds: [embed] , ephemeral: true});
+      await interaction.reply({ embeds: [embed], ephemeral: true });
     }
   },
 };
