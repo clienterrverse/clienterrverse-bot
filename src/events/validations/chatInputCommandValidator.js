@@ -4,21 +4,38 @@ import config from '../../config/config.json' assert { type: 'json' };
 import mConfig from '../../config/messageConfig.json' assert { type: 'json' };
 import getLocalCommands from '../../utils/getLocalCommands.js';
 
-// Command cooldowns
 const cooldowns = new Collection();
+let cachedCommands = null;
+let cacheTimestamp = 0;
 
-// Helper function to send embed replies
+
 const sendEmbedReply = async (interaction, color, description, ephemeral = true) => {
-  const embed = new EmbedBuilder()
-    .setColor(color)
-    .setDescription(description);
-  await interaction.reply({ embeds: [embed], ephemeral });
+  try {
+    const embed = new EmbedBuilder()
+      .setColor(color)
+      .setDescription(description);
+    await interaction.reply({ embeds: [embed], ephemeral });
+  } catch (err) {
+    console.error(`Failed to send embed reply: ${err.message}`.red);
+  }
+};
+
+const getCachedLocalCommands = async () => {
+  const now = Date.now();
+  const cacheDuration = config.cacheDuration * 1000;
+
+  if (!cachedCommands || (now - cacheTimestamp > cacheDuration)) {
+    cachedCommands = await getLocalCommands();
+    cacheTimestamp = now;
+  }
+
+  return cachedCommands;
 };
 
 export default async (client, interaction) => {
   if (!interaction.isChatInputCommand() && !interaction.isAutocomplete()) return;
 
-  const localCommands = await getLocalCommands();
+  const localCommands = await getCachedLocalCommands();
   const { developersId, testServerId } = config;
 
   try {
@@ -30,12 +47,10 @@ export default async (client, interaction) => {
       return sendEmbedReply(interaction, mConfig.embedColorError, 'Command not found.');
     }
 
-    // Handle Autocomplete Interaction Separately
     if (interaction.isAutocomplete()) {
       return await commandObject.autocomplete(client, interaction);
     }
 
-    // Guild Check
     if (!interaction.guild && !commandObject.dmAllowed) {
       return sendEmbedReply(interaction, mConfig.embedColorError, 'This command can only be used within a server.');
     }
@@ -60,22 +75,18 @@ export default async (client, interaction) => {
       timestamps.delete(interaction.user.id);
     }, cooldownAmount);
 
-    // Developer Only Check
     if (commandObject.devOnly && !developersId.includes(interaction.user.id)) {
       return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandDevOnly);
     }
 
-    // Test Server Only Check
     if (commandObject.testMode && interaction.guild.id !== testServerId) {
       return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandTestMode);
     }
 
-    // NSFW Channel Check
     if (commandObject.nsfwMode && !interaction.channel.nsfw) {
       return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.nsfw);
     }
 
-    // User Permissions Check
     if (commandObject.userPermissions?.length) {
       for (const permission of commandObject.userPermissions) {
         if (!interaction.member.permissions.has(permission)) {
@@ -84,7 +95,6 @@ export default async (client, interaction) => {
       }
     }
 
-    // Bot Permissions Check
     if (commandObject.botPermissions?.length) {
       const bot = interaction.guild.members.me;
       for (const permission of commandObject.botPermissions) {
@@ -94,10 +104,8 @@ export default async (client, interaction) => {
       }
     }
 
-    // Execute the command
     await commandObject.run(client, interaction);
 
-    // Command Logging
     console.log(`Command executed: ${interaction.commandName} by ${interaction.user.tag}`.green);
   } catch (err) {
     console.error(`An error occurred while processing command: ${interaction.commandName}. Error: ${err.message}`.red);
