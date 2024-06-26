@@ -6,7 +6,7 @@ import { Balance } from '../../schemas/economy.js';
 export default {
   data: new SlashCommandBuilder()
     .setName('bank')
-    .setDescription('Check your bank balance.')
+    .setDescription('Your bank balance.')
     .toJSON(),
   userPermissions: [],
   botPermissions: [],

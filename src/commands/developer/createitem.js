@@ -40,6 +40,13 @@ export default {
   testMode: false,
   devOnly: true,
 
+  /**
+   * Executes the createitem command.
+   * @param {Client} client - The Discord client instance.
+   * @param {CommandInteraction} interaction - The interaction object.
+   */
+
+
   run: async (client, interaction) => {
     try {
       const itemId = interaction.options.getString('itemid');

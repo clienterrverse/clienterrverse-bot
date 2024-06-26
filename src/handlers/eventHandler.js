@@ -1,6 +1,8 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import getAllFiles from '../utils/getAllFiles.js';
+import 'colors';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,13 +25,13 @@ export default async (client) => {
             const { default: eventFunction } = await import(`file://${eventFile}`);
             await eventFunction(client, ...args);
           } catch (error) {
-            console.error(`Error loading event file ${eventFile} for event ${eventName}:`, error);
+            console.error(`Error loading event file ${eventFile} for event ${eventName}:`, error .red);
           }
         }
       });
     }
-    console.log('All event handlers registered successfully.');
+    console.log('All event handlers registered successfully.' .green);
   } catch (error) {
-    console.error('Error setting up event handlers:', error);
+    console.error('Error setting up event handlers:', error .red);
   }
 };

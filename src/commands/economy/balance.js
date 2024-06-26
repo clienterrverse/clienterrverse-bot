@@ -14,6 +14,7 @@ export default {
   nwfwMode: false,
   testMode: false,
   devOnly: false,
+  dmAllowed: true,
 
   run: async (client, interaction) => {
     try {

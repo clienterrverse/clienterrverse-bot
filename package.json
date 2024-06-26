@@ -19,6 +19,7 @@
   "homepage": "https://github.com/clienterrverse/clienterrverse_economy#readme",
   "description": "",
   "dependencies": {
+    "@google/generative-ai": "^0.13.0",
     "axios": "^1.7.2",
     "colors": "^1.4.0",
     "date-fns": "^3.6.0",
@@ -29,7 +30,6 @@
     "mongoose": "^8.4.0"
   },
   "devDependencies": {
-    "eslint": "^9.3.0",
     "nodemon": "^3.1.1"
   }
 }

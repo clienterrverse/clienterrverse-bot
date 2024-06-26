@@ -2,7 +2,10 @@
 
 import mongoose from 'mongoose';
 
-// Schema for user balances
+/** @format
+ * Schema for user balances
+ * This schema stores the balance information for each user, including their wallet and bank balances, as well as timestamps for various cooldowns.
+ */
 const balanceSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true, index: true },
   balance: { type: Number, default: 0 },
@@ -10,25 +13,29 @@ const balanceSchema = new mongoose.Schema({
   lastDaily: { type: Date, default: null },
   lastWeekly: { type: Date, default: null },
   lastHourly: { type: Date, default: null },
-  lastDaily: { type: Date, default: null },
   lastBeg: { type: Date, default: null },
-  lastcoin: { type: Date, default: null },
+  lastCoin: { type: Date, default: null },
   lastWork: { type: Date, default: null },
   lastCrime: { type: Date, default: null },
   lastSlots: { type: Date, default: null },
 }, { timestamps: true });
 
-// Schema for transactions
+/** @format
+ * Schema for transactions
+ * This schema tracks all transactions made by users, including deposits, withdrawals, and transfers. Each transaction has a type, amount, date, and optional description.
+ */
 const transactionSchema = new mongoose.Schema({
   userId: { type: String, required: true, index: true },
   type: { type: String, required: true }, // e.g., deposit, withdraw, transfer
-  
   amount: { type: Number, required: true, min: 0 },
   date: { type: Date, default: Date.now },
   description: { type: String, default: '' },
 }, { timestamps: true });
 
-// Schema for items
+/** @format
+ * Schema for items
+ * This schema defines the structure for items that can be created, with properties such as itemId, name, price, description, emoji, and category.
+ */
 const itemSchema = new mongoose.Schema({
   itemId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
@@ -38,7 +45,10 @@ const itemSchema = new mongoose.Schema({
   category: { type: String, default: 'misc' },
 }, { timestamps: true });
 
-// Schema for user inventory
+/** @format
+ * Schema for user inventory
+ * This schema manages the inventory of items each user possesses, including item IDs and their quantities.
+ */
 const inventorySchema = new mongoose.Schema({
   userId: { type: String, required: true, index: true },
   items: [
@@ -49,7 +59,10 @@ const inventorySchema = new mongoose.Schema({
   ],
 }, { timestamps: true });
 
-// Schema for quests
+/** @format
+ * Schema for quests
+ * This schema handles quests that users can undertake, including quest ID, name, description, reward, and the user ID of the developer who created the quest.
+ */
 const questSchema = new mongoose.Schema({
   questId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
@@ -60,12 +73,17 @@ const questSchema = new mongoose.Schema({
 
 const Quest = mongoose.model('Quest', questSchema);
 
-
-// Create models
+/** @format
+ * Create models
+ * These models are created from their respective schemas and can be used to interact with the MongoDB database.
+ */
 const Balance = mongoose.model('Balance', balanceSchema);
 const Transaction = mongoose.model('Transaction', transactionSchema);
 const Item = mongoose.model('Item', itemSchema);
 const Inventory = mongoose.model('Inventory', inventorySchema);
 
-// Export models
-export { Balance, Transaction, Item, Inventory };
+/** @format
+ * Export models
+ * These models are exported for use in other parts of the application.
+ */
+export { Balance, Transaction, Item, Inventory, Quest };
