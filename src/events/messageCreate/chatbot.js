@@ -29,8 +29,7 @@ export default async (client, message) => {
       contextMessages = fetchedMessages
         .filter(msg => !msg.author.bot || msg.author.id === client.user.id) // Remove other bot messages
         .map(msg => {
-          const role = msg.member ? msg.member.roles.highest.name : 'Member';
-          return `${msg.author.username} (${role}): ${msg.content}`;
+          return `${msg.author.username}: ${msg.content}`;
         })
         .reverse();
 
@@ -43,17 +42,16 @@ export default async (client, message) => {
     // Prepare the input for the generative model
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const generationConfig = {
-      temperature: 0.9,
-      topK: 1,
-      topP: 1,
-      maxOutputTokens: 2048,
+      temperature: 0.7, // Adjusting temperature for more coherent responses
+      topK: 40,
+      topP: 0.9,
+      maxOutputTokens: 150, // Adjusted to ensure the response is concise
     };
 
     const userMessage = message.content; // Current message content
-    const userRole = message.member ? message.member.roles.highest.name : 'Member';
     const parts = [
       {
-        text: `You are Clienterrverse, a Discord bot. The owner is clienterr and the developer is norysight. Our official website is clienterr.com \nHere is the recent conversation context:\n${context}\n\n message author: ${message.author.username} role(${userRole}) sends a message: ${userMessage}`,
+        text: `Hello! I'm Clienterrverse, here to chat with you. Based on our conversation and recent messages:\n${context}\n\nYou said: ${userMessage}`,
       },
     ];
 
@@ -78,6 +76,7 @@ export default async (client, message) => {
     }
 
     message.reply(reply);
+
   } catch (error) {
     console.error("Error generating content:", error);
     // Handle error gracefully
