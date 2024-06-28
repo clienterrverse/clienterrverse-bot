@@ -34,7 +34,7 @@ export default async (client, message) => {
     const model = await genAI.getGenerativeModel({ model: MODEL_NAME });
 
     const generationConfig = {
-      temperature: 0.8,
+      temperature: 0.65,
       topK: 1,
       topP: 1,
       maxOutputTokens: 2048,
