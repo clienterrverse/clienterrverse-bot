@@ -1,5 +1,4 @@
 export default (existing, local) => {
-  // Function to check if two objects/values are different
   const changed = (a, b) => JSON.stringify(a) !== JSON.stringify(b);
 
   // Check if the name or description has changed
@@ -7,7 +6,6 @@ export default (existing, local) => {
     return true;
   }
 
-  // Check if options have changed
   const optionsChanged = changed(
     optionsArray(existing),
     optionsArray(local.data)
@@ -15,7 +13,6 @@ export default (existing, local) => {
 
   return optionsChanged;
 
-  // Function to clean and normalize an object by removing undefined and empty properties
   function cleanObject(obj) {
     for (const key in obj) {
       if (typeof obj[key] === "object") {
@@ -29,7 +26,7 @@ export default (existing, local) => {
     }
   }
 
-  // Function to normalize an input object
+  //  normalize an  object
   function normalizeObject(input) {
     if (Array.isArray(input)) {
       return input.map((item) => normalizeObject(item));
@@ -44,7 +41,7 @@ export default (existing, local) => {
     };
   }
 
-  // Function to create a normalized options array
+  //  create a normalized options array
   function optionsArray(cmd) {
     return (cmd.options || []).map((option) => {
       let cleanedOption = JSON.parse(JSON.stringify(option));

@@ -1,86 +1,63 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.geminiapi);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const MODEL_NAME = "gemini-pro";
-const customPromptChannelId = "1255557421569675416"; 
-// Create a cache object
-const messageCache = {};
+const allowedChannelIds = ["1244565914213679124"];
 
 export default async (client, message) => {
-  // Check if the message is from a bot or not
   if (message.author.bot) return;
-
-  // Check if the message is from the specified channel or the custom prompt channel
-  const allowedChannelIds = ["1255557421569675416", customPromptChannelId];
   if (!allowedChannelIds.includes(message.channel.id)) return;
 
+  const channelId = message.channel.id;
+
   try {
-    const channelId = message.channel.id;
-    let contextMessages;
+    const messages = await message.channel.messages.fetch({ limit: 4 });
+    const sortedMessages = messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
-    // Check if recent messages are cached
-    if (messageCache[channelId]) {
-      contextMessages = messageCache[channelId];
-    } else {
-      // Fetch the last 10 messages from the channel for context
-      const fetchedMessages = await message.channel.messages.fetch({ limit: 10 });
+    const contextMessages = sortedMessages.map((msg, index) => {
+      const userRole = msg.member ? msg.member.roles.highest.name : "User";
+      const userDisplayName = msg.member ? msg.member.displayName : msg.author.username;
+      return `Message ${index + 1}:\nUser ID: ${msg.author.id}\nMessage Content: ${msg.content}\nUser Name: ${userDisplayName}\nRole: ${userRole}`;
+    }).join('\n\n');
 
-      // Collect the contents of the last 10 messages to provide context
-      contextMessages = fetchedMessages
-        .filter(msg => !msg.author.bot || msg.author.id === client.user.id) // Remove other bot messages
-        .map(msg => {
-          const role = msg.member ? msg.member.roles.highest.name : 'Member';
-          return `${msg.author.username} (${role}): ${msg.content}`;
-        })
-        .reverse();
+    const systemPrompt = "You are Clienterrverse, a helpful and respectful Discord bot. Your owner is clienterr and your developer is norysight. Our official website is clienterr.com. Please provide thoughtful and respectful responses, and act like a human assistant.";
+    const userMessage = message.content;
+    const userRole = message.member ? message.member.roles.highest.name : "User";
+    const userDisplayName = message.member ? message.member.displayName : message.author.username;
 
-      // Cache the messages
-      messageCache[channelId] = contextMessages;
-    }
+    const prompt = [
+      { text: `System Prompt:\n${systemPrompt}` },
+      { text: `Message History:\n${contextMessages}` },
+      { text: `New Message:\nUser ID: ${message.author.id}\nMessage Content: ${userMessage}\nUser Name: ${userDisplayName}\nRole: ${userRole}` }
+    ];
 
-    const context = contextMessages.join('\n');
+    const model = await genAI.getGenerativeModel({ model: MODEL_NAME });
 
-    // Prepare the input for the generative model
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const generationConfig = {
-      temperature: 0.9,
+      temperature: 0.8,
       topK: 1,
       topP: 1,
       maxOutputTokens: 2048,
     };
 
-    const userMessage = message.content; // Current message content
-    const userRole = message.member ? message.member.roles.highest.name : 'Member';
-    const parts = [
-      {
-        text: `You are Clienterrverse, a Discord bot. The owner is clienterr and the developer is norysight. Our official website is clienterr.com \nHere is the recent conversation context:\n${context}\n\n message author: ${message.author.username} role(${userRole}) sends a message: ${userMessage}`,
-      },
-    ];
-
-    // Generate a response using the generative model
     const result = await model.generateContent({
-      contents: [{
-        role: "user",
-        parts,
-      }],
+      contents: [{ role: "user", parts: prompt }],
       generationConfig,
     });
 
-    let reply = await result.response.text();
+    let reply = result.response.text();
 
-    // Due to Discord limitations, split the message if it's too long
+
     if (reply.length > 2000) {
       const replyArray = reply.match(/[\s\S]{1,2000}/g);
       for (const msg of replyArray) {
         await message.reply(msg);
       }
-      return;
+    } else {
+      await message.reply(reply);
     }
-
-    message.reply(reply);
   } catch (error) {
     console.error("Error generating content:", error);
-    // Handle error gracefully
-    message.reply("Sorry, something went wrong while generating a response.");
+    await message.reply("Sorry, something went wrong while generating a response.");
   }
 };
