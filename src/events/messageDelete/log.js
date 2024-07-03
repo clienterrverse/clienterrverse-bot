@@ -1,15 +1,15 @@
-import config from '../../config/config.json' assert { type: 'json' };
+import { config } from '../../config/config.js';
 import { EmbedBuilder } from 'discord.js';
 
 export default async (client, message) => {
   try {
     // Ignore messages from other bots
     if (message.author.bot) return;
+    if (newMessage.guild.id !== config.testServerId) return;
 
-    // Check if the message is from the test server
-    if (message.guild.id !== config.testServerId) return;
 
-    const channelId = config.logChannel; // Replace with your log channel ID
+
+    const channelId = config.logChannel; 
 
     // Fetch the logging channel
     const channel = client.channels.cache.get(channelId);
@@ -51,13 +51,11 @@ export default async (client, message) => {
       embed.setImage(imageURL);
     }
 
-    // Send the embed to the logging channel
     await channel.send({ embeds: [embed] });
 
   } catch (error) {
     console.error('Error logging message:', error);
 
-    // Attempt to log the error in the logging channel
     try {
       const errorChannel = client.channels.cache.get(config.logChannel);
       if (!errorChannel) {
@@ -65,7 +63,6 @@ export default async (client, message) => {
         return;
       }
 
-      // Create an error embed
       const errorEmbed = new EmbedBuilder()
         .setColor('#FF0000')
         .setTitle('Error Logging Message')
@@ -73,7 +70,6 @@ export default async (client, message) => {
         .setFooter({ text: `Message Logger | ${client.user.tag}`, iconURL: client.user.displayAvatarURL() })
         .setTimestamp();
 
-      // Send the error embed to the logging channel
       await errorChannel.send({ embeds: [errorEmbed] });
 
     } catch (innerError) {

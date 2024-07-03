@@ -1,6 +1,7 @@
 import { Client, EmbedBuilder } from 'discord.js';
 import { Balance, Transaction, Item, Inventory } from '../schemas/economy.js';
-import mconfig from '../config/messageConfig.json' assert { type: 'json' };
+import { config } from '../../config/config.js';
+import mConfig from '../../config/messageConfig.js';
 
 export default {
   customId: 'shop',

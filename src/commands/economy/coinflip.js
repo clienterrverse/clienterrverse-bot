@@ -2,7 +2,8 @@
 
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
-import mconfig from '../../config/messageConfig.json' assert { type: 'json' };
+import { config } from '../../config/config.js';
+import mConfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()

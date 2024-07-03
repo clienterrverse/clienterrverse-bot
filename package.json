@@ -20,12 +20,14 @@
   "description": "",
   "dependencies": {
     "@google/generative-ai": "^0.13.0",
+    "async_hooks": "^1.0.0",
     "axios": "^1.7.2",
     "colors": "^1.4.0",
     "date-fns": "^3.6.0",
     "discord-html-transcripts": "^3.2.0",
     "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "mathjs": "^12.4.2",
     "mongoose": "^8.4.0"
   },

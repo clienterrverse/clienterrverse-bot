@@ -1,7 +1,7 @@
 import 'colors';
 import { EmbedBuilder, Collection } from 'discord.js';
-import config from '../../config/config.json' assert { type: 'json' };
-import mConfig from '../../config/messageConfig.json' assert { type: 'json' };
+import { config } from '../../config/config.js';
+import mConfig from '../../config/messageConfig.js';
 import getLocalCommands from '../../utils/getLocalCommands.js';
 
 const cooldowns = new Collection();
@@ -36,7 +36,7 @@ export default async (client, interaction) => {
   if (!interaction.isChatInputCommand() && !interaction.isAutocomplete()) return;
 
   const localCommands = await getCachedLocalCommands();
-  const { developersId, testServerId } = config;
+  const { developersId, testServerId ,maintenance} = config;
 
   try {
     const commandObject = localCommands.find(
@@ -50,6 +50,10 @@ export default async (client, interaction) => {
     if (interaction.isAutocomplete()) {
       return await commandObject.autocomplete(client, interaction);
     }
+    if (maintenance && !developersId.includes(interaction.user.id)) {
+      return sendEmbedReply(interaction, mConfig.embedColorError, 'Bot is currently in maintenance mode. Please try again later.');
+    }
+    
 
     if (!interaction.guild && !commandObject.dmAllowed) {
       return sendEmbedReply(interaction, mConfig.embedColorError, 'This command can only be used within a server.');

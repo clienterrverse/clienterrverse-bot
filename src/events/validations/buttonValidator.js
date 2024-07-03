@@ -1,7 +1,7 @@
 import 'colors';
 import { EmbedBuilder } from 'discord.js';
-import config from '../../config/config.json' assert { type: 'json' };
-import mConfig from '../../config/messageConfig.json' assert { type: 'json' };
+import { config } from '../../config/config.js';
+import mConfig from '../../config/messageConfig.js';
 import getButtons from '../../utils/getButtons.js';
 
 export default async (client, interaction) => {
