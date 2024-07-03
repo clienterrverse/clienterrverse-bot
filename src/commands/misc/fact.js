@@ -26,7 +26,7 @@ export default {
       const fact = res.data.text;
 
       const rembed = new EmbedBuilder()
-        .setColor(mconfig.embedColorSuccess)
+        .setColor(mConfig.embedColorSuccess)
         .setTitle("fact")
         .setDescription(fact);
 

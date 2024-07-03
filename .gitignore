@@ -133,5 +133,5 @@ dist
 src/config/config.json
 my/
 .vscode/
-src/config/config.json
-src/config/config.json
+
+src/config/config.js
