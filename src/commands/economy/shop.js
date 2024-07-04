@@ -2,6 +2,8 @@
 
 import { SlashCommandBuilder, StringSelectMenuBuilder, ActionRowBuilder, EmbedBuilder } from 'discord.js';
 import { Item } from '../../schemas/economy.js';
+import { config } from '../../config/config.js';
+import mconfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -17,16 +19,12 @@ export default {
 
   run: async (client, interaction) => {
     try {
-      const userId = interaction.user.id;
-
-      // Fetch items from the database
-      const items = await Item.find();
+      const items = await Item.find().lean();
 
       if (items.length === 0) {
-        return interaction.reply('❌ No items available in the shop.');
+        return interaction.reply({ content: '❌ No items available in the shop.', ephemeral: true });
       }
 
-      // Create a select menu with items from the database
       const shopSSM = new StringSelectMenuBuilder()
         .setCustomId('shop')
         .setPlaceholder('🔍 Select an item to buy')
@@ -40,24 +38,29 @@ export default {
 
       const row = new ActionRowBuilder().addComponents(shopSSM);
 
-      // Send the select menu to the user
       const embed = new EmbedBuilder()
-        .setColor('#00acee')
+        .setColor(mconfig.embedColorDefault)
         .setTitle('🛍️ Shop')
-        .setDescription('Select an item to buy from the menu below.');
-
-      await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
-
-    } catch (error) {
-      console.error('Error processing shop command:', error);
-      const embed = new EmbedBuilder()
-        .setColor('#FF0000')
-        .setTitle('❌ Error')
-        .setDescription('⚠️ There was an error processing your request.')
+        .setDescription('Select an item to buy from the menu below.')
         .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+
+      await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    } catch (error) {
+      console.error('Error processing shop command:', error);
+      await interaction.reply({
+        embeds: [createErrorEmbed(interaction, 'Error', 'There was an error processing your request.')],
+        ephemeral: true
+      });
     }
   },
 };
 
+function createErrorEmbed(interaction, title, description) {
+  return new EmbedBuilder()
+    .setColor(mconfig.embedColorError)
+    .setTitle(`❌ ${title}`)
+    .setDescription(`⚠️ ${description}`)
+    .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+    .setTimestamp();
+}

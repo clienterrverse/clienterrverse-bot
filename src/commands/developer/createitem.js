@@ -2,6 +2,7 @@
 
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Item } from '../../schemas/economy.js';
+import mconfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -21,6 +22,7 @@ export default {
       option.setName('price')
         .setDescription('The price of the item.')
         .setRequired(true)
+        .setMinValue(1)
     )
     .addStringOption(option =>
       option.setName('description')
@@ -32,20 +34,18 @@ export default {
         .setDescription('The category of the item.')
         .setRequired(false)
     )
+    .addStringOption(option =>
+      option.setName('emoji')
+        .setDescription('The emoji for the item.')
+        .setRequired(false)
+    )
     .toJSON(),
-  userPermissions: [], // Add permissions check here if necessary
+  userPermissions: [], 
   botPermissions: [],
   cooldown: 10,
   nsfwMode: false,
   testMode: false,
   devOnly: true,
-
-  /**
-   * Executes the createitem command.
-   * @param {Client} client - The Discord client instance.
-   * @param {CommandInteraction} interaction - The interaction object.
-   */
-
 
   run: async (client, interaction) => {
     try {
@@ -53,57 +53,65 @@ export default {
       const name = interaction.options.getString('name');
       const price = interaction.options.getInteger('price');
       const description = interaction.options.getString('description');
-      const category = interaction.options.getString('category') || 'misc';
+      const category = interaction.options.getString('category') || 'Miscellaneous';
+      const emoji = interaction.options.getString('emoji') || '🔹';
 
       // Check if the item ID already exists
       const existingItem = await Item.findOne({ itemId });
       if (existingItem) {
-        const embed = new EmbedBuilder()
-          .setColor('#FF0000')
-          .setTitle('Error')
-          .setDescription('An item with this ID already exists.');
-
-        return interaction.reply({ embeds: [embed] });
+        return interaction.reply({
+          embeds: [createErrorEmbed(interaction, 'Item Already Exists', 'An item with this ID already exists.')],
+          ephemeral: true
+        });
       }
 
-      // Create a new item
-      const newItem = new Item({
+      // Create and save the new item
+      const newItem = await Item.create({
         itemId,
         name,
         price,
         description,
         category,
+        emoji
       });
 
-      // Save the item to the database
-      await newItem.save();
-
       const embed = new EmbedBuilder()
-        .setColor('#00FF00')
-        .setTitle('Item Created')
+        .setColor(mconfig.embedColorSuccess)
+        .setTitle('✅ Item Created')
         .setDescription(`Item '${name}' has been created with ID '${itemId}', priced at ${price} clienterr coins.`)
         .addFields(
           { name: 'ID', value: itemId, inline: true },
           { name: 'Name', value: name, inline: true },
           { name: 'Price', value: `${price} clienterr coins`, inline: true },
           { name: 'Description', value: description, inline: false },
-          { name: 'Category', value: category, inline: true }
+          { name: 'Category', value: category, inline: true },
+          { name: 'Emoji', value: emoji, inline: true }
         )
         .setFooter({
-          text: `Requested by ${interaction.user.username}`,
+          text: `Created by ${interaction.user.username}`,
           iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
         })
         .setTimestamp();
 
-      interaction.reply({ embeds: [embed] });
+      await interaction.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Error creating item:', error);
-      const errorEmbed = new EmbedBuilder()
-        .setColor('#FF0000')
-        .setTitle('Error')
-        .setDescription('There was an error creating the item.');
-
-      interaction.reply({ embeds: [errorEmbed] });
+      await interaction.reply({
+        embeds: [createErrorEmbed(interaction, 'Error', 'There was an error creating the item.')],
+        ephemeral: true
+      });
     }
   },
 };
+
+function createErrorEmbed(interaction, title, description) {
+  return new EmbedBuilder()
+    .setColor(mconfig.embedColorError)
+    .setTitle(`❌ ${title}`)
+    .setDescription(description)
+    .setFooter({
+      text: `Requested by ${interaction.user.username}`,
+      iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
+    })
+    .setTimestamp();
+}

@@ -5,7 +5,9 @@ import {
   TextInputStyle,
   ChannelType,
   EmbedBuilder,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  ButtonBuilder,
+  ButtonStyle
 } from "discord.js";
 import ticketSetupSchema from "../schemas/ticketSetupSchema.js";
 import ticketSchema from "../schemas/ticketSchema.js";
@@ -13,11 +15,13 @@ import ticketSchema from "../schemas/ticketSchema.js";
 export default {
   customId: "supportTicketBtn",
   userPermissions: [],
-  botPermissions: [],
+  botPermissions: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles],
+
   run: async (client, interaction) => {
     try {
       const { channel, guild, member } = interaction;
 
+      // Fetch ticket setup
       const ticketSetup = await ticketSetupSchema.findOne({
         guildID: guild.id,
         ticketChannelID: channel.id
@@ -30,6 +34,7 @@ export default {
         });
       }
 
+      // Check for existing open ticket
       const existingTicket = await ticketSchema.findOne({
         guildID: guild.id,
         ticketMemberID: member.id,
@@ -38,101 +43,18 @@ export default {
 
       if (existingTicket) {
         return await interaction.reply({
-          content: "You already have an open ticket!",
+          content: `You already have an open ticket! Please use <#${existingTicket.ticketChannelID}>.`,
           ephemeral: true
         });
       }
 
+      // Handle modal ticket creation
       if (ticketSetup.ticketType === "modal") {
-        const ticketModal = new ModalBuilder()
-          .setTitle("Ticket System")
-          .setCustomId("ticketModal")
-          .addComponents(
-            new ActionRowBuilder().addComponents(
-              new TextInputBuilder()
-                .setLabel("Ticket Subject")
-                .setCustomId("ticketSubject")
-                .setPlaceholder("Enter a subject for your ticket")
-                .setStyle(TextInputStyle.Short)
-            ),
-            new ActionRowBuilder().addComponents(
-              new TextInputBuilder()
-                .setLabel("Ticket Description")
-                .setCustomId("ticketDesc")
-                .setPlaceholder("Enter a description for your ticket")
-                .setStyle(TextInputStyle.Paragraph)
-            )
-          );
-
-        await interaction.showModal(ticketModal);
-        return;
+        return await handleModalTicket(interaction);
       }
 
-      const category = guild.channels.cache.get(ticketSetup.categoryID);
-      const staffRole = guild.roles.cache.get(ticketSetup.staffRoleID);
-      const username = member.user.username;
-
-      const ticketEmbed = new EmbedBuilder()
-        .setColor("DarkNavy")
-        .setAuthor({ name: username, iconURL: member.user.displayAvatarURL() })
-        .setTitle("Ticket Created")
-        .setDescription("Staff will be with you shortly. Please explain your issue in as much detail as possible.")
-        .setFooter({
-          text: `${guild.name} - Ticket`,
-          iconURL: guild.iconURL()
-        })
-        .setTimestamp();
-
-      const ticketCount = await ticketSchema.countDocuments({
-        guildID: guild.id,
-        closed: true
-      });
-
-      const ticketChannel = await guild.channels.create({
-        name: `${ticketCount + 1}-${username}`,
-        type: ChannelType.GuildText,
-        parent: category.id,
-        permissionOverwrites: [
-          {
-            id: guild.id,
-            deny: [PermissionFlagsBits.ViewChannel]
-          },
-          {
-            id: member.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-          },
-          {
-            id: staffRole.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-          }
-        ]
-      });
-
-      await ticketChannel.send({
-        content: `${staffRole} - Ticket created by ${member}`,
-        embeds: [ticketEmbed]
-      });
-
-      const newTicket = new ticketSchema({
-        guildID: guild.id,
-        ticketMemberID: member.id,
-        ticketChannelID: ticketChannel.id,
-        parentTicketChannelID: channel.id,
-        closed: false,
-        membersAdded: [],
-        claimedBy: null,
-        status: 'open',
-        actionLog: [`Ticket created by ${member.user.tag} (${member.id}) at ${new Date().toISOString()}`]
-      });
-
-      await newTicket.save();
-
-
-
-      await interaction.reply({
-        content: `Your ticket has been created: <#${ticketChannel.id}>`,
-        ephemeral: true
-      });
+      // Handle button ticket creation
+      await handleButtonTicket(interaction, ticketSetup);
 
     } catch (error) {
       console.error('Error creating ticket:', error);
@@ -143,3 +65,149 @@ export default {
     }
   }
 };
+
+async function handleModalTicket(interaction) {
+  const ticketModal = new ModalBuilder()
+    .setTitle("Create a Support Ticket")
+    .setCustomId("ticketModal")
+    .addComponents(
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setLabel("Ticket Subject")
+          .setCustomId("ticketSubject")
+          .setPlaceholder("Enter a subject for your ticket")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMaxLength(100)
+      ),
+      new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+          .setLabel("Ticket Description")
+          .setCustomId("ticketDesc")
+          .setPlaceholder("Describe your issue in detail")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(true)
+          .setMaxLength(1000)
+      )
+    );
+
+  await interaction.showModal(ticketModal);
+}
+
+async function handleButtonTicket(interaction, ticketSetup) {
+  const { guild, member } = interaction;
+
+  const category = await guild.channels.fetch(ticketSetup.categoryID);
+  if (!category) {
+    return await interaction.reply({
+      content: "The ticket category no longer exists. Please contact an administrator.",
+      ephemeral: true
+    });
+  }
+
+  const staffRole = await guild.roles.fetch(ticketSetup.staffRoleID);
+  if (!staffRole) {
+    return await interaction.reply({
+      content: "The staff role no longer exists. Please contact an administrator.",
+      ephemeral: true
+    });
+  }
+
+  const ticketCount = await ticketSchema.countDocuments({
+    guildID: guild.id
+  });
+
+  const ticketChannel = await createTicketChannel(guild, category, member, staffRole, ticketCount);
+
+  const ticketEmbed = createTicketEmbed(member, guild);
+  const ticketActions = createTicketActions();
+
+  await ticketChannel.send({
+    content: `${staffRole} - New ticket created by ${member}`,
+    embeds: [ticketEmbed],
+    components: [ticketActions]
+  });
+
+  const newTicket = await createTicketDocument(guild, member, ticketChannel, interaction.channel);
+
+  await interaction.reply({
+    content: `Your ticket has been created: <#${ticketChannel.id}>`,
+    ephemeral: true
+  });
+
+  // Log ticket creation
+  if (ticketSetup.logChannelID) {
+    const logChannel = await guild.channels.fetch(ticketSetup.logChannelID);
+    if (logChannel) {
+      await logChannel.send(`New ticket created by ${member.user.tag} (${member.id}) - <#${ticketChannel.id}>`);
+    }
+  }
+}
+
+async function createTicketChannel(guild, category, member, staffRole, ticketCount) {
+  return await guild.channels.create({
+    name: `ticket-${ticketCount + 1}-${member.user.username}`,
+    type: ChannelType.GuildText,
+    parent: category.id,
+    permissionOverwrites: [
+      {
+        id: guild.id,
+        deny: [PermissionFlagsBits.ViewChannel]
+      },
+      {
+        id: member.id,
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+      },
+      {
+        id: staffRole.id,
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+      }
+    ]
+  });
+}
+
+function createTicketEmbed(member, guild) {
+  return new EmbedBuilder()
+    .setColor("DarkNavy")
+    .setAuthor({ name: member.user.username, iconURL: member.user.displayAvatarURL() })
+    .setTitle("New Support Ticket")
+    .setDescription("A staff member will be with you shortly. Please explain your issue in as much detail as possible.")
+    .addFields(
+      { name: "Ticket Creator", value: member.toString(), inline: true },
+      { name: "Created At", value: new Date().toLocaleString(), inline: true }
+    )
+    .setFooter({
+      text: `${guild.name} - Support Ticket`,
+      iconURL: guild.iconURL()
+    })
+    .setTimestamp();
+}
+
+function createTicketActions() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("closeTicket")
+      .setLabel("Close Ticket")
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId("claimTicket")
+      .setLabel("Claim Ticket")
+      .setStyle(ButtonStyle.Primary)
+  );
+}
+
+async function createTicketDocument(guild, member, ticketChannel, parentChannel) {
+  const newTicket = new ticketSchema({
+    guildID: guild.id,
+    ticketMemberID: member.id,
+    ticketChannelID: ticketChannel.id,
+    parentTicketChannelID: parentChannel.id,
+    closed: false,
+    membersAdded: [],
+    claimedBy: null,
+    status: 'open',
+    actionLog: [`Ticket created by ${member.user.tag} (${member.id}) at ${new Date().toISOString()}`]
+  });
+
+  return await newTicket.save();
+}

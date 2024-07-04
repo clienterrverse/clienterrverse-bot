@@ -18,13 +18,13 @@ export default async (exceptions = []) => {
       const { default: buttonObject } = await import(buttonFileURL);
 
       // Check object is valid
-      if (!buttonObject || typeof buttonObject !== 'object' || !buttonObject.name) {
+      if (!buttonObject || typeof buttonObject !== 'object' || !buttonObject.customId) {
         console.warn(`Skipped importing ${buttonFileURL} as it does not export a valid button object.`);
         continue;
       }
 
       // Skip 
-      if (exceptions.includes(buttonObject.name)) continue;
+      if (exceptions.includes(buttonObject.customId)) continue;
 
       buttons.push(buttonObject);
     } catch (error) {

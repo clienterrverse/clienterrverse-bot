@@ -16,7 +16,6 @@ export default {
       // Get the ticket from the database
       const ticket = await ticketSchema.findOne({ ticketChannelID: channel.id });
       if (!ticket) {
-        console.error('Ticket not found in database for channel ID:', channel.id);
         return await interaction.editReply({
           content: "Ticket not found.",
           ephemeral: true,
@@ -26,7 +25,6 @@ export default {
       // Get the ticket setup configuration to check for staff role
       const ticketSetup = await ticketSetupSchema.findOne({ guildID: guild.id });
       if (!ticketSetup) {
-        console.error('Ticket setup not found for guild ID:', guild.id);
         return await interaction.editReply({
           content: "Ticket system is not configured properly.",
           ephemeral: true,
@@ -35,7 +33,6 @@ export default {
 
       const staffRole = guild.roles.cache.get(ticketSetup.staffRoleID);
       if (!staffRole) {
-        console.error('Staff role not found in guild for role ID:', ticketSetup.staffRoleID);
         return await interaction.editReply({
           content: "Staff role not found. Please contact an administrator.",
           ephemeral: true,
