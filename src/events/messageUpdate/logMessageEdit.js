@@ -1,4 +1,4 @@
-import config from '../../config/config.json' assert { type: 'json' };
+import { config } from '../../config/config.js';
 import { EmbedBuilder } from 'discord.js';
 
 export default async (client, oldMessage, newMessage) => {

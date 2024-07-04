@@ -1,13 +1,6 @@
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder,
-  ChannelType,
-  PermissionFlagsBits
-} from 'discord.js';
+
+import { createTicket } from '../utils/ticket/ticketCreate.js';
 import ticketSetupSchema from '../schemas/ticketSetupSchema.js';
-import ticketSchema from '../schemas/ticketSchema.js';
 
 export default {
   customId: 'ticketModal',
@@ -51,120 +44,17 @@ export default {
           ephemeral: true
         });
       }
-      const username = member.user.username;
 
-      // Check if the user has any previous tickets
-      const closedTickets = await ticketSchema.find({
-        guildID: guild.id,
-        ticketMemberID: member.id,
-        closed: true,
-      }).sort({ closedAt: -1 }).limit(3);
+      const result = await createTicket(guild, member, staffRole, category, subject, description, channel.id);
 
-      let previousTicketsField = 'No previous tickets';
-      if (closedTickets.length > 0) {
-        previousTicketsField = closedTickets.map((ticket, index) => {
-          const claimedBy = ticket.claimedBy ? `<@${ticket.claimedBy}>` : 'Unclaimed';
-          const closeReason = ticket.closeReason ? ticket.closeReason : 'No reason provided';
-          return `Ticket ${index + 1}:\n- Claimed by: ${claimedBy}\n- Close reason: ${closeReason}`;
-        }).join('\n\n');
-      }
-
-      // Create the ticket embed
-      const ticketEmbed = new EmbedBuilder()
-        .setColor('#9861FF')
-        .setAuthor({ name: username, iconURL: member.user.displayAvatarURL({ dynamic: true }) })
-        .setDescription(`**Subject:** ${subject}\n**Description:** ${description}`)
-        .addFields({ name: 'Previous Tickets', value: previousTicketsField })
-        .setFooter({
-          text: `${guild.name} - Ticket`,
-          iconURL: guild.iconURL(),
-        })
-        .setTimestamp();
-
-      // Create action row with buttons
-      const ticketButtons = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('claimTicketBtn')
-          .setLabel('Claim Ticket')
-          .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-          .setCustomId('closeTicketBtn')
-          .setLabel('Close Ticket')
-          .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-          .setCustomId('lockTicketBtn')
-          .setLabel('Lock Ticket')
-          .setStyle(ButtonStyle.Secondary),
-      );
-
-      // Check if there is an open ticket
-      let ticket = await ticketSchema.findOne({
-        guildID: guild.id,
-        ticketMemberID: member.id,
-        closed: false,
-      });
-      const ticketCount = await ticketSchema.countDocuments({
-        guildID: guild.id,
-        closed: true
-      });
-
-      if (ticket) {
-        return await interaction.editReply({
-          content: `You already have an open ticket! <#${ticket.ticketChannelID}>`,
-          ephemeral: true
-        });
-      }
-
-      // Create a new channel in the specified category
-      const ticketChannel = await guild.channels.create({
-        name: `${username}-${ticketCount + 1}`, 
-        type: ChannelType.GuildText,
-        parent: category.id,
-        permissionOverwrites: [
-          {
-            id: guild.id,
-            deny: [PermissionFlagsBits.ViewChannel],
-          },
-          {
-            id: member.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
-          },
-          {
-            id: staffRole.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
-          },
-        ],
-      });
-
-      await ticketChannel.send({
-        content: `${staffRole} - Ticket created by ${username}`,
-        embeds: [ticketEmbed],
-        components: [ticketButtons],
-      });
-
-      // Create and save the ticket in the database
-      ticket = await ticketSchema.create({
-        guildID: guild.id,
-        ticketMemberID: member.id,
-        ticketChannelID: ticketChannel.id,
-        parentTicketChannelID: channel.id, // Ensure this is set correctly
-        closed: false,
-        membersAdded: [],
-        claimedBy: null, // Initially, no one has claimed the ticket
-        status: 'open',
-        actionLog: [`Ticket created by ${member.user.tag}`], // Initial action log entry
-        closeReason: '' // Add this field to store the close reason
-      });
-
-      await ticket.save();
-
-      return await interaction.editReply({
-        content: `Your ticket has been created in ${ticketChannel}`,
+      await interaction.editReply({
+        content: result.message,
         ephemeral: true
       });
+
     } catch (error) {
-      console.error('Error creating ticket:', error);
-      await interaction.reply({
+      console.error('Error handling ticket creation:', error);
+      await interaction.editReply({
         content: 'There was an error creating your ticket. Please try again later.',
         ephemeral: true
       });

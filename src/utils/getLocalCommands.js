@@ -26,7 +26,7 @@ export default async (exceptions = []) => {
         if (commandObject.data && commandObject.data.name && !exceptions.includes(commandObject.data.name)) {
           return commandObject;
         } else {
-          console.warn(`Command file ${commandFile} does not have a valid name property or is in the exceptions list.`);
+          console.warn(`Command file ${commandFile} does not have a valid name property or is in the exc list`);
           return null;
         }
       } catch (error) {

@@ -2,6 +2,7 @@
 
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance, Transaction } from '../../schemas/economy.js';
+import mconfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -11,12 +12,13 @@ export default {
       option.setName('amount')
         .setDescription('The amount to withdraw')
         .setRequired(true)
+        .setMinValue(1)
     )
     .toJSON(),
   userPermissions: [],
   botPermissions: [],
   cooldown: 5,
-  nwfwMode: false,
+  nsfwMode: false,
   testMode: false,
   devOnly: false,
 
@@ -25,44 +27,42 @@ export default {
       const userId = interaction.user.id;
       const amount = interaction.options.getInteger('amount');
 
-      if (amount <= 0) {
-        return interaction.reply('Please enter a valid amount to withdraw.');
-      }
-
-      // Fetch the user's balance from the database
-      let userBalance = await Balance.findOne({ userId });
-
-      if (!userBalance) {
-        userBalance = new Balance({ userId });
-        await userBalance.save();
-        return interaction.reply('You do not have an account yet. Please deposit some coins first.');
-      }
+      // Fetch or create the user's balance
+      let userBalance = await Balance.findOneAndUpdate(
+        { userId },
+        { $setOnInsert: { balance: 0, bank: 0 } },
+        { upsert: true, new: true }
+      );
 
       if (userBalance.bank < amount) {
-        return interaction.reply('You do not have enough bank balance to withdraw that amount.');
+        return interaction.reply({
+          embeds: [createErrorEmbed(interaction, 'Insufficient Funds', `You only have ${userBalance.bank} clienterr coins in your bank.`)],
+          ephemeral: true
+        });
       }
 
-      // Update the user's balance and bank amount
-      userBalance.bank -= amount;
-      userBalance.balance += amount;
-      await userBalance.save();
+      // Update the user's balance
+      userBalance = await Balance.findOneAndUpdate(
+        { userId },
+        { $inc: { bank: -amount, balance: amount } },
+        { new: true }
+      );
 
       // Record the transaction
-      const withdrawTransaction = new Transaction({
+      await Transaction.create({
         userId,
         type: 'withdraw',
         amount,
       });
-      await withdrawTransaction.save();
 
-      // Create an embed to display the withdrawal information
+      // Create and send the success embed
       const embed = new EmbedBuilder()
-        .setTitle('Withdrawal Successful')
+        .setTitle('💰 Withdrawal Successful')
         .setDescription(`You have withdrawn ${amount} clienterr coins from your bank.`)
-        .setColor('#00FF00')
+        .setColor(mconfig.embedColorSuccess)
         .addFields(
-          { name: 'New Bank Balance', value: userBalance.bank.toString(), inline: true },
-          { name: 'New Wallet Balance', value: userBalance.balance.toString(), inline: true }
+          { name: '🏦 New Bank Balance', value: userBalance.bank.toString(), inline: true },
+          { name: '👛 New Wallet Balance', value: userBalance.balance.toString(), inline: true }
         )
         .setFooter({
           text: `Withdrawal by ${interaction.user.username}`,
@@ -70,11 +70,25 @@ export default {
         })
         .setTimestamp();
 
-      // Send the embed as the reply
       await interaction.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Error processing withdraw command:', error);
-      await interaction.reply('There was an error trying to process your withdrawal. Please try again later.');
+      await interaction.reply({
+        embeds: [createErrorEmbed(interaction, 'Error', 'There was an error processing your withdrawal. Please try again later.')],
+        ephemeral: true
+      });
     }
   },
 };
+
+function createErrorEmbed(interaction, title, description) {
+  return new EmbedBuilder()
+    .setColor(mconfig.embedColorError)
+    .setTitle(`❌ ${title}`)
+    .setDescription(description)
+    .setFooter({
+      text: `Requested by ${interaction.user.username}`,
+      iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
+    })
+    .setTimestamp();
+}

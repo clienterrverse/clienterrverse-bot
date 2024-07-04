@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
-import Ticket from '../../schemas/ticketSchema.js'; // Ensure correct import of the Ticket schema
+import Ticket from '../../schemas/ticketSchema.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -13,14 +13,21 @@ export default {
         .toJSON(),
 
     userPermissions: [],
-    botPermissions: [],
+    botPermissions: [PermissionFlagsBits.ManageChannels],
 
     run: async (client, interaction) => {
-        try {
-            const { channel, options, guild } = interaction;
-            await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ ephemeral: true });
 
-            const memberToAdd = options.getUser('member');
+        try {
+            const { channel, guild } = interaction;
+            const memberToAdd = interaction.options.getMember('member');
+
+            if (!memberToAdd) {
+                return await interaction.editReply({
+                    content: 'The specified member was not found in the server.',
+                    ephemeral: true
+                });
+            }
 
             const ticket = await Ticket.findOne({
                 guildID: guild.id,
@@ -30,44 +37,36 @@ export default {
 
             if (!ticket) {
                 return await interaction.editReply({
-                    content: 'This channel is not a ticket channel.',
+                    content: 'This channel is not an active ticket channel.',
                     ephemeral: true
                 });
             }
 
-            const memberExistsInServer = guild.members.cache.has(memberToAdd.id);
-            if (!memberExistsInServer) {
+            if (channel.permissionOverwrites.cache.has(memberToAdd.id)) {
                 return await interaction.editReply({
-                    content: 'The member you specified is not in the server.',
+                    content: 'This member is already in the ticket.',
                     ephemeral: true
                 });
             }
 
-            const threadMember = await guild.members.fetch(memberToAdd.id).catch(() => null);
-
-            if (threadMember && channel.permissionOverwrites.cache.has(memberToAdd.id)) {
-                return await interaction.editReply({
-                    content: 'The member you specified is already in the ticket.',
-                    ephemeral: true
-                });
-            }
-
+            // Add member to ticket
             ticket.membersAdded.push(memberToAdd.id);
             await ticket.save();
 
-            await channel.permissionOverwrites.create(memberToAdd.id, {
+            await channel.permissionOverwrites.create(memberToAdd, {
                 ViewChannel: true,
                 SendMessages: true
             });
 
             return await interaction.editReply({
-                content: `Successfully added ${memberToAdd.tag} to the ticket.`,
+                content: `Successfully added ${memberToAdd.user.tag} to the ticket.`,
                 ephemeral: true
             });
+
         } catch (err) {
-            console.error('Error adding member to ticket:', err); // Improved error logging
+            console.error('Error adding member to ticket:', err);
             return await interaction.editReply({
-                content: 'An error occurred while adding the member to the ticket.',
+                content: 'An error occurred while adding the member to the ticket. Please try again later.',
                 ephemeral: true
             });
         }

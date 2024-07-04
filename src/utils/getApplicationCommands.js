@@ -1,8 +1,8 @@
 export default async (client, guildId) => {
-  // Cache for fetched commands
+  // fetched commands
   let commandCache = {};
 
-  // Function to fetch commands
+  //  fetch commands
   const fetchCommands = async (commands) => {
     try {
       await commands.fetch();
@@ -15,7 +15,7 @@ export default async (client, guildId) => {
 
   // Main function to get commands with caching and error handling
   const getCommands = async (client, guildId) => {
-    // Check cache first
+    //  cache first
     if (commandCache[guildId || 'global']) {
       return commandCache[guildId || 'global'];
     }
@@ -24,15 +24,15 @@ export default async (client, guildId) => {
 
     try {
       if (guildId) {
-        // Fetch guild-specific commands
+        //  guild-specific commands
         const guild = await client.guilds.fetch(guildId);
         applicationCommands = guild.commands;
       } else {
-        // Fetch global commands
+        //  global commands
         applicationCommands = client.application.commands;
       }
 
-      // Fetch and cache commands
+      //  cache commands
       const commands = await fetchCommands(applicationCommands);
       if (commands) {
         commandCache[guildId || 'global'] = commands;

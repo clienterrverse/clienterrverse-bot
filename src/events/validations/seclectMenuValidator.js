@@ -1,7 +1,7 @@
 import 'colors';
 import { Client, EmbedBuilder } from 'discord.js';
-import config from '../../config/config.json' assert { type: 'json' };
-import mConfig from '../../config/messageConfig.json' assert { type: 'json' };
+import { config } from '../../config/config.js';
+import mConfig from '../../config/messageConfig.js';
 import getSelects from '../../utils/getSelects.js';
 
 const sendEmbedReply = async (interaction, color, description, ephemeral = true) => {

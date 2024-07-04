@@ -1,7 +1,8 @@
 /** @format */
 
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import axios from "axios";
+import mconfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -13,21 +14,32 @@ export default {
         .setDescription("User to magik")
         .setRequired(false)
     )
+    .addIntegerOption((option) =>
+      option
+        .setName("intensity")
+        .setDescription("Magik intensity (1-10)")
+        .setRequired(false)
+        .setMinValue(1)
+        .setMaxValue(10)
+    )
     .toJSON(),
-  nwfwMode: false,
+  cooldown: 10,
+  nsfwMode: false,
   testMode: false,
   devOnly: false,
   userPermissionsBitField: [],
   bot: [],
+
   run: async (client, interaction) => {
     try {
       await interaction.deferReply();
 
-      const targetUser =
-        interaction.options.getUser("target") || interaction.user;
+      const targetUser = interaction.options.getUser("target") || interaction.user;
+      const intensity = interaction.options.getInteger("intensity") || 5;
+
       const avatarURL = targetUser.displayAvatarURL({
         size: 512,
-        extension: "jpg",
+        extension: "png",
         forceStatic: true,
       });
 
@@ -35,8 +47,10 @@ export default {
       const response = await axios.get(
         `https://nekobot.xyz/api/imagegen?type=magik&image=${encodeURIComponent(
           avatarURL
-        )}`
+        )}&intensity=${intensity}`,
+        { timeout: 15000 } // Set a timeout of 15 seconds
       );
+
       if (!response.data || !response.data.message) {
         throw new Error("Failed to generate magik image.");
       }
@@ -44,37 +58,81 @@ export default {
       const magikImageURL = response.data.message;
 
       const embed = new EmbedBuilder()
-        .setTitle("Magik")
-        .setColor("#FF0000") // Set a custom color for the embed (optional)
+        .setTitle("🎭 Magik")
+        .setColor(mconfig.embedColorDefault)
         .setImage(magikImageURL)
-        .setURL(magikImageURL) // Set the URL of the embed (optional)
+        .setURL(magikImageURL)
         .setDescription(`Magik'd image of ${targetUser.username}`)
         .addFields(
           {
-            name: "Requested by",
+            name: "🧙‍♂️ Requested by",
             value: interaction.user.username,
             inline: true,
           },
           {
-            name: "Generated Image",
+            name: "🔮 Intensity",
+            value: `${intensity}/10`,
+            inline: true,
+          },
+          {
+            name: "🖼️ Generated Image",
             value: `[Open Image](${magikImageURL})`,
             inline: true,
           }
-        );
+        )
+        .setFooter({ text: "Powered by nekobot.xyz" })
+        .setTimestamp();
 
-      // Send the embed message as a reply
-      await interaction.editReply({ embeds: [embed] });
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('regenerate')
+          .setLabel('🔄 Regenerate')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setURL(magikImageURL)
+          .setLabel('🔗 Open Image')
+          .setStyle(ButtonStyle.Link)
+      );
+
+      const reply = await interaction.editReply({ embeds: [embed], components: [row] });
+
+      const filter = i => i.customId === 'regenerate' && i.user.id === interaction.user.id;
+      const collector = reply.createMessageComponentCollector({ filter, time: 60000 });
+
+      collector.on('collect', async i => {
+        await i.deferUpdate();
+        const newResponse = await axios.get(
+          `https://nekobot.xyz/api/imagegen?type=magik&image=${encodeURIComponent(avatarURL)}&intensity=${intensity}`,
+          { timeout: 15000 }
+        );
+        const newMagikImageURL = newResponse.data.message;
+        embed.setImage(newMagikImageURL).setURL(newMagikImageURL);
+        row.components[1].setURL(newMagikImageURL);
+        await i.editReply({ embeds: [embed], components: [row] });
+      });
+
+      collector.on('end', () => {
+        row.components[0].setDisabled(true);
+        interaction.editReply({ components: [row] });
+      });
+
     } catch (error) {
       console.error("Error generating magik image:", error);
-      // If deferReply failed, use followUp instead of editReply
+      const errorMessage = error.response?.status === 524 
+        ? "The image generation service is currently overloaded. Please try again later."
+        : "Sorry, something went wrong while generating the magik image.";
+      
       if (interaction.deferred) {
-        await interaction.editReply(
-          "Sorry, something went wrong while generating the magik image."
-        );
+        await interaction.editReply({
+          content: errorMessage,
+          embeds: [],
+          components: []
+        });
       } else {
-        await interaction.reply(
-          "Sorry, something went wrong while generating the magik image."
-        );
+        await interaction.reply({
+          content: errorMessage,
+          ephemeral: true
+        });
       }
     }
   },

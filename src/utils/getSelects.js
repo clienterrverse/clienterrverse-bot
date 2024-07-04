@@ -17,7 +17,6 @@ export default async (exceptions = []) => {
       // Dynamically import the module using the file URL
       const { default: selectObject } = await import(selectsFileURL);
 
-      // Check if the select name is in the exceptions list
       if (exceptions.includes(selectObject.name)) return null;
 
       return selectObject;

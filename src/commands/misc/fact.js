@@ -3,7 +3,8 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 import axios from 'axios';
-import mconfig from '../../config/messageConfig.json' assert { type: 'json' };
+import { config } from '../../config/config.js';
+import mConfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -25,7 +26,7 @@ export default {
       const fact = res.data.text;
 
       const rembed = new EmbedBuilder()
-        .setColor(mconfig.embedColorSuccess)
+        .setColor(mConfig.embedColorSuccess)
         .setTitle("fact")
         .setDescription(fact);
 
