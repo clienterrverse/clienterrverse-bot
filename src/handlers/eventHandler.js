@@ -2,32 +2,43 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import getAllFiles from '../utils/getAllFiles.js';
 import 'colors';
+import fs from 'fs';
+import fsPromises from 'fs/promises';
 
+// Define __filename and __dirname for ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default async (client) => {
   try {
-    const eventFolders = getAllFiles(
-      path.join(__dirname, '..', 'events'),
-      true
-    );
+    const eventFolders = getAllFiles(path.join(__dirname, '..', 'events'), true);
+
+    const eventRegistry = new Map();
 
     for (const eventFolder of eventFolders) {
       const eventFiles = getAllFiles(eventFolder);
       let eventName = eventFolder.replace(/\\/g, '/').split('/').pop();
 
+      // Rename 'validations' folder to 'interactionCreate' event
       if (eventName === 'validations') {
         eventName = 'interactionCreate';
       }
 
-      client.on(eventName, async (...args) => {
-        for (const eventFile of eventFiles) {
+      // Initialize event handler array if not already present
+      if (!eventRegistry.has(eventName)) {
+        eventRegistry.set(eventName, []);
+      }
+
+      for (const eventFile of eventFiles) {
+        if (fs.lstatSync(eventFile).isFile()) {
           try {
-            const { default: eventFunction } = await import(
-              `file://${eventFile}`
-            );
-            await eventFunction(client, ...args);
+            const { default: eventFunction } = await import(`file://${eventFile}`);
+            const eventInfo = {
+              function: eventFunction,
+              fileName: path.basename(eventFile),
+              priority: eventFunction.priority || 0,
+            };
+            eventRegistry.get(eventName).push(eventInfo);
           } catch (error) {
             console.error(
               `Error loading event file ${eventFile} for event ${eventName}:`,
@@ -35,8 +46,27 @@ export default async (client) => {
             );
           }
         }
+      }
+    }
+
+    // Register sorted event handlers
+    for (const [eventName, eventHandlers] of eventRegistry) {
+      eventHandlers.sort((a, b) => b.priority - a.priority);
+
+      client.on(eventName, async (...args) => {
+        for (const handler of eventHandlers) {
+          try {
+            await handler.function(client, ...args);
+          } catch (error) {
+            console.error(
+              `Error executing event handler ${handler.fileName} for event ${eventName}:`,
+              error.message.red
+            );
+          }
+        }
       });
     }
+
     console.log('All event handlers registered successfully.'.green);
   } catch (error) {
     console.error('Error setting up event handlers:', error.message.red);
