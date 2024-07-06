@@ -8,8 +8,8 @@ import mconfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("cat")
-    .setDescription("send random cat img")
+    .setName('cat')
+    .setDescription('send random cat img')
 
     .toJSON(),
   nwfwMode: false,
@@ -20,19 +20,19 @@ export default {
   bot: [],
   run: async (client, interaction) => {
     try {
-      const res = await axios.get("https://api.thecatapi.com/v1/images/search");
+      const res = await axios.get('https://api.thecatapi.com/v1/images/search');
       const imgurl = res.data[0]?.url;
       if (!imgurl) {
-        throw new Error("Failed to get Cat Img .");
+        throw new Error('Failed to get Cat Img .');
       }
       const rembed = new EmbedBuilder()
         .setColor(mconfig.embedColorSuccess)
-        .setDescription("Random cat img 😺")
+        .setDescription('Random cat img 😺')
         .setImage(imgurl);
 
       await interaction.reply({ embeds: [rembed] });
     } catch (error) {
-      console.error("err while gitting cat img ", error);
+      console.error('err while gitting cat img ', error);
     }
   },
 };

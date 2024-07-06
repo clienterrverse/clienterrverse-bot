@@ -22,15 +22,15 @@ export default {
       const balances = await Balance.aggregate([
         {
           $addFields: {
-            totalBalance: { $sum: ['$balance', '$bank'] }
-          }
+            totalBalance: { $sum: ['$balance', '$bank'] },
+          },
         },
         {
-          $sort: { totalBalance: -1 }
+          $sort: { totalBalance: -1 },
         },
         {
-          $limit: 100
-        }
+          $limit: 100,
+        },
       ]);
 
       if (balances.length === 0) {
@@ -50,7 +50,9 @@ export default {
       const leaderboardEntries = await Promise.all(
         balances.map(async (balance, index) => {
           const user = client.users.cache.get(balance.userId);
-          const userTag = user ? user.tag : await fetchUserDetails(balance.userId);
+          const userTag = user
+            ? user.tag
+            : await fetchUserDetails(balance.userId);
           const totalBalance = balance.totalBalance;
           return `${index + 1}. ${userTag}: ${totalBalance} clienterr coins (Wallet: ${balance.balance}, Bank: ${balance.bank})\n`;
         })
@@ -60,7 +62,9 @@ export default {
       const itemsPerPage = 10;
       const pages = [];
       for (let i = 0; i < leaderboardEntries.length; i += itemsPerPage) {
-        const pageContent = leaderboardEntries.slice(i, i + itemsPerPage).join('');
+        const pageContent = leaderboardEntries
+          .slice(i, i + itemsPerPage)
+          .join('');
         pages.push({
           title: 'Leaderboard',
           description: pageContent,
@@ -72,7 +76,9 @@ export default {
       await pagination(interaction, pages);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      await interaction.reply('There was an error trying to fetch the leaderboard. Please try again later.');
+      await interaction.reply(
+        'There was an error trying to fetch the leaderboard. Please try again later.'
+      );
     }
   },
 };

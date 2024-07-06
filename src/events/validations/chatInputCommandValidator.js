@@ -1,14 +1,12 @@
 /** @format */
 
-import "colors";
-import { EmbedBuilder, Collection } from "discord.js";
-import { config } from "../../config/config.js";
-import mConfig from "../../config/messageConfig.js";
-import getLocalCommands from "../../utils/getLocalCommands.js";
+import 'colors';
+import { EmbedBuilder, Collection } from 'discord.js';
+import { config } from '../../config/config.js';
+import mConfig from '../../config/messageConfig.js';
+import getLocalCommands from '../../utils/getLocalCommands.js';
 
 const cooldowns = new Collection();
-let cachedCommands = null;
-let cacheTimestamp = 0;
 const cache = new Map();
 const metrics = {
   commandUsage: new Collection(),
@@ -45,22 +43,23 @@ const getCachedData = async (key, fetchFunction) => {
   return data;
 };
 
-const getCachedLocalCommands = async () => {
-  return await getCachedData("localCommands", getLocalCommands);
-};
+const getCachedLocalCommands = () =>
+  getCachedData('localCommands', getLocalCommands);
 
 const applyCooldown = (interaction, commandName, cooldownAmount) => {
   const userCooldowns = cooldowns.get(commandName) || new Collection();
   const now = Date.now();
   const userId = `${interaction.user.id}-${
-    interaction.guild ? interaction.guild.id : "DM"
+    interaction.guild ? interaction.guild.id : 'DM'
   }`;
 
   if (userCooldowns.has(userId)) {
     const expirationTime = userCooldowns.get(userId) + cooldownAmount;
     if (now < expirationTime) {
-      const timeLeft = ((expirationTime - now) / 1000).toFixed(1);
-      return { active: true, timeLeft };
+      return {
+        active: true,
+        timeLeft: ((expirationTime - now) / 1000).toFixed(1),
+      };
     }
   }
 
@@ -70,21 +69,22 @@ const applyCooldown = (interaction, commandName, cooldownAmount) => {
   return { active: false };
 };
 
-const trackCommandUsage = (commandName) => {
-  if (!metrics.commandUsage.has(commandName)) {
-    metrics.commandUsage.set(commandName, 0);
-  }
+const trackMetrics = (commandName, error = null) => {
   metrics.commandUsage.set(
     commandName,
-    metrics.commandUsage.get(commandName) + 1
+    (metrics.commandUsage.get(commandName) || 0) + 1
   );
+  if (error) {
+    const errors = metrics.commandErrors.get(commandName) || [];
+    errors.push({ error, timestamp: Date.now() });
+    metrics.commandErrors.set(commandName, errors);
+  }
 };
 
-const trackCommandError = (commandName, error) => {
-  if (!metrics.commandErrors.has(commandName)) {
-    metrics.commandErrors.set(commandName, []);
-  }
-  metrics.commandErrors.get(commandName).push({ error, timestamp: Date.now() });
+const checkPermissions = (interaction, permissions, type) => {
+  const member =
+    type === 'user' ? interaction.member : interaction.guild.members.me;
+  return permissions.every((permission) => member.permissions.has(permission));
 };
 
 export default async (client, interaction) => {
@@ -105,18 +105,19 @@ export default async (client, interaction) => {
       return sendEmbedReply(
         interaction,
         mConfig.embedColorError,
-        "Command not found."
+        'Command not found.'
       );
     }
 
     if (interaction.isAutocomplete()) {
       return await commandObject.autocomplete(client, interaction);
     }
+
     if (maintenance && !developersId.includes(interaction.user.id)) {
       return sendEmbedReply(
         interaction,
         mConfig.embedColorError,
-        "Bot is currently in maintenance mode. Please try again later."
+        'Bot is currently in maintenance mode. Please try again later.'
       );
     }
 
@@ -124,22 +125,20 @@ export default async (client, interaction) => {
       return sendEmbedReply(
         interaction,
         mConfig.embedColorError,
-        "This command can only be used within a server."
+        'This command can only be used within a server.'
       );
     }
 
-    const cooldownAmount = (commandObject.cooldown || 3) * 1000;
     const cooldown = applyCooldown(
       interaction,
       commandObject.data.name,
-      cooldownAmount
+      (commandObject.cooldown || 3) * 1000
     );
-
     if (cooldown.active) {
       return sendEmbedReply(
         interaction,
         mConfig.embedColorError,
-        mConfig.commandCooldown.replace("{time}", cooldown.timeLeft)
+        mConfig.commandCooldown.replace('{time}', cooldown.timeLeft)
       );
     }
 
@@ -163,39 +162,36 @@ export default async (client, interaction) => {
       return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.nsfw);
     }
 
-    if (commandObject.userPermissions?.length) {
-      for (const permission of commandObject.userPermissions) {
-        if (!interaction.member.permissions.has(permission)) {
-          return sendEmbedReply(
-            interaction,
-            mConfig.embedColorError,
-            mConfig.userNoPermissions
-          );
-        }
-      }
+    if (
+      commandObject.userPermissions?.length &&
+      !checkPermissions(interaction, commandObject.userPermissions, 'user')
+    ) {
+      return sendEmbedReply(
+        interaction,
+        mConfig.embedColorError,
+        mConfig.userNoPermissions
+      );
     }
 
-    if (commandObject.botPermissions?.length) {
-      const bot = interaction.guild.members.me;
-      for (const permission of commandObject.botPermissions) {
-        if (!bot.permissions.has(permission)) {
-          return sendEmbedReply(
-            interaction,
-            mConfig.embedColorError,
-            mConfig.botNoPermissions
-          );
-        }
-      }
+    if (
+      commandObject.botPermissions?.length &&
+      !checkPermissions(interaction, commandObject.botPermissions, 'bot')
+    ) {
+      return sendEmbedReply(
+        interaction,
+        mConfig.embedColorError,
+        mConfig.botNoPermissions
+      );
     }
 
     await commandObject.run(client, interaction);
-    trackCommandUsage(interaction.commandName);
+    trackMetrics(interaction.commandName);
     console.log(
       `Command executed: ${interaction.commandName} by ${interaction.user.tag}`
         .green
     );
   } catch (err) {
-    trackCommandError(interaction.commandName, err.message);
+    trackMetrics(interaction.commandName, err.message);
     console.error(
       `An error occurred while processing command: ${interaction.commandName}. Error: ${err.message}`
         .red
@@ -203,7 +199,7 @@ export default async (client, interaction) => {
     sendEmbedReply(
       interaction,
       mConfig.embedColorError,
-      "An error occurred while processing the command."
+      'An error occurred while processing the command.'
     );
   }
 };

@@ -1,13 +1,13 @@
-import { SlashCommandBuilder, PermissionsBitField } from "discord.js";
+import { SlashCommandBuilder, PermissionsBitField } from 'discord.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("purge")
-    .setDescription("Delete a specified number of messages.")
+    .setName('purge')
+    .setDescription('Delete a specified number of messages.')
     .addIntegerOption((option) =>
       option
-        .setName("amount")
-        .setDescription("Number of messages to delete")
+        .setName('amount')
+        .setDescription('Number of messages to delete')
         .setRequired(true)
     )
     .toJSON(),
@@ -19,19 +19,18 @@ export default {
   devOnly: false,
 
   run: async (client, interaction) => {
-    const amount = interaction.options.getInteger("amount");
-
+    const amount = interaction.options.getInteger('amount');
 
     if (isNaN(amount) || amount <= 0) {
       return await interaction.reply({
-        content: "Please enter a valid number of messages to delete.",
+        content: 'Please enter a valid number of messages to delete.',
         ephemeral: true,
       });
     }
 
     if (amount > 100) {
       return await interaction.reply({
-        content: "You can only delete up to 100 messages at a time.",
+        content: 'You can only delete up to 100 messages at a time.',
         ephemeral: true,
       });
     }
@@ -50,7 +49,7 @@ export default {
     } catch (error) {
       console.error(error);
       await interaction.editReply({
-        content: "There was an error trying to purge messages in this channel!",
+        content: 'There was an error trying to purge messages in this channel!',
       });
     }
   },

@@ -32,15 +32,21 @@ export default {
       }
 
       const now = Date.now();
-      if (userBalance.lastBeg && (now - userBalance.lastBeg.getTime()) < hourlyCooldown) {
+      if (
+        userBalance.lastBeg &&
+        now - userBalance.lastBeg.getTime() < hourlyCooldown
+      ) {
         const timeLeft = hourlyCooldown - (now - userBalance.lastBeg.getTime());
         const minutes = Math.floor(timeLeft / (1000 * 60));
         const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-        return interaction.reply(`You have already begged in this hour. Please try again in ${minutes} minutes and ${seconds} seconds.`);
+        return interaction.reply(
+          `You have already begged in this hour. Please try again in ${minutes} minutes and ${seconds} seconds.`
+        );
       }
 
       // Generate a random amount for the beg
-      const amount = Math.floor(Math.random() * (maxAmount - minAmount + 1)) + minAmount;
+      const amount =
+        Math.floor(Math.random() * (maxAmount - minAmount + 1)) + minAmount;
 
       // Update the user's balance and last beg time
       userBalance.balance += amount;
@@ -51,11 +57,18 @@ export default {
       const begEmbed = new EmbedBuilder()
         .setColor('#00FF00') // Green color to indicate success
         .setTitle('Begging Results')
-        .setDescription(`${emoji} You begged and received ${amount} clienterr coins!`)
-        .addFields(
-          { name: 'New Balance', value: `${userBalance.balance} clienterr coins`, inline: true }
+        .setDescription(
+          `${emoji} You begged and received ${amount} clienterr coins!`
         )
-        .setFooter({ text: `Beg by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .addFields({
+          name: 'New Balance',
+          value: `${userBalance.balance} clienterr coins`,
+          inline: true,
+        })
+        .setFooter({
+          text: `Beg by ${interaction.user.tag}`,
+          iconURL: interaction.user.displayAvatarURL(),
+        })
         .setTimestamp();
 
       // Reply with the embed
@@ -64,7 +77,9 @@ export default {
       console.error('Error processing beg command:', error);
       const errorEmbed = new EmbedBuilder()
         .setColor('#FF0000') // Red color to indicate error
-        .setDescription('There was an error trying to process your beg request.');
+        .setDescription(
+          'There was an error trying to process your beg request.'
+        );
       await interaction.reply({ embeds: [errorEmbed] });
     }
   },

@@ -1,10 +1,15 @@
-query($page: Int = 0, $amount: Int = 50, $watched: [Int!]!, $nextDay: Int!) {
+query ($page: Int = 0, $amount: Int = 50, $watched: [Int!]!, $nextDay: Int!) {
   Page(page: $page, perPage: $amount) {
     pageInfo {
       currentPage
       hasNextPage
     }
-    airingSchedules(notYetAired: true, mediaId_in: $watched, sort: TIME, airingAt_lesser: $nextDay) {
+    airingSchedules(
+      notYetAired: true
+      mediaId_in: $watched
+      sort: TIME
+      airingAt_lesser: $nextDay
+    ) {
       media {
         id
         siteUrl

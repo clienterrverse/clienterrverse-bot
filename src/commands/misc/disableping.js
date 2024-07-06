@@ -1,20 +1,20 @@
-import { SlashCommandBuilder, PermissionsBitField } from "discord.js";
+import { SlashCommandBuilder, PermissionsBitField } from 'discord.js';
 
 const noPingAdmins = new Set();
 const warningCooldowns = new Map();
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("disableping")
-    .setDescription("Enable or disable the no-ping feature for administrators.")
+    .setName('disableping')
+    .setDescription('Enable or disable the no-ping feature for administrators.')
     .addStringOption((option) =>
       option
-        .setName("action")
-        .setDescription("Choose enable or disable")
+        .setName('action')
+        .setDescription('Choose enable or disable')
         .setRequired(true)
         .addChoices(
-          { name: "enable", value: "enable" },
-          { name: "disable", value: "disable" }
+          { name: 'enable', value: 'enable' },
+          { name: 'disable', value: 'disable' }
         )
     )
     .toJSON(),
@@ -26,21 +26,19 @@ export default {
   devOnly: false,
 
   run: async (client, interaction) => {
+    const action = interaction.options.getString('action');
 
-
-    const action = interaction.options.getString("action");
-
-    if (action === "enable") {
+    if (action === 'enable') {
       noPingAdmins.add(interaction.user.id);
       await interaction.reply({
         content:
-          "No-ping feature enabled. Users will not be able to mention you.",
+          'No-ping feature enabled. Users will not be able to mention you.',
         ephemeral: true,
       });
-    } else if (action === "disable") {
+    } else if (action === 'disable') {
       noPingAdmins.delete(interaction.user.id);
       await interaction.reply({
-        content: "No-ping feature disabled. Users can mention you now.",
+        content: 'No-ping feature disabled. Users can mention you now.',
         ephemeral: true,
       });
     }

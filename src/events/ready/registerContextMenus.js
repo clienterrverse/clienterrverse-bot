@@ -8,16 +8,23 @@ export default async (client) => {
     const { testServerId } = config;
 
     const localContextMenus = await getLocalContextMenus();
-    const applicationContextMenus = await getApplicationContextMenus(client, testServerId);
+    const applicationContextMenus = await getApplicationContextMenus(
+      client,
+      testServerId
+    );
 
-    const localContextMenuNames = new Set(localContextMenus.map(cmd => cmd.data.name));
+    const localContextMenuNames = new Set(
+      localContextMenus.map((cmd) => cmd.data.name)
+    );
 
     const tasks = localContextMenus.map(async (localContextMenu) => {
       const { data } = localContextMenu;
       const contextMenuName = data.name;
       const contextMenuType = data.type;
 
-      const existingContextMenu = applicationContextMenus.cache.find(cmd => cmd.name === contextMenuName);
+      const existingContextMenu = applicationContextMenus.cache.find(
+        (cmd) => cmd.name === contextMenuName
+      );
 
       try {
         if (existingContextMenu) {
@@ -32,10 +39,15 @@ export default async (client) => {
           });
           console.log(`Registered new context menu: ${contextMenuName}`.green);
         } else {
-          console.log(`Skipped context menu (marked as deleted): ${contextMenuName}`.grey);
+          console.log(
+            `Skipped context menu (marked as deleted): ${contextMenuName}`.grey
+          );
         }
       } catch (err) {
-        console.error(`Failed to process context menu ${contextMenuName}: ${err.message}`.red);
+        console.error(
+          `Failed to process context menu ${contextMenuName}: ${err.message}`
+            .red
+        );
       }
     });
 

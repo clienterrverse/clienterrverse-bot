@@ -21,7 +21,9 @@ export default async (exceptions = []) => {
 
       return selectObject;
     } catch (error) {
-      console.error(`Error importing select file ${selectsFile}: ${error.message}`);
+      console.error(
+        `Error importing select file ${selectsFile}: ${error.message}`
+      );
       return null;
     }
   };
@@ -31,7 +33,7 @@ export default async (exceptions = []) => {
   const selectObjects = await Promise.all(selectPromises);
 
   // Filter out any null values (failed imports or exceptions)
-  const selects = selectObjects.filter(selectObject => selectObject !== null);
+  const selects = selectObjects.filter((selectObject) => selectObject !== null);
 
   return selects;
 };

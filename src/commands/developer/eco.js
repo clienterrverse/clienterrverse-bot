@@ -33,7 +33,9 @@ export default {
         .addUserOption((option) =>
           option
             .setName('user')
-            .setDescription('The user you want to subtract clienterr coins from')
+            .setDescription(
+              'The user you want to subtract clienterr coins from'
+            )
             .setRequired(true)
         )
         .addIntegerOption((option) =>
@@ -74,7 +76,7 @@ export default {
         )
     )
     .toJSON(),
-  userPermissions: [], 
+  userPermissions: [],
   botPermissions: [],
   cooldown: 5, // Cooldown in seconds
   nsfwMode: false,
@@ -107,8 +109,14 @@ export default {
         case 'subtract':
           if (userBalance.balance < amount) {
             return interaction.reply({
-              embeds: [createErrorEmbed(interaction, 'Insufficient Balance', `${user.username} does not have enough balance to subtract ${amount} clienterr coins.`)],
-              ephemeral: true
+              embeds: [
+                createErrorEmbed(
+                  interaction,
+                  'Insufficient Balance',
+                  `${user.username} does not have enough balance to subtract ${amount} clienterr coins.`
+                ),
+              ],
+              ephemeral: true,
             });
           }
           userBalance.balance -= amount;
@@ -134,7 +142,7 @@ export default {
           userId: user.id,
           type: transactionType,
           amount: amount,
-          executorId: interaction.user.id
+          executorId: interaction.user.id,
         });
       }
 
@@ -143,7 +151,11 @@ export default {
         .setColor(color)
         .setFooter({
           text: `Executed by ${interaction.user.username}`,
-          iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
+          iconURL: interaction.user.displayAvatarURL({
+            format: 'png',
+            dynamic: true,
+            size: 1024,
+          }),
         })
         .setTimestamp();
 
@@ -151,8 +163,14 @@ export default {
     } catch (error) {
       console.error('Error executing eco command:', error);
       await interaction.reply({
-        embeds: [createErrorEmbed(interaction, 'Error', 'There was an error processing your request.')],
-        ephemeral: true
+        embeds: [
+          createErrorEmbed(
+            interaction,
+            'Error',
+            'There was an error processing your request.'
+          ),
+        ],
+        ephemeral: true,
       });
     }
   },
@@ -165,7 +183,11 @@ function createErrorEmbed(interaction, title, description) {
     .setDescription(description)
     .setFooter({
       text: `Requested by ${interaction.user.username}`,
-      iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
+      iconURL: interaction.user.displayAvatarURL({
+        format: 'png',
+        dynamic: true,
+        size: 1024,
+      }),
     })
     .setTimestamp();
 }

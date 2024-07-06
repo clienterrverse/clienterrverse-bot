@@ -8,7 +8,7 @@ export default async (exceptions = []) => {
   const buttons = [];
 
   // Get  button files
-  const buttonFiles = getAllFiles(path.join(__dirname, "..", "buttons"));
+  const buttonFiles = getAllFiles(path.join(__dirname, '..', 'buttons'));
 
   // Import  button file
   for (const buttonFile of buttonFiles) {
@@ -18,12 +18,18 @@ export default async (exceptions = []) => {
       const { default: buttonObject } = await import(buttonFileURL);
 
       // Check object is valid
-      if (!buttonObject || typeof buttonObject !== 'object' || !buttonObject.customId) {
-        console.warn(`Skipped importing ${buttonFileURL} as it does not export a valid button object.`);
+      if (
+        !buttonObject ||
+        typeof buttonObject !== 'object' ||
+        !buttonObject.customId
+      ) {
+        console.warn(
+          `Skipped importing ${buttonFileURL} as it does not export a valid button object.`
+        );
         continue;
       }
 
-      // Skip 
+      // Skip
       if (exceptions.includes(buttonObject.customId)) continue;
 
       buttons.push(buttonObject);

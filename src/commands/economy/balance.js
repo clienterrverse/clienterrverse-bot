@@ -35,17 +35,30 @@ export default {
         .setTitle('Balance Information')
         .setDescription(`Here is your current balance information:`)
         .addFields(
-          { name: 'Wallet Balance', value: `${userBalance.balance} clienterr coins`, inline: true },
-          { name: 'Bank Balance', value: `${userBalance.bank} clienterr coins`, inline: true }
+          {
+            name: 'Wallet Balance',
+            value: `${userBalance.balance} clienterr coins`,
+            inline: true,
+          },
+          {
+            name: 'Bank Balance',
+            value: `${userBalance.bank} clienterr coins`,
+            inline: true,
+          }
         )
-        .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .setFooter({
+          text: `Requested by ${interaction.user.tag}`,
+          iconURL: interaction.user.displayAvatarURL(),
+        })
         .setTimestamp();
 
       // Reply with the embed containing the user's balance
       await interaction.reply({ embeds: [balanceEmbed] });
     } catch (error) {
       console.error('Error fetching balance:', error);
-      await interaction.reply('There was an error trying to fetch your balance.');
+      await interaction.reply(
+        'There was an error trying to fetch your balance.'
+      );
     }
   },
 };

@@ -8,9 +8,12 @@ import mconfig from '../../config/messageConfig.js';
 export default {
   data: new SlashCommandBuilder()
     .setName('coinflip')
-    .setDescription('Gamble a specified amount of clienterr coins by flipping a virtual clienterr coin.')
-    .addStringOption(option =>
-      option.setName('roll_result')
+    .setDescription(
+      'Gamble a specified amount of clienterr coins by flipping a virtual clienterr coin.'
+    )
+    .addStringOption((option) =>
+      option
+        .setName('roll_result')
         .setDescription('Your choice: "heads" or "tails".')
         .setRequired(true)
         .addChoices(
@@ -18,8 +21,9 @@ export default {
           { name: 'Tails', value: 'tails' }
         )
     )
-    .addIntegerOption(option =>
-      option.setName('gamble_amount')
+    .addIntegerOption((option) =>
+      option
+        .setName('gamble_amount')
         .setDescription('The amount of clienterr coins you want to gamble.')
         .setMinValue(1)
         .setMaxValue(30)
@@ -41,7 +45,9 @@ export default {
       const hourlyCooldown = 10 * 60 * 1000; // 1 hour in milliseconds
 
       if (gambleAmount < 1 || gambleAmount > 25) {
-        const embed = new EmbedBuilder().setDescription('The bet amount must be between 1 and 25 clienterr coins.');
+        const embed = new EmbedBuilder().setDescription(
+          'The bet amount must be between 1 and 25 clienterr coins.'
+        );
         return interaction.reply({ embeds: [embed], ephemeral: true });
       }
 
@@ -54,17 +60,25 @@ export default {
       }
 
       const now = Date.now();
-      if (userBalance.lastcoin && (now - userBalance.lastcoin.getTime()) < hourlyCooldown) {
-        const timeLeft = hourlyCooldown - (now - userBalance.lastcoin.getTime());
+      if (
+        userBalance.lastcoin &&
+        now - userBalance.lastcoin.getTime() < hourlyCooldown
+      ) {
+        const timeLeft =
+          hourlyCooldown - (now - userBalance.lastcoin.getTime());
         const minutes = Math.floor(timeLeft / (1000 * 60));
         const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-        return interaction.reply(`You have already flipped a coin in this hour. Please try again in ${minutes} minutes and ${seconds} seconds.`);
+        return interaction.reply(
+          `You have already flipped a coin in this hour. Please try again in ${minutes} minutes and ${seconds} seconds.`
+        );
       }
 
       // Check if the user has enough balance to gamble
       if (userBalance.balance < gambleAmount) {
         const embed = new EmbedBuilder()
-          .setDescription('You do not have enough balance to gamble that amount.')
+          .setDescription(
+            'You do not have enough balance to gamble that amount.'
+          )
           .setColor(mconfig.embedColorError);
 
         return interaction.reply({ embeds: [embed], ephemeral: true });
@@ -91,7 +105,9 @@ export default {
       await userBalance.save();
 
       const embed = new EmbedBuilder()
-        .setDescription(`${outcome} The clienterr coin landed on ${coinResult}. Your new balance is ${userBalance.balance} clienterr coins.`)
+        .setDescription(
+          `${outcome} The clienterr coin landed on ${coinResult}. Your new balance is ${userBalance.balance} clienterr coins.`
+        )
         .setColor(color);
 
       // Reply with the outcome of the clienterr coinflip
@@ -99,7 +115,9 @@ export default {
     } catch (error) {
       console.error('Error processing clienterr coinflip command:', error);
       const embed = new EmbedBuilder()
-        .setDescription('There was an error trying to process your clienterr coinflip.')
+        .setDescription(
+          'There was an error trying to process your clienterr coinflip.'
+        )
         .setColor(mconfig.embedColorError);
 
       await interaction.reply({ embeds: [embed] });

@@ -8,7 +8,10 @@ const __dirname = path.dirname(__filename);
 
 export default async (client) => {
   try {
-    const eventFolders = getAllFiles(path.join(__dirname, '..', 'events'), true);
+    const eventFolders = getAllFiles(
+      path.join(__dirname, '..', 'events'),
+      true
+    );
 
     for (const eventFolder of eventFolders) {
       const eventFiles = getAllFiles(eventFolder);
@@ -21,10 +24,15 @@ export default async (client) => {
       client.on(eventName, async (...args) => {
         for (const eventFile of eventFiles) {
           try {
-            const { default: eventFunction } = await import(`file://${eventFile}`);
+            const { default: eventFunction } = await import(
+              `file://${eventFile}`
+            );
             await eventFunction(client, ...args);
           } catch (error) {
-            console.error(`Error loading event file ${eventFile} for event ${eventName}:`, error.message.red);
+            console.error(
+              `Error loading event file ${eventFile} for event ${eventName}:`,
+              error.message.red
+            );
           }
         }
       });

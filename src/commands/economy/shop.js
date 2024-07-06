@@ -1,6 +1,11 @@
 /** @format */
 
-import { SlashCommandBuilder, StringSelectMenuBuilder, ActionRowBuilder, EmbedBuilder } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  StringSelectMenuBuilder,
+  ActionRowBuilder,
+  EmbedBuilder,
+} from 'discord.js';
 import { Item } from '../../schemas/economy.js';
 import { config } from '../../config/config.js';
 import mconfig from '../../config/messageConfig.js';
@@ -22,14 +27,17 @@ export default {
       const items = await Item.find().lean();
 
       if (items.length === 0) {
-        return interaction.reply({ content: '❌ No items available in the shop.', ephemeral: true });
+        return interaction.reply({
+          content: '❌ No items available in the shop.',
+          ephemeral: true,
+        });
       }
 
       const shopSSM = new StringSelectMenuBuilder()
         .setCustomId('shop')
         .setPlaceholder('🔍 Select an item to buy')
         .addOptions(
-          items.map(item => ({
+          items.map((item) => ({
             label: `${item.emoji} ${item.name}`,
             description: `${item.description} - ${item.price} clienterr coin(s)`,
             value: item.itemId,
@@ -42,15 +50,28 @@ export default {
         .setColor(mconfig.embedColorDefault)
         .setTitle('🛍️ Shop')
         .setDescription('Select an item to buy from the menu below.')
-        .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .setFooter({
+          text: `Requested by ${interaction.user.tag}`,
+          iconURL: interaction.user.displayAvatarURL(),
+        })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+      await interaction.reply({
+        embeds: [embed],
+        components: [row],
+        ephemeral: true,
+      });
     } catch (error) {
       console.error('Error processing shop command:', error);
       await interaction.reply({
-        embeds: [createErrorEmbed(interaction, 'Error', 'There was an error processing your request.')],
-        ephemeral: true
+        embeds: [
+          createErrorEmbed(
+            interaction,
+            'Error',
+            'There was an error processing your request.'
+          ),
+        ],
+        ephemeral: true,
       });
     }
   },
@@ -61,6 +82,9 @@ function createErrorEmbed(interaction, title, description) {
     .setColor(mconfig.embedColorError)
     .setTitle(`❌ ${title}`)
     .setDescription(`⚠️ ${description}`)
-    .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+    .setFooter({
+      text: `Requested by ${interaction.user.tag}`,
+      iconURL: interaction.user.displayAvatarURL(),
+    })
     .setTimestamp();
 }

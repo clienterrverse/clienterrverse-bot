@@ -22,7 +22,9 @@ export default async (exceptions = []) => {
 
       return modalObject;
     } catch (error) {
-      console.error(`Error importing modal file ${modalFile}: ${error.message}`);
+      console.error(
+        `Error importing modal file ${modalFile}: ${error.message}`
+      );
       return null;
     }
   };
@@ -32,7 +34,7 @@ export default async (exceptions = []) => {
   const modalObjects = await Promise.all(modalPromises);
 
   // Filter out any null values (failed imports or exceptions)
-  const modals = modalObjects.filter(modalObject => modalObject !== null);
+  const modals = modalObjects.filter((modalObject) => modalObject !== null);
 
   return modals;
 };

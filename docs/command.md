@@ -15,8 +15,8 @@ import mconfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("commandname")
-    .setDescription("Brief description of what the command does")
+    .setName('commandname')
+    .setDescription('Brief description of what the command does')
     .toJSON(),
   nwfwMode: false,
   testMode: false,
@@ -28,13 +28,13 @@ export default {
     try {
       // Command logic goes here
     } catch (error) {
-      console.error("Error in command: ", error);
+      console.error('Error in command: ', error);
     }
   },
   // Optional: Include if command uses autocomplete
   autocomplete: async (client, interaction) => {
     // Autocomplete logic goes here
-  }
+  },
 };
 ```
 
@@ -43,22 +43,26 @@ export default {
 1. **Name your file**: Use a descriptive name for your command file, e.g., `balance.js` for a balance checking command.
 
 2. **Set up the command data**:
+
    - Use `setName()` to define the command name users will type.
    - Use `setDescription()` to provide a brief explanation of the command.
    - If your command takes options, add them using methods like `addStringOption()`, `addIntegerOption()`, etc.
    - Always call `toJSON()` at the end of the SlashCommandBuilder chain.
 
 3. **Configure command properties**:
+
    - Set `nwfwMode`, `testMode`, `devOnly` as needed.
    - Set `cooldown` to limit how often the command can be used.
    - Define `userPermissionsBitField` for any required user permissions.
    - Specify any required `bot` permissions.
 
 4. **Implement the run function**:
+
    - This is where your command logic goes.
    - Use `interaction.reply()` to respond to the user.
 
 5. **Error Handling**:
+
    - Always include try/catch blocks to handle potential errors.
    - Provide user-friendly error messages and log errors for debugging.
 
@@ -76,8 +80,8 @@ import mconfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("test")
-    .setDescription("A test command")
+    .setName('test')
+    .setDescription('A test command')
     .toJSON(),
   nwfwMode: false,
   testMode: false,
@@ -89,13 +93,16 @@ export default {
     try {
       const rembed = new EmbedBuilder()
         .setColor(mconfig.embedColorSuccess)
-        .setDescription("Test successful!")
-        .setImage("https://example.com/test-image.png");
-      
+        .setDescription('Test successful!')
+        .setImage('https://example.com/test-image.png');
+
       await interaction.reply({ embeds: [rembed] });
     } catch (error) {
-      console.error("Error in test command: ", error);
-      await interaction.reply({ content: "An error occurred while running the test command.", ephemeral: true });
+      console.error('Error in test command: ', error);
+      await interaction.reply({
+        content: 'An error occurred while running the test command.',
+        ephemeral: true,
+      });
     }
   },
 };
@@ -117,6 +124,7 @@ export default {
 ## Testing Your Command
 
 After writing your command:
+
 1. Ensure it's properly exported and imported in your main bot file.
 2. Restart your bot to register new commands.
 3. Test the command in a Discord server to verify its functionality.
@@ -130,9 +138,9 @@ If your command uses autocomplete, here's how you might implement it:
 autocomplete: async (client, interaction) => {
   const focusedValue = interaction.options.getFocused();
   const choices = ['apple', 'banana', 'cherry'];
-  const filtered = choices.filter(choice => choice.startsWith(focusedValue));
+  const filtered = choices.filter((choice) => choice.startsWith(focusedValue));
   await interaction.respond(
-    filtered.map(choice => ({ name: choice, value: choice }))
+    filtered.map((choice) => ({ name: choice, value: choice }))
   );
-}
+};
 ```

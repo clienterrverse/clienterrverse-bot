@@ -6,11 +6,12 @@ export default {
     .setName('ticket-remove-member')
     .setDescription('Remove a member from a ticket.')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageThreads)
-    .addUserOption(option =>
-      option.setName('member')
+    .addUserOption((option) =>
+      option
+        .setName('member')
         .setDescription('The member to remove from the ticket.')
-        .setRequired(true))
-    .toJSON(),
+        .setRequired(true)
+    ),
 
   userPermissions: [PermissionFlagsBits.ManageChannels],
   botPermissions: [PermissionFlagsBits.ManageChannels],
@@ -25,27 +26,27 @@ export default {
       if (!memberToRemove) {
         return await interaction.editReply({
           content: 'The specified member was not found in the server.',
-          ephemeral: true
+          ephemeral: true,
         });
       }
 
       const ticket = await Ticket.findOne({
         guildID: guild.id,
         ticketChannelID: channel.id,
-        closed: false
+        closed: false,
       });
 
       if (!ticket) {
         return await interaction.editReply({
           content: 'This channel is not an active ticket channel.',
-          ephemeral: true
+          ephemeral: true,
         });
       }
 
       if (!channel.permissionOverwrites.cache.has(memberToRemove.id)) {
         return await interaction.editReply({
           content: 'This member is not in the ticket.',
-          ephemeral: true
+          ephemeral: true,
         });
       }
 
@@ -54,27 +55,26 @@ export default {
         {
           guildID: guild.id,
           ticketChannelID: channel.id,
-          closed: false
+          closed: false,
         },
         {
-          $pull: { membersAdded: memberToRemove.id }
-        },
-        { new: true }
+          $pull: { membersAdded: memberToRemove.id },
+        }
       );
 
-      await channel.permissionOverwrites.delete(memberToRemove.id);
+      await channel.permissionOverwrites.delete(memberToRemove);
 
       return await interaction.editReply({
         content: `Successfully removed ${memberToRemove.user.tag} from the ticket.`,
-        ephemeral: true
+        ephemeral: true,
       });
-
     } catch (err) {
       console.error('Error removing member from ticket:', err);
       return await interaction.editReply({
-        content: 'An error occurred while removing the member from the ticket. Please try again later.',
-        ephemeral: true
+        content:
+          'An error occurred while removing the member from the ticket. Please try again later.',
+        ephemeral: true,
       });
     }
-  }
+  },
 };

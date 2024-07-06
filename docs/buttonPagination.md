@@ -1,4 +1,3 @@
-
 # Discord.js Pagination Function
 
 This function creates an interactive paginated embed message for Discord.js applications, allowing users to navigate through multiple pages of content easily.
@@ -12,8 +11,6 @@ This function creates an interactive paginated embed message for Discord.js appl
 - Automatic timeout to remove interactivity after a set duration
 - User-specific interaction (only the command initiator can use the buttons)
 - Error handling and logging
-
-
 
 ## Usage
 
@@ -42,13 +39,13 @@ pagination(interaction, pages, time?, buttonEmojis?, buttonStyles?)
 
 ### Parameters
 
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `interaction` | `Interaction` | The Discord.js interaction object | Required |
-| `pages` | `EmbedBuilder[]` | An array of EmbedBuilder objects | Required |
-| `time` | `number` | Duration in milliseconds for active pagination | 30000 |
-| `buttonEmojis` | `Object` | Custom emojis for pagination buttons | See below |
-| `buttonStyles` | `Object` | Custom styles for pagination buttons | See below |
+| Parameter      | Type             | Description                                    | Default   |
+| -------------- | ---------------- | ---------------------------------------------- | --------- |
+| `interaction`  | `Interaction`    | The Discord.js interaction object              | Required  |
+| `pages`        | `EmbedBuilder[]` | An array of EmbedBuilder objects               | Required  |
+| `time`         | `number`         | Duration in milliseconds for active pagination | 30000     |
+| `buttonEmojis` | `Object`         | Custom emojis for pagination buttons           | See below |
+| `buttonStyles` | `Object`         | Custom styles for pagination buttons           | See below |
 
 ### Default Button Emojis
 
@@ -78,13 +75,13 @@ You can customize button emojis and styles:
 const customEmojis = {
   prev: '◀️',
   home: '🏠',
-  next: '▶️'
+  next: '▶️',
 };
 
 const customStyles = {
   prev: ButtonStyle.Secondary,
   home: ButtonStyle.Primary,
-  next: ButtonStyle.Secondary
+  next: ButtonStyle.Secondary,
 };
 
 await pagination(interaction, pages, 60000, customEmojis, customStyles);
@@ -149,4 +146,3 @@ await pagination(interaction, pages);
 
 - The function is designed for use with Discord.js v14 and may need adjustments for other versions.
 - The maximum number of pages is not limited by the function, but Discord has a limit on the number of embeds that can be sent in a single message.
-
