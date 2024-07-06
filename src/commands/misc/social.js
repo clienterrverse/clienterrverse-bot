@@ -16,44 +16,45 @@ export default {
 
   run: async (client, interaction) => {
     const guild = interaction.guild;
-    const guildIconURL = guild.iconURL({ dynamic: true, size: 256 }) || "";
+    const guildIconURL = guild.iconURL({ dynamic: true, size: 256 }) || '';
 
     const embed = new EmbedBuilder()
-      .setColor("#00acee")
-      .setTitle("My Socials")
-      .setDescription("Follow me on these platforms!")
+      .setColor('#00acee')
+      .setTitle('My Socials')
+      .setDescription('Follow me on these platforms!')
       .addFields(
         {
-          name: "Discord Server",
-          value: "[Join my Discord Server](https://clienterr.com/discord)",
+          name: 'Discord Server',
+          value: '[Join my Discord Server](https://clienterr.com/discord)',
           inline: true,
         },
         {
-          name: "YouTube",
-          value: "[Subscribe to my YouTube Channel](https://clienterr.com/youtube)",
+          name: 'YouTube',
+          value:
+            '[Subscribe to my YouTube Channel](https://clienterr.com/youtube)',
           inline: true,
         },
         {
-          name: "Discord Username",
-          value: ".clienterr",
+          name: 'Discord Username',
+          value: '.clienterr',
           inline: true,
         },
         {
-          name: "Telegram",
-          value: "[Join my Telegram](https://clienterr.com/telegram)",
+          name: 'Telegram',
+          value: '[Join my Telegram](https://clienterr.com/telegram)',
           inline: true,
         },
         {
-          name: "GitHub",
-          value: "[Check out my GitHub](https://clienterr.com/github)",
+          name: 'GitHub',
+          value: '[Check out my GitHub](https://clienterr.com/github)',
           inline: true,
         },
         {
-          name: "GitHub Organisation",
-          value: "[Check out my GitHub Organisation](https://clienterr.com/clienterrverse)",
+          name: 'GitHub Organisation',
+          value:
+            '[Check out my GitHub Organisation](https://clienterr.com/clienterrverse)',
           inline: true,
-        },
-
+        }
       )
       .setTimestamp();
 
@@ -63,8 +64,9 @@ export default {
     }
 
     embed.setFooter({
-      text: "Thank you for your support!",
-      iconURL: "https://cdn.discordapp.com/avatars/1242892502768549969/d4eca7b8bfd004c2d1e016be39b66934.webp?size=1024&format=webp&width=0&height=240",
+      text: 'Thank you for your support!',
+      iconURL:
+        'https://cdn.discordapp.com/avatars/1242892502768549969/d4eca7b8bfd004c2d1e016be39b66934.webp?size=1024&format=webp&width=0&height=240',
     });
 
     await interaction.reply({ embeds: [embed] });

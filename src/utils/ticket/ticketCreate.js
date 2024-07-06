@@ -1,4 +1,4 @@
-// src/utils/ticket/ticketCreate.js
+/** @format */
 
 import {
   EmbedBuilder,
@@ -6,11 +6,19 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ChannelType,
-  PermissionFlagsBits
+  PermissionFlagsBits,
 } from 'discord.js';
 import ticketSchema from '../../schemas/ticketSchema.js';
 
-export async function createTicket(guild, member, staffRole, category, subject, description, parentChannelId) {
+export async function createTicket(
+  guild,
+  member,
+  staffRole,
+  category,
+  subject = 'No subject provided',
+  description = 'No description provided',
+  parentChannelId
+) {
   try {
     const username = member.user.username;
 
@@ -29,26 +37,42 @@ export async function createTicket(guild, member, staffRole, category, subject, 
     }
 
     // Get previous tickets
-    const closedTickets = await ticketSchema.find({
-      guildID: guild.id,
-      ticketMemberID: member.id,
-      closed: true,
-    }).sort({ closedAt: -1 }).limit(3);
+    const closedTickets = await ticketSchema
+      .find({
+        guildID: guild.id,
+        ticketMemberID: member.id,
+        closed: true,
+      })
+      .sort({ closedAt: -1 })
+      .limit(3);
 
     let previousTicketsField = 'No previous tickets';
     if (closedTickets.length > 0) {
-      previousTicketsField = closedTickets.map((ticket, index) => {
-        const claimedBy = ticket.claimedBy ? `<@${ticket.claimedBy}>` : 'Unclaimed';
-        const closeReason = ticket.closeReason ? ticket.closeReason : 'No reason provided';
-        return `Ticket ${index + 1}:\n- Claimed by: ${claimedBy}\n- Close reason: ${closeReason}`;
-      }).join('\n\n');
+      previousTicketsField = closedTickets
+        .map((ticket, index) => {
+          const claimedBy = ticket.claimedBy
+            ? `<@${ticket.claimedBy}>`
+            : 'Unclaimed';
+          const closeReason = ticket.closeReason
+            ? ticket.closeReason
+            : 'No reason provided';
+          return `Ticket ${
+            index + 1
+          }:\n- Claimed by: ${claimedBy}\n- Close reason: ${closeReason}`;
+        })
+        .join('\n\n');
     }
 
     // Create ticket embed
     const ticketEmbed = new EmbedBuilder()
       .setColor('#9861FF')
-      .setAuthor({ name: username, iconURL: member.user.displayAvatarURL({ dynamic: true }) })
-      .setDescription(`**Subject:** ${subject}\n**Description:** ${description}`)
+      .setAuthor({
+        name: username,
+        iconURL: member.user.displayAvatarURL({ dynamic: true }),
+      })
+      .setDescription(
+        `**Subject:** ${subject}\n**Description:** ${description}`
+      )
       .addFields({ name: 'Previous Tickets', value: previousTicketsField })
       .setFooter({
         text: `${guild.name} - Ticket`,
@@ -70,17 +94,21 @@ export async function createTicket(guild, member, staffRole, category, subject, 
         .setCustomId('lockTicketBtn')
         .setLabel('Lock Ticket')
         .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('requestUserInfoBtn')
+        .setLabel('Request User Info')
+        .setStyle(ButtonStyle.Secondary)
     );
 
     // Get ticket count for naming
     const ticketCount = await ticketSchema.countDocuments({
       guildID: guild.id,
-      closed: true
+      closed: true,
     });
 
     // Create ticket channel
     const ticketChannel = await guild.channels.create({
-      name: `${username}-${ticketCount + 1}`,
+      name: `ticket-${ticketCount + 1}`,
       type: ChannelType.GuildText,
       parent: category.id,
       permissionOverwrites: [
@@ -90,11 +118,18 @@ export async function createTicket(guild, member, staffRole, category, subject, 
         },
         {
           id: member.id,
-          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+          ],
         },
         {
           id: staffRole.id,
-          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.SendMessages,
+          ],
         },
       ],
     });
@@ -111,12 +146,15 @@ export async function createTicket(guild, member, staffRole, category, subject, 
       ticketMemberID: member.id,
       ticketChannelID: ticketChannel.id,
       parentTicketChannelID: parentChannelId,
+      subject: subject,
+      description: description,
       closed: false,
       membersAdded: [],
       claimedBy: null,
       status: 'open',
       actionLog: [`Ticket created by ${member.user.tag}`],
-      closeReason: ''
+      closeReason: '',
+      createdAt: new Date(),
     });
 
     await newTicket.save();
@@ -124,13 +162,14 @@ export async function createTicket(guild, member, staffRole, category, subject, 
     return {
       success: true,
       message: `Your ticket has been created in ${ticketChannel}`,
-      ticketChannel: ticketChannel
+      ticketChannel: ticketChannel,
     };
   } catch (error) {
     console.error('Error creating ticket:', error);
     return {
       success: false,
-      message: 'There was an error creating your ticket. Please try again later.',
+      message:
+        'There was an error creating your ticket. Please try again later.',
     };
   }
 }

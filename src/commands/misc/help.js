@@ -17,11 +17,15 @@ const splitText = (text, length) => {
 export default {
   data: new SlashCommandBuilder()
     .setName('help')
-    .setDescription('Displays a list of available commands or info about a specific command')
-    .addStringOption(option =>
-      option.setName('command')
+    .setDescription(
+      'Displays a list of available commands or info about a specific command'
+    )
+    .addStringOption((option) =>
+      option
+        .setName('command')
         .setDescription('Specific command to get info about')
-        .setRequired(false))
+        .setRequired(false)
+    )
     .toJSON(),
 
   userPermissions: [],
@@ -39,26 +43,42 @@ export default {
 
       if (commandName) {
         // Provide detailed info about a specific command
-        const command = localCommands.find(cmd => cmd.data.name === commandName);
+        const command = localCommands.find(
+          (cmd) => cmd.data.name === commandName
+        );
         if (!command) {
-          return interaction.reply({ content: 'Command not found.', ephemeral: true });
+          return interaction.reply({
+            content: 'Command not found.',
+            ephemeral: true,
+          });
         }
 
         const embed = new EmbedBuilder()
           .setTitle(`Command: ${command.data.name}`)
-          .setDescription(command.data.description || 'No description available.')
+          .setDescription(
+            command.data.description || 'No description available.'
+          )
           .setColor(embedColor);
 
         if (command.data.options) {
-          command.data.options.forEach(option => {
-            embed.addFields({ name: option.name, value: option.description, inline: true });
+          command.data.options.forEach((option) => {
+            embed.addFields({
+              name: option.name,
+              value: option.description,
+              inline: true,
+            });
           });
         }
 
         return interaction.reply({ embeds: [embed] });
       } else {
         // Provide a list of all commands
-        const commandsText = localCommands.map(cmd => `\`${cmd.data.name}\`: ${cmd.data.description || 'No description available.'}`).join('\n');
+        const commandsText = localCommands
+          .map(
+            (cmd) =>
+              `\`${cmd.data.name}\`: ${cmd.data.description || 'No description available.'}`
+          )
+          .join('\n');
 
         // Split the commandsText into chunks to fit within embed length limits
         const textChunks = splitText(commandsText, MAX_DESCRIPTION_LENGTH);
@@ -77,7 +97,10 @@ export default {
       }
     } catch (error) {
       console.error('Error in help command: ', error);
-      return interaction.reply({ content: 'An error occurred while fetching help information.', ephemeral: true });
+      return interaction.reply({
+        content: 'An error occurred while fetching help information.',
+        ephemeral: true,
+      });
     }
   },
 };

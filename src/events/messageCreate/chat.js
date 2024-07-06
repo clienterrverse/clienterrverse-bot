@@ -19,7 +19,7 @@ export default async (client, message) => {
       regex: /smash\s*clienterr/i,
       action: async () => {
         await message.reply(
-          "https://tenor.com/view/rule-1-fakepixel-rule-clienterr-clienterr-smash-fakepixel-gif-11287819569727263061"
+          'https://tenor.com/view/rule-1-fakepixel-rule-clienterr-clienterr-smash-fakepixel-gif-11287819569727263061'
         );
       },
     },
@@ -27,7 +27,7 @@ export default async (client, message) => {
       regex: /promote\s*clienterr/i,
       action: async () => {
         await message.reply(
-          "https://tenor.com/view/promote-clienterr-fakepixel-koban-gif-10325616020765903574"
+          'https://tenor.com/view/promote-clienterr-fakepixel-koban-gif-10325616020765903574'
         );
       },
     },
@@ -35,7 +35,7 @@ export default async (client, message) => {
       regex: /clienterrverse\s*on\s*top/i,
       action: async () => {
         await message.reply(
-          "https://tenor.com/view/clienterrverse-clienterr-fakepixel-kobe-gif-3978810040281653181"
+          'https://tenor.com/view/clienterrverse-clienterr-fakepixel-kobe-gif-3978810040281653181'
         );
       },
     },
@@ -54,9 +54,10 @@ export default async (client, message) => {
     {
       regex: /how\s*to\s*tame\s*(nory|norysight)/i,
       action: async () => {
-        await message.reply("https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTF4eGs3Y2U4bHY0b2FkeGpkaXgwZjdxcGE4d2xnNjlvM2o0cnVpZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/HOTfzC3IjaJxK/giphy.webp");
+        await message.reply(
+          'https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTF4eGs3Y2U4bHY0b2FkeGpkaXgwZjdxcGE4d2xnNjlvM2o0cnVpZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/HOTfzC3IjaJxK/giphy.webp'
+        );
       },
-
     },
   ];
 

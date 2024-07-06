@@ -1,30 +1,34 @@
 // src/utils/ticket/ticketClose.js
 
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from 'discord.js';
 import ticketSchema from '../../schemas/ticketSchema.js';
 import ticketSetupSchema from '../../schemas/ticketSetupSchema.js';
 import axios from 'axios';
-import dht from "discord-html-transcripts";
+import dht from 'discord-html-transcripts';
 
 export async function closeTicket(client, guild, channel, member, reason) {
   try {
     const ticket = await ticketSchema.findOne({ ticketChannelID: channel.id });
 
-    if (!ticket) {
-      return { success: false, message: 'Ticket not found.' };
-    }
+    if (!ticket) return { success: false, message: 'Ticket not found.' };
 
     ticket.status = 'closed';
     ticket.closedBy = member.id;
     ticket.reason = reason;
-    ticket.actionLog.push(`Ticket closed by ${member.user.tag} at ${new Date().toISOString()}: ${reason}`);
+    ticket.actionLog.push(
+      `Ticket closed by ${member.user.tag} at ${new Date().toISOString()}: ${reason}`
+    );
     await ticket.save();
 
     const setupTicket = await ticketSetupSchema.findOne({ guildID: guild.id });
 
-    if (!setupTicket) {
+    if (!setupTicket)
       return { success: false, message: 'Ticket setup not found.' };
-    }
 
     const logChannel = guild.channels.cache.get(setupTicket.logChannelID);
 
@@ -38,16 +42,52 @@ export async function closeTicket(client, guild, channel, member, reason) {
 
     if (logChannel) {
       const logEmbed = new EmbedBuilder()
-        .setTitle("Ticket Close")
+        .setTitle('Ticket Close')
         .setColor('Red')
         .addFields(
-          { name: ':id: Ticket ID', value: ticket.ticketChannelID.toString(), inline: true },
-          { name: ':open_file_folder: Opened By', value: `<@${ticket.ticketMemberID}>`, inline: true },
-          { name: ':timer: Closed By', value: `<@${member.id}>`, inline: true },
-          { name: ':hourglass_flowing_sand: Open Time', value: `<t:${Math.floor(new Date(ticket.createdAt).getTime() / 1000)}:F>`, inline: true },
-          { name: ':hourglass: Close Time', value: `<t:${Math.floor(new Date().getTime() / 1000)}:F>`, inline: true },
-          { name: ':clapper: Claimed By', value: ticket.claimedBy ? `<@${ticket.claimedBy}>` : 'Not claimed', inline: true },
-          { name: ':receipt: Reason', value: reason || 'No reason specified', inline: false }
+          {
+            name: '📝 Subject',
+            value: ticket.subject || 'No subject provided',
+          },
+          {
+            name: '🗒️ Description',
+            value: ticket.description || 'No description provided',
+          },
+          {
+            name: '🆔 Ticket ID',
+            value: ticket.ticketChannelID.toString(),
+            inline: true,
+          },
+          {
+            name: '👤 Opened By',
+            value: `<@${ticket.ticketMemberID}>`,
+            inline: true,
+          },
+          {
+            name: '🔒 Closed By',
+            value: ticket.closedBy ? `<@${ticket.closedBy}>` : 'Not closed',
+            inline: true,
+          },
+          {
+            name: '📅 Open Time',
+            value: `<t:${Math.floor(new Date(ticket.createdAt).getTime() / 1000)}:F>`,
+            inline: true,
+          },
+          {
+            name: '📆 Close Time',
+            value: `<t:${Math.floor(new Date().getTime() / 1000)}:F>`,
+            inline: true,
+          },
+          {
+            name: '🔖 Claimed By',
+            value: ticket.claimedBy ? `<@${ticket.claimedBy}>` : 'Not claimed',
+            inline: true,
+          },
+          {
+            name: '📝 Reason',
+            value: reason || 'No reason specified',
+            inline: false,
+          }
         )
         .setTimestamp();
 
@@ -62,45 +102,73 @@ export async function closeTicket(client, guild, channel, member, reason) {
       await logChannel.send({ embeds: [logEmbed], components: [row] });
     }
 
-    // Fetch the ticket member and send DM
     const ticketMember = await guild.members.fetch(ticket.ticketMemberID);
     if (ticketMember) {
       const userDM = await ticketMember.createDM();
+
+      const dmEmbed = new EmbedBuilder()
+        .setTitle('Ticket Closed')
+        .setColor('#FF5555') // A soft red color
+        .setDescription(`Your ticket in ${guild.name} has been closed.`)
+        .addFields(
+          {
+            name: '📝 Subject',
+            value: ticket.subject || 'No subject provided',
+          },
+          {
+            name: '🗒️ Description',
+            value: ticket.description || 'No description provided',
+          },
+          {
+            name: '🆔 Ticket ID',
+            value: ticket.ticketChannelID.toString(),
+            inline: true,
+          },
+          {
+            name: '🔒 Closed By',
+            value: ticket.closedBy ? `<@${ticket.closedBy}>` : 'Not closed',
+            inline: true,
+          },
+          { name: '📝 Reason', value: reason || 'No reason specified' },
+          {
+            name: '📜 Transcript',
+            value: transcriptURL
+              ? `[Click here to view](${transcriptURL})`
+              : 'No transcript available',
+          }
+        )
+        .setFooter({ text: 'Thank you for using our ticket system!' })
+        .setTimestamp();
+
       await userDM.send({
-        content: `Your ticket has been closed. Reason: ${reason}. Your transcript is available at the following link: ${transcriptURL}`,
-        files: [{
-          attachment: transcript,
-          name: `transcript-${channel.id}.html`
-        }]
+        content: "Here's a summary of your closed ticket:",
+        embeds: [dmEmbed],
       });
     }
 
-    // Upload the transcript to GitHub
     await uploadTranscriptToGitHub(channel.id, transcript);
 
-    // Update permissions
     const staffRole = guild.roles.cache.get(setupTicket.staffRoleID);
     if (staffRole && ticketMember) {
       const hasRole = ticketMember.roles.cache.has(staffRole.id);
       if (!hasRole) {
         for (const memberID of ticket.membersAdded) {
           const addedMember = guild.members.cache.get(memberID);
-          if (addedMember) await channel.permissionOverwrites.delete(addedMember);
+          if (addedMember)
+            await channel.permissionOverwrites.delete(addedMember);
         }
         await channel.permissionOverwrites.delete(ticketMember);
       }
     }
 
-    // Update the ticket to closed in the database
     await ticketSchema.findOneAndUpdate(
       { guildID: guild.id, ticketChannelID: channel.id, closed: false },
       { closed: true, closeReason: reason },
       { new: true }
     );
 
-    // Delete the ticket channel after a short delay
     setTimeout(() => {
-      channel.delete().catch(error => {
+      channel.delete().catch((error) => {
         console.error('Error deleting ticket channel:', error);
       });
     }, 5000);
@@ -108,7 +176,10 @@ export async function closeTicket(client, guild, channel, member, reason) {
     return { success: true, message: 'Ticket closed successfully.' };
   } catch (error) {
     console.error('Error closing ticket:', error);
-    return { success: false, message: 'There was an error closing the ticket. Please try again later.' };
+    return {
+      success: false,
+      message: 'There was an error closing the ticket. Please try again later.',
+    };
   }
 }
 
@@ -123,13 +194,13 @@ async function uploadTranscriptToGitHub(channelId, transcript) {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
 
   const headers = {
-    'Authorization': `token ${githubToken}`,
-    'Accept': 'application/vnd.github.v3+json'
+    Authorization: `token ${githubToken}`,
+    Accept: 'application/vnd.github.v3+json',
   };
   const data = {
     message: commitMessage,
     content: content,
-    branch: 'main'
+    branch: 'main',
   };
 
   try {

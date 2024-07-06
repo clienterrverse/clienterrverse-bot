@@ -7,19 +7,19 @@ import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 export default {
   // Slash command data
   data: new SlashCommandBuilder()
-    .setName("avatar") // Sets the command name
-    .setDescription("Show avatar of any user") // Sets the command description
+    .setName('avatar') // Sets the command name
+    .setDescription('Show avatar of any user') // Sets the command description
     .addUserOption((option) =>
       option
-        .setName("user") // Adds a user option to specify the user whose avatar to show
-        .setDescription("User whose avatar you want to see:") // Option description
+        .setName('user') // Adds a user option to specify the user whose avatar to show
+        .setDescription('User whose avatar you want to see:') // Option description
         .setRequired(true)
     ), // Option is required
 
   userPermissions: [], // No user permissions required
   botPermissions: [], // No bot permissions required
   cooldown: 5,
-  deleted: false, 
+  deleted: false,
   nwfwMode: false,
   testMode: false,
   devOnly: false,
@@ -28,7 +28,7 @@ export default {
   run: async (client, interaction) => {
     try {
       // Get the specified user
-      const user = interaction.options.getUser("user");
+      const user = interaction.options.getUser('user');
       // Get the member from the guild or interaction member
       const member =
         interaction.guild.members.cache.find((m) => m.user.id === user.id) ||
@@ -36,7 +36,7 @@ export default {
 
       // Get the avatar URL of the user
       const avatar = member.user.displayAvatarURL({
-        format: "png",
+        format: 'png',
         dynamic: true,
         size: 1024,
       });
@@ -49,12 +49,12 @@ export default {
         .setFooter({
           text: `Requested by ${interaction.user.username}`, // Set the footer text as the username of the requester
           iconURL: interaction.user.displayAvatarURL({
-            format: "png",
+            format: 'png',
             dynamic: true,
             size: 1024,
           }), // Set the footer icon as the requester's avatar
         })
-        .setColor("#eb3434"); // Set the embed color
+        .setColor('#eb3434'); // Set the embed color
 
       // Send the embed containing the user's avatar as a reply
       await interaction.reply({ embeds: [embed] });
@@ -63,7 +63,7 @@ export default {
       // Send an error message if an error occurs
       await interaction.reply({
         content:
-          "An error occurred while processing your command. Please try again later.",
+          'An error occurred while processing your command. Please try again later.',
         ephemeral: true,
       });
     }

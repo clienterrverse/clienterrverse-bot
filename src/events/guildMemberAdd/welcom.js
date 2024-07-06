@@ -1,5 +1,5 @@
 export default async (client, member) => {
-  const welcomeChannelId = '1208141730810044416'; 
+  const welcomeChannelId = '1208141730810044416';
   const autoRoleId = '1208103840667402260';
 
   const welcomeChannel = member.guild.channels.cache.get(welcomeChannelId);
@@ -17,7 +17,9 @@ export default async (client, member) => {
 
   try {
     // Send a welcome message
-    const welcomeMessage = await welcomeChannel.send(`Welcome to Clienterrverse, ${member}!`);
+    const welcomeMessage = await welcomeChannel.send(
+      `Welcome to Clienterrverse, ${member}!`
+    );
 
     // Add custom emoji reaction
     const emoji = '<:whip:1223554028794024018>'; // Custom emoji format

@@ -12,9 +12,9 @@ export default async (client, message) => {
   if (!message.reference && isDirectMention) {
     try {
       // Add your preferred emoji reaction
-      await message.react("👋");
+      await message.react('👋');
     } catch (error) {
-      console.error("Error reacting to message:", error);
+      console.error('Error reacting to message:', error);
     }
   }
 };

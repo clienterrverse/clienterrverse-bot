@@ -1,63 +1,105 @@
+/** @format */
+
 import 'colors';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, Collection } from 'discord.js';
 import { config } from '../../config/config.js';
 import mConfig from '../../config/messageConfig.js';
 import getLocalContextMenus from '../../utils/getLocalContextMenus.js';
 
-const sendEmbedReply = async (interaction, color, description, ephemeral = true) => {
-  const embed = new EmbedBuilder()
-    .setColor(color)
-    .setDescription(description);
+const contextMenus = new Collection();
+
+const sendEmbedReply = async (
+  interaction,
+  color,
+  description,
+  ephemeral = true
+) => {
+  const embed = new EmbedBuilder().setColor(color).setDescription(description);
   await interaction.reply({ embeds: [embed], ephemeral });
+};
+
+const checkPermissions = (interaction, permissions, type) => {
+  const member =
+    type === 'user' ? interaction.member : interaction.guild.members.me;
+  return permissions.every((permission) => member.permissions.has(permission));
+};
+
+const loadContextMenus = async () => {
+  const menuFiles = await getLocalContextMenus();
+  for (const menu of menuFiles) {
+    contextMenus.set(menu.data.name, menu);
+  }
+  console.log(`Loaded ${contextMenus.size} context menu commands`.green);
+};
+
+const handleContextMenu = async (client, interaction) => {
+  const { commandName } = interaction;
+  const menuObject = contextMenus.get(commandName);
+
+  if (!menuObject) return;
+
+  const { developersId, testServerId } = config;
+
+  if (menuObject.devOnly && !developersId.includes(interaction.user.id)) {
+    return sendEmbedReply(
+      interaction,
+      mConfig.embedColorError,
+      mConfig.commandDevOnly
+    );
+  }
+
+  if (menuObject.testMode && interaction.guild.id !== testServerId) {
+    return sendEmbedReply(
+      interaction,
+      mConfig.embedColorError,
+      mConfig.commandTestMode
+    );
+  }
+
+  if (
+    menuObject.userPermissions?.length &&
+    !checkPermissions(interaction, menuObject.userPermissions, 'user')
+  ) {
+    return sendEmbedReply(
+      interaction,
+      mConfig.embedColorError,
+      mConfig.userNoPermissions
+    );
+  }
+
+  if (
+    menuObject.botPermissions?.length &&
+    !checkPermissions(interaction, menuObject.botPermissions, 'bot')
+  ) {
+    return sendEmbedReply(
+      interaction,
+      mConfig.embedColorError,
+      mConfig.botNoPermissions
+    );
+  }
+
+  try {
+    await menuObject.run(client, interaction);
+    console.log(
+      `Context menu command executed: ${commandName} by ${interaction.user.tag}`
+        .green
+    );
+  } catch (error) {
+    console.error(
+      `Error executing context menu command ${commandName}:`.red,
+      error
+    );
+    sendEmbedReply(
+      interaction,
+      mConfig.embedColorError,
+      'There was an error while executing this context menu command!'
+    );
+  }
 };
 
 export default async (client, interaction) => {
   if (!interaction.isContextMenuCommand()) return;
+  await loadContextMenus();
 
-  const localContextMenus = await getLocalContextMenus();
-  const { developersId, testServerId } = config;
-
-  try {
-    const menuObject = localContextMenus.find(
-      (cmd) => cmd.data.name === interaction.commandName
-    );
-    if (!menuObject) return;
-
-    // Developer Only Check
-    if (menuObject.devOnly && !developersId.includes(interaction.member.id)) {
-      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandDevOnly);
-    }
-
-    // Test Server Only Check
-    if (menuObject.testMode && interaction.guild.id !== testServerId) {
-      return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.commandTestMode);
-    }
-
-    // User Permissions Check
-    if (menuObject.userPermissions?.length) {
-      for (const permission of menuObject.userPermissions) {
-        if (!interaction.member.permissions.has(permission)) {
-          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.userNoPermissions);
-        }
-      }
-    }
-
-    // Bot Permissions Check
-    if (menuObject.botPermissions?.length) {
-      const bot = interaction.guild.members.me;
-      for (const permission of menuObject.botPermissions) {
-        if (!bot.permissions.has(permission)) {
-          return sendEmbedReply(interaction, mConfig.embedColorError, mConfig.botNoPermissions);
-        }
-      }
-    }
-
-    // Execute the context menu command
-    await menuObject.run(client, interaction);
-    console.log(`Context menu command executed: ${interaction.commandName} by ${interaction.member.user.tag}`.green);
-
-  } catch (err) {
-    console.error(`An error occurred while processing context menu command: ${interaction.commandName}. Error: ${err.message}`.red);
-    await sendEmbedReply(interaction, mConfig.embedColorError, `An unexpected error occurred. Please try again later or contact support if the problem persists.`);
-  }
+  await handleContextMenu(client, interaction);
 };

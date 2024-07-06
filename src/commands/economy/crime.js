@@ -26,15 +26,23 @@ export default {
 
       // Check if the user has enough balance to commit a crime
       if (userBalance.balance < MinimumBalanceToCommitCrime) {
-        return interaction.reply(`You need at least ${MinimumBalanceToCommitCrime} clienterr coins to commit a crime. Your current balance is ${userBalance.balance} clienterr coins.`);
+        return interaction.reply(
+          `You need at least ${MinimumBalanceToCommitCrime} clienterr coins to commit a crime. Your current balance is ${userBalance.balance} clienterr coins.`
+        );
       }
 
       const now = Date.now();
-      if (userBalance.lastCrime && (now - userBalance.lastCrime.getTime()) < CrimeCooldown) {
-        const timeLeft = CrimeCooldown - (now - userBalance.lastCrime.getTime());
+      if (
+        userBalance.lastCrime &&
+        now - userBalance.lastCrime.getTime() < CrimeCooldown
+      ) {
+        const timeLeft =
+          CrimeCooldown - (now - userBalance.lastCrime.getTime());
         const minutes = Math.floor(timeLeft / (1000 * 60));
         const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-        return interaction.reply(`You have already committed a crime. Please try again in ${minutes} minutes and ${seconds} seconds.`);
+        return interaction.reply(
+          `You have already committed a crime. Please try again in ${minutes} minutes and ${seconds} seconds.`
+        );
       }
 
       // Determine the outcome of the crime
@@ -72,7 +80,9 @@ export default {
       const errorEmbed = new EmbedBuilder()
         .setColor('#FF0000') // Red color for error
         .setTitle('Error')
-        .setDescription('There was an error processing your crime. Please try again later.');
+        .setDescription(
+          'There was an error processing your crime. Please try again later.'
+        );
 
       await interaction.reply({ embeds: [errorEmbed] });
     }

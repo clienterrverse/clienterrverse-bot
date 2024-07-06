@@ -6,7 +6,7 @@ import {
 
 export default {
   data: new ContextMenuCommandBuilder()
-    .setName("User Avatar")
+    .setName('User Avatar')
     .setType(ApplicationCommandType.User),
   userPermissions: [],
   botPermissions: [],
@@ -17,7 +17,7 @@ export default {
 
       // Get the avatar URL of the targeted user
       const avatar = user.displayAvatarURL({
-        format: "png",
+        format: 'png',
         dynamic: true,
         size: 1024,
       });
@@ -30,16 +30,15 @@ export default {
         .setFooter({
           text: `Requested by ${interaction.user.username}`, // Set the footer text as the username of the requester
           iconURL: interaction.user.displayAvatarURL({
-            format: "png",
+            format: 'png',
             dynamic: true,
             size: 1024,
           }), // Set the footer icon as the requester's avatar
         })
-        .setColor("#eb3434"); // Set the embed color
+        .setColor('#eb3434'); // Set the embed color
 
       // Send the embed containing the targeted user's avatar as a reply
       await interaction.reply({ embeds: [embed] });
-
     } catch (error) {
       console.log(error);
     }

@@ -2,12 +2,12 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  ActionRowBuilder
+  ActionRowBuilder,
 } from 'discord.js';
-import ticketSetupSchema from "../schemas/ticketSetupSchema.js";
+import ticketSetupSchema from '../schemas/ticketSetupSchema.js';
 
 export default {
-  customId: "closeTicketBtn",
+  customId: 'closeTicketBtn',
   userPermissions: [],
   botPermissions: [],
 
@@ -16,10 +16,13 @@ export default {
       const { guild, member } = interaction;
 
       // Get the ticket setup configuration
-      const ticketSetup = await ticketSetupSchema.findOne({ guildID: guild.id });
+      const ticketSetup = await ticketSetupSchema.findOne({
+        guildID: guild.id,
+      });
       if (!ticketSetup) {
         return await interaction.reply({
-          content: "Ticket system is not configured properly. Please contact an administrator.",
+          content:
+            'Ticket system is not configured properly. Please contact an administrator.',
           ephemeral: true,
         });
       }
@@ -27,7 +30,7 @@ export default {
       // Check if the member has the staff role
       if (!member.roles.cache.has(ticketSetup.staffRoleID)) {
         return await interaction.reply({
-          content: "You do not have permission to close tickets.",
+          content: 'You do not have permission to close tickets.',
           ephemeral: true,
         });
       }
@@ -48,12 +51,12 @@ export default {
         );
 
       await interaction.showModal(closeTicketModal);
-
     } catch (err) {
       await interaction.reply({
-        content: 'An error occurred while processing your request. Please try again later.',
+        content:
+          'An error occurred while processing your request. Please try again later.',
         ephemeral: true,
       });
     }
-  }
+  },
 };

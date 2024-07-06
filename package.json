@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node --no-warnings src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "pre": "npx prettier --write ."
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,7 @@
     "mongoose": "^8.4.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.1"
+    "nodemon": "^3.1.1",
+    "prettier": "3.3.2"
   }
 }

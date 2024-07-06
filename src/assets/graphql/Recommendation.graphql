@@ -5,9 +5,9 @@ query ($page: Int = 0, $amount: Int = 50, $watched: [Int!]!, $nextDay: Int!) {
       hasNextPage
     }
     Recommendation(
-      notYetAired: false,
-      mediaId_in: $watched,
-      sort: TIME,
+      notYetAired: false
+      mediaId_in: $watched
+      sort: TIME
       airingAt_lesser: $nextDay
     ) {
       media {

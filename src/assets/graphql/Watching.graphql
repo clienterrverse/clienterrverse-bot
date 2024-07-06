@@ -1,5 +1,4 @@
-
-query($watched: [Int!] = [0], $page: Int!) {
+query ($watched: [Int!] = [0], $page: Int!) {
   Page(page: $page) {
     pageInfo {
       currentPage

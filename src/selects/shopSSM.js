@@ -27,17 +27,26 @@ export default {
           { userId },
           { $setOnInsert: { userId, items: [] } },
           { upsert: true, new: true }
-        )
+        ),
       ]);
 
       if (!item) {
-        return interaction.reply({ content: 'Item not found.', ephemeral: true });
+        return interaction.reply({
+          content: 'Item not found.',
+          ephemeral: true,
+        });
       }
 
       if (userBalance.balance < item.price) {
         return interaction.reply({
-          embeds: [createErrorEmbed(interaction, 'Purchase Failed', 'You do not have enough balance to buy this item.')],
-          ephemeral: true
+          embeds: [
+            createErrorEmbed(
+              interaction,
+              'Purchase Failed',
+              'You do not have enough balance to buy this item.'
+            ),
+          ],
+          ephemeral: true,
         });
       }
 
@@ -47,14 +56,19 @@ export default {
       // Send success message
       await interaction.reply({
         embeds: [createSuccessEmbed(interaction, item)],
-        ephemeral: true
+        ephemeral: true,
       });
-
     } catch (error) {
       console.error('Error processing shop command:', error);
       await interaction.reply({
-        embeds: [createErrorEmbed(interaction, 'Error', 'There was an error processing your purchase.')],
-        ephemeral: true
+        embeds: [
+          createErrorEmbed(
+            interaction,
+            'Error',
+            'There was an error processing your purchase.'
+          ),
+        ],
+        ephemeral: true,
       });
     }
   },
@@ -66,7 +80,9 @@ async function processPurchase(userId, item, userBalance, userInventory) {
   await userBalance.save();
 
   // Update the user's inventory
-  const inventoryItem = userInventory.items.find(i => i.itemId === item.itemId);
+  const inventoryItem = userInventory.items.find(
+    (i) => i.itemId === item.itemId
+  );
   if (inventoryItem) {
     inventoryItem.quantity += 1;
   } else {
@@ -79,7 +95,7 @@ async function processPurchase(userId, item, userBalance, userInventory) {
     userId: userId,
     type: 'purchase',
     amount: item.price,
-    description: `Purchased ${item.name}`
+    description: `Purchased ${item.name}`,
   });
   await purchaseTransaction.save();
 }
@@ -88,12 +104,21 @@ function createSuccessEmbed(interaction, item) {
   return new EmbedBuilder()
     .setColor(mconfig.embedColorSuccess)
     .setTitle('🎉 Purchase Successful')
-    .setDescription(`🛒 You have successfully bought **${item.name}** for **${item.price}** clienterr coins.`)
+    .setDescription(
+      `🛒 You have successfully bought **${item.name}** for **${item.price}** clienterr coins.`
+    )
     .addFields(
       { name: '📦 Item Name', value: item.name, inline: true },
-      { name: '💰 Price', value: `${item.price} clienterr coins`, inline: true }
+      {
+        name: '💰 Price',
+        value: `${item.price} clienterr coins`,
+        inline: true,
+      }
     )
-    .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+    .setFooter({
+      text: `Requested by ${interaction.user.tag}`,
+      iconURL: interaction.user.displayAvatarURL(),
+    })
     .setTimestamp();
 }
 
@@ -102,6 +127,9 @@ function createErrorEmbed(interaction, title, description) {
     .setColor(mconfig.embedColorError)
     .setTitle(`❌ ${title}`)
     .setDescription(`⚠️ ${description}`)
-    .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+    .setFooter({
+      text: `Requested by ${interaction.user.tag}`,
+      iconURL: interaction.user.displayAvatarURL(),
+    })
     .setTimestamp();
 }

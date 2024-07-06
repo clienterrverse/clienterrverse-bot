@@ -1,15 +1,17 @@
 /** @format */
 
-import { SlashCommandBuilder ,EmbedBuilder} from 'discord.js';
-import { Balance ,Transaction} from '../../schemas/economy.js';
-
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { Balance, Transaction } from '../../schemas/economy.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("deposit")
-    .setDescription("Deposit a specified amount of your balance into your bank account.")
-    .addIntegerOption(option =>
-      option.setName('amount')
+    .setName('deposit')
+    .setDescription(
+      'Deposit a specified amount of your balance into your bank account.'
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName('amount')
         .setDescription('The amount to deposit')
         .setRequired(true)
     )
@@ -41,7 +43,9 @@ export default {
 
       // Check if the user has enough balance to deposit
       if (userBalance.balance < amount) {
-        return interaction.reply('You do not have enough balance to deposit that amount.');
+        return interaction.reply(
+          'You do not have enough balance to deposit that amount.'
+        );
       }
 
       // Update the user's balance and bank amount
@@ -50,20 +54,25 @@ export default {
       await userBalance.save();
       const depositTransaction = new Transaction({
         userId: userId,
-        type: 'deposit', 
+        type: 'deposit',
         amount: amount,
-      })
-      depositTransaction.save()
-
+      });
+      depositTransaction.save();
 
       // Create an embed to display the deposit information
       const embed = new EmbedBuilder()
         .setTitle('Deposit Successful')
-        .setDescription(`You have deposited ${amount} clienterr coins into your bank.`)
+        .setDescription(
+          `You have deposited ${amount} clienterr coins into your bank.`
+        )
         .setColor('#00FF00')
         .setFooter({
           text: `Deposit by ${interaction.user.username}`,
-          iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
+          iconURL: interaction.user.displayAvatarURL({
+            format: 'png',
+            dynamic: true,
+            size: 1024,
+          }),
         })
         .setTimestamp();
 
@@ -71,7 +80,9 @@ export default {
       await interaction.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Error processing deposit command:', error);
-      await interaction.reply('There was an error trying to process your deposit.');
+      await interaction.reply(
+        'There was an error trying to process your deposit.'
+      );
     }
   },
 };

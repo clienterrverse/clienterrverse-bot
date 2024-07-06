@@ -8,8 +8,9 @@ export default {
   data: new SlashCommandBuilder()
     .setName('delitem')
     .setDescription('Delete an existing item from the economy system.')
-    .addStringOption(option =>
-      option.setName('itemid')
+    .addStringOption((option) =>
+      option
+        .setName('itemid')
         .setDescription('The unique ID of the item to delete.')
         .setRequired(true)
     )
@@ -35,24 +36,44 @@ export default {
 
       if (!deletedItem) {
         return interaction.reply({
-          embeds: [createErrorEmbed(interaction, 'Item Not Found', 'An item with this ID does not exist.')],
-          ephemeral: true
+          embeds: [
+            createErrorEmbed(
+              interaction,
+              'Item Not Found',
+              'An item with this ID does not exist.'
+            ),
+          ],
+          ephemeral: true,
         });
       }
 
       const embed = new EmbedBuilder()
         .setColor(mconfig.embedColorSuccess)
         .setTitle('✅ Item Deleted')
-        .setDescription(`Item '${deletedItem.name}' with ID '${itemId}' has been deleted.`)
+        .setDescription(
+          `Item '${deletedItem.name}' with ID '${itemId}' has been deleted.`
+        )
         .addFields(
           { name: 'ID', value: deletedItem.itemId, inline: true },
           { name: 'Name', value: deletedItem.name, inline: true },
-          { name: 'Price', value: `${deletedItem.price} clienterr coins`, inline: true },
-          { name: 'Category', value: deletedItem.category || 'N/A', inline: true }
+          {
+            name: 'Price',
+            value: `${deletedItem.price} clienterr coins`,
+            inline: true,
+          },
+          {
+            name: 'Category',
+            value: deletedItem.category || 'N/A',
+            inline: true,
+          }
         )
         .setFooter({
           text: `Deleted by ${interaction.user.username}`,
-          iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
+          iconURL: interaction.user.displayAvatarURL({
+            format: 'png',
+            dynamic: true,
+            size: 1024,
+          }),
         })
         .setTimestamp();
 
@@ -60,8 +81,14 @@ export default {
     } catch (error) {
       console.error('Error deleting item:', error);
       await interaction.reply({
-        embeds: [createErrorEmbed(interaction, 'Error', 'There was an error deleting the item.')],
-        ephemeral: true
+        embeds: [
+          createErrorEmbed(
+            interaction,
+            'Error',
+            'There was an error deleting the item.'
+          ),
+        ],
+        ephemeral: true,
       });
     }
   },
@@ -74,7 +101,11 @@ function createErrorEmbed(interaction, title, description) {
     .setDescription(description)
     .setFooter({
       text: `Requested by ${interaction.user.username}`,
-      iconURL: interaction.user.displayAvatarURL({ format: 'png', dynamic: true, size: 1024 }),
+      iconURL: interaction.user.displayAvatarURL({
+        format: 'png',
+        dynamic: true,
+        size: 1024,
+      }),
     })
     .setTimestamp();
 }

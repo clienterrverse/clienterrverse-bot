@@ -8,8 +8,8 @@ import mConfig from '../../config/messageConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("fact")
-    .setDescription("send random fact")
+    .setName('fact')
+    .setDescription('send random fact')
     .toJSON(),
 
   userPermissionsBitField: [],
@@ -21,18 +21,18 @@ export default {
   run: async (client, interaction) => {
     try {
       const res = await axios.get(
-        "https://uselessfacts.jsph.pl/random.json?language=en"
+        'https://uselessfacts.jsph.pl/random.json?language=en'
       );
       const fact = res.data.text;
 
       const rembed = new EmbedBuilder()
         .setColor(mConfig.embedColorSuccess)
-        .setTitle("fact")
+        .setTitle('fact')
         .setDescription(fact);
 
       await interaction.reply({ embeds: [rembed] });
     } catch (error) {
-      console.error("Error while getting random fact: ", error);
+      console.error('Error while getting random fact: ', error);
     }
   },
 };

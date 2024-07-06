@@ -7,9 +7,7 @@ export default async (client, message) => {
     if (message.author.bot) return;
     if (newMessage.guild.id !== config.testServerId) return;
 
-
-
-    const channelId = config.logChannel; 
+    const channelId = config.logChannel;
 
     // Fetch the logging channel
     const channel = client.channels.cache.get(channelId);
@@ -26,7 +24,11 @@ export default async (client, message) => {
     let imageURL = null;
     if (message.attachments.size > 0) {
       const attachment = message.attachments.first();
-      if (attachment && attachment.contentType && attachment.contentType.startsWith('image/')) {
+      if (
+        attachment &&
+        attachment.contentType &&
+        attachment.contentType.startsWith('image/')
+      ) {
         imageURL = attachment.url;
       }
     }
@@ -37,14 +39,25 @@ export default async (client, message) => {
       .setTitle('Message Logged')
       .setThumbnail(author.displayAvatarURL())
       .addFields(
-        { name: 'Author', value: `${author.tag} (ID: ${author.id})`, inline: true },
-        { name: 'Channel', value: `${message.channel.name} (ID: ${message.channel.id})`, inline: true },
+        {
+          name: 'Author',
+          value: `${author.tag} (ID: ${author.id})`,
+          inline: true,
+        },
+        {
+          name: 'Channel',
+          value: `${message.channel.name} (ID: ${message.channel.id})`,
+          inline: true,
+        },
         { name: 'Content', value: content },
         { name: 'Time', value: time, inline: true },
         { name: 'Message ID', value: message.id, inline: true },
         { name: 'Server', value: message.guild.name, inline: true }
       )
-      .setFooter({ text: `Message Logger | ${client.user.tag}`, iconURL: client.user.displayAvatarURL() })
+      .setFooter({
+        text: `Message Logger | ${client.user.tag}`,
+        iconURL: client.user.displayAvatarURL(),
+      })
       .setTimestamp();
 
     if (imageURL) {
@@ -52,7 +65,6 @@ export default async (client, message) => {
     }
 
     await channel.send({ embeds: [embed] });
-
   } catch (error) {
     console.error('Error logging message:', error);
 
@@ -66,12 +78,16 @@ export default async (client, message) => {
       const errorEmbed = new EmbedBuilder()
         .setColor('#FF0000')
         .setTitle('Error Logging Message')
-        .setDescription(`An error occurred while attempting to log a message: ${error.message}`)
-        .setFooter({ text: `Message Logger | ${client.user.tag}`, iconURL: client.user.displayAvatarURL() })
+        .setDescription(
+          `An error occurred while attempting to log a message: ${error.message}`
+        )
+        .setFooter({
+          text: `Message Logger | ${client.user.tag}`,
+          iconURL: client.user.displayAvatarURL(),
+        })
         .setTimestamp();
 
       await errorChannel.send({ embeds: [errorEmbed] });
-
     } catch (innerError) {
       console.error('Error logging the error:', innerError);
     }

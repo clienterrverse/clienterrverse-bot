@@ -33,17 +33,24 @@ export default {
         .setColor('#0000FF') // Blue color for bank information
         .setTitle('Bank Balance Information')
         .setDescription(`Here is your current bank balance:`)
-        .addFields(
-          { name: 'Bank Balance', value: `${userBalance.bank} clienterr coins`, inline: true }
-        )
-        .setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
+        .addFields({
+          name: 'Bank Balance',
+          value: `${userBalance.bank} clienterr coins`,
+          inline: true,
+        })
+        .setFooter({
+          text: `Requested by ${interaction.user.tag}`,
+          iconURL: interaction.user.displayAvatarURL(),
+        })
         .setTimestamp();
 
       // Reply with the embed containing the user's bank balance
       await interaction.reply({ embeds: [bankEmbed] });
     } catch (error) {
       console.error('Error fetching bank balance:', error);
-      await interaction.reply('There was an error trying to fetch your bank balance.');
+      await interaction.reply(
+        'There was an error trying to fetch your bank balance.'
+      );
     }
   },
 };

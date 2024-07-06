@@ -1,11 +1,11 @@
-import { 
+import {
   SlashCommandBuilder,
   ChannelType,
   PermissionFlagsBits,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
 } from 'discord.js';
 import ticketSetupSchema from '../../schemas/ticketSetupSchema.js';
 
@@ -14,54 +14,70 @@ export default {
     .setName('ticket')
     .setDescription('Manage the ticket system in your server.')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-    .addSubcommand(subcommand => 
-      subcommand.setName('setup')
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('setup')
         .setDescription('Setup or update the ticket system in your server.')
-        .addChannelOption(option => 
-          option.setName('ticket-channel')
+        .addChannelOption((option) =>
+          option
+            .setName('ticket-channel')
             .setDescription('The channel where tickets will be sent to')
             .setRequired(true)
-            .addChannelTypes(ChannelType.GuildText))
-        .addChannelOption(option => 
-          option.setName('category')
+            .addChannelTypes(ChannelType.GuildText)
+        )
+        .addChannelOption((option) =>
+          option
+            .setName('category')
             .setDescription('The category where tickets will be created')
             .setRequired(true)
-            .addChannelTypes(ChannelType.GuildCategory))
-        .addChannelOption(option => 
-          option.setName('log-channel')
+            .addChannelTypes(ChannelType.GuildCategory)
+        )
+        .addChannelOption((option) =>
+          option
+            .setName('log-channel')
             .setDescription('The channel where ticket logs will be sent')
             .setRequired(true)
-            .addChannelTypes(ChannelType.GuildText))
-        .addRoleOption(option => 
-          option.setName('staff-role')
+            .addChannelTypes(ChannelType.GuildText)
+        )
+        .addRoleOption((option) =>
+          option
+            .setName('staff-role')
             .setDescription('The role that will be able to see tickets.')
-            .setRequired(true))
-        .addStringOption(option => 
-          option.setName('ticket-type')
+            .setRequired(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName('ticket-type')
             .setDescription('How tickets will be created')
             .addChoices(
               { name: 'Modal', value: 'modal' },
               { name: 'Button', value: 'button' }
             )
-            .setRequired(true))
+            .setRequired(true)
+        )
     )
-    .addSubcommand(subcommand =>
-      subcommand.setName('remove')
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('remove')
         .setDescription('Remove the ticket system setup for the guild.')
     )
-    .addSubcommand(subcommand =>
-      subcommand.setName('status')
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('status')
         .setDescription('Check the current ticket system setup.')
     )
     .toJSON(),
-  
+
   userPermissions: [PermissionFlagsBits.Administrator],
-  botPermissions: [PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles],
-  
+  botPermissions: [
+    PermissionFlagsBits.ManageChannels,
+    PermissionFlagsBits.ManageRoles,
+  ],
+
   run: async (client, interaction) => {
     const subcommand = interaction.options.getSubcommand();
-    
-    switch(subcommand) {
+
+    switch (subcommand) {
       case 'setup':
         await handleSetup(interaction);
         break;
@@ -72,7 +88,7 @@ export default {
         await handleStatus(interaction);
         break;
     }
-  }
+  },
 };
 
 async function handleSetup(interaction) {
@@ -88,14 +104,32 @@ async function handleSetup(interaction) {
     await interaction.deferReply({ ephemeral: true });
 
     // Validate permissions
-    if (!ticketChannel.permissionsFor(guild.members.me).has(PermissionFlagsBits.SendMessages)) {
-      return await interaction.editReply('I don\'t have permission to send messages in the specified ticket channel.');
+    if (
+      !ticketChannel
+        .permissionsFor(guild.members.me)
+        .has(PermissionFlagsBits.SendMessages)
+    ) {
+      return await interaction.editReply(
+        "I don't have permission to send messages in the specified ticket channel."
+      );
     }
-    if (!category.permissionsFor(guild.members.me).has(PermissionFlagsBits.ManageChannels)) {
-      return await interaction.editReply('I don\'t have permission to manage channels in the specified category.');
+    if (
+      !category
+        .permissionsFor(guild.members.me)
+        .has(PermissionFlagsBits.ManageChannels)
+    ) {
+      return await interaction.editReply(
+        "I don't have permission to manage channels in the specified category."
+      );
     }
-    if (!logChannel.permissionsFor(guild.members.me).has(PermissionFlagsBits.SendMessages)) {
-      return await interaction.editReply('I don\'t have permission to send messages in the specified log channel.');
+    if (
+      !logChannel
+        .permissionsFor(guild.members.me)
+        .has(PermissionFlagsBits.SendMessages)
+    ) {
+      return await interaction.editReply(
+        "I don't have permission to send messages in the specified log channel."
+      );
     }
 
     const ticketCreateEmbed = new EmbedBuilder()
@@ -108,7 +142,9 @@ async function handleSetup(interaction) {
     const ticketSetupEmbed = new EmbedBuilder()
       .setTitle('Ticket System Setup')
       .setColor('Green')
-      .setDescription('Ticket system setup complete with the following settings:')
+      .setDescription(
+        'Ticket system setup complete with the following settings:'
+      )
       .addFields(
         { name: 'Ticket Channel', value: `${ticketChannel}`, inline: true },
         { name: 'Category', value: `${category}`, inline: true },
@@ -156,11 +192,11 @@ async function handleSetup(interaction) {
       content: 'Ticket system setup successful!',
       embeds: [ticketSetupEmbed],
     });
-    
   } catch (error) {
     console.error('Error during ticket setup:', error);
     await interaction.editReply({
-      content: 'There was an error during the ticket setup. Please check my permissions and try again.',
+      content:
+        'There was an error during the ticket setup. Please check my permissions and try again.',
       ephemeral: true,
     });
   }
@@ -172,7 +208,9 @@ async function handleRemove(interaction) {
 
     await interaction.deferReply({ ephemeral: true });
 
-    const setupTicket = await ticketSetupSchema.findOneAndDelete({ guildID: guild.id });
+    const setupTicket = await ticketSetupSchema.findOneAndDelete({
+      guildID: guild.id,
+    });
 
     if (!setupTicket) {
       return await interaction.editReply({
@@ -185,11 +223,11 @@ async function handleRemove(interaction) {
       content: 'Ticket system setup has been removed for the guild.',
       ephemeral: true,
     });
-    
   } catch (error) {
     console.error('Error during ticket removal:', error);
     await interaction.editReply({
-      content: 'There was an error during the removal of the ticket setup. Please try again later.',
+      content:
+        'There was an error during the removal of the ticket setup. Please try again later.',
       ephemeral: true,
     });
   }
@@ -215,10 +253,26 @@ async function handleStatus(interaction) {
       .setColor('Blue')
       .setDescription('Current ticket system configuration:')
       .addFields(
-        { name: 'Ticket Channel', value: `<#${setupTicket.ticketChannelID}>`, inline: true },
-        { name: 'Category', value: `<#${setupTicket.categoryID}>`, inline: true },
-        { name: 'Log Channel', value: `<#${setupTicket.logChannelID}>`, inline: true },
-        { name: 'Staff Role', value: `<@&${setupTicket.staffRoleID}>`, inline: true },
+        {
+          name: 'Ticket Channel',
+          value: `<#${setupTicket.ticketChannelID}>`,
+          inline: true,
+        },
+        {
+          name: 'Category',
+          value: `<#${setupTicket.categoryID}>`,
+          inline: true,
+        },
+        {
+          name: 'Log Channel',
+          value: `<#${setupTicket.logChannelID}>`,
+          inline: true,
+        },
+        {
+          name: 'Staff Role',
+          value: `<@&${setupTicket.staffRoleID}>`,
+          inline: true,
+        },
         { name: 'Ticket Type', value: setupTicket.ticketType, inline: true }
       )
       .setTimestamp();
@@ -226,11 +280,11 @@ async function handleStatus(interaction) {
     await interaction.editReply({
       embeds: [statusEmbed],
     });
-    
   } catch (error) {
     console.error('Error fetching ticket status:', error);
     await interaction.editReply({
-      content: 'There was an error fetching the ticket system status. Please try again later.',
+      content:
+        'There was an error fetching the ticket system status. Please try again later.',
       ephemeral: true,
     });
   }

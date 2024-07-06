@@ -25,14 +25,16 @@ export default {
       }
 
       // Fetch item details for each item in the inventory
-      const itemDetailsPromises = userInventory.items.map(async (inventoryItem) => {
-        const item = await Item.findOne({ itemId: inventoryItem.itemId });
-        return {
-          name: item.name,
-          description: item.description,
-          quantity: inventoryItem.quantity,
-        };
-      });
+      const itemDetailsPromises = userInventory.items.map(
+        async (inventoryItem) => {
+          const item = await Item.findOne({ itemId: inventoryItem.itemId });
+          return {
+            name: item.name,
+            description: item.description,
+            quantity: inventoryItem.quantity,
+          };
+        }
+      );
 
       const itemDetails = await Promise.all(itemDetailsPromises);
 
@@ -41,7 +43,7 @@ export default {
         color: 0x00ff00, // Green color for positive response
         title: 'Your Inventory',
         description: 'Here is a list of items in your inventory:',
-        fields: itemDetails.map(item => ({
+        fields: itemDetails.map((item) => ({
           name: item.name,
           value: `Quantity: ${item.quantity}\nDescription: ${item.description}`,
         })),
