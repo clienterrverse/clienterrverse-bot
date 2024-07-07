@@ -9,8 +9,7 @@ export default async (client) => {
 
     const localContextMenus = await getLocalContextMenus();
     const applicationContextMenus = await getApplicationContextMenus(
-      client,
-      testServerId
+      client
     );
 
     const localContextMenuNames = new Set(
