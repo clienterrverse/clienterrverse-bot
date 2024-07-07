@@ -11,7 +11,7 @@ export default async (client) => {
     client.user.setPresence({
       activities: [
         {
-          name: 'Clienterring in Clienterrverse ',
+          name: 'Clienterring in Clienterrverse',
           type: ActivityType.Competing,
           url: 'https://clienterr.com',
         },
@@ -26,9 +26,13 @@ export default async (client) => {
 
     mongoose.set('strictQuery', true);
 
-    await mongoose.connect(mongoURI);
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 15000, 
+    });
 
-    console.log(`Connected to the MongoDB database`.green);
+    console.log('Connected to the MongoDB database'.green);
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`.red);
   }

@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
 import pagination from '../../utils/buttonPagination.js';
+import mongoose from 'mongoose';
 
 export default {
   data: new SlashCommandBuilder()
@@ -15,23 +16,29 @@ export default {
 
   run: async (client, interaction) => {
     try {
+      // Defer the interaction
+      await interaction.deferReply();
+
       // Use aggregation to fetch user balances sorted by the sum of balance and bank in descending order
       const balances = await Balance.aggregate([
         {
-          $addFields: {
-            totalBalance: { $sum: ['$balance', '$bank'] },
-          },
+          $project: {
+            userId: 1,
+            balance: 1,
+            bank: 1,
+            totalBalance: { $add: ['$balance', '$bank'] }
+          }
         },
         {
-          $sort: { totalBalance: -1 },
+          $sort: { totalBalance: -1 }
         },
         {
-          $limit: 100,
-        },
-      ]);
+          $limit: 100
+        }
+      ]).exec();
 
       if (balances.length === 0) {
-        return interaction.reply('No users found in the leaderboard.');
+        return interaction.editReply('No users found in the leaderboard.');
       }
 
       // Function to fetch user details
@@ -83,9 +90,16 @@ export default {
       await pagination(interaction, pages);
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      await interaction.reply(
-        'There was an error trying to fetch the leaderboard. Please try again later.'
-      );
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: 'An error occurred while fetching the leaderboard. Please try again later.',
+          ephemeral: true,
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content: 'An error occurred while fetching the leaderboard. Please try again later.',
+        });
+      }
     }
   },
 };
