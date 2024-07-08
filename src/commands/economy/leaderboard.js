@@ -6,7 +6,9 @@ import mongoose from 'mongoose';
 export default {
   data: new SlashCommandBuilder()
     .setName('leaderboard')
-    .setDescription('Displays the leaderboard based on user balances and bank.'),
+    .setDescription(
+      'Displays the leaderboard based on user balances and bank.'
+    ),
   userPermissions: [],
   botPermissions: [],
   cooldown: 5,
@@ -26,15 +28,15 @@ export default {
             userId: 1,
             balance: 1,
             bank: 1,
-            totalBalance: { $add: ['$balance', '$bank'] }
-          }
+            totalBalance: { $add: ['$balance', '$bank'] },
+          },
         },
         {
-          $sort: { totalBalance: -1 }
+          $sort: { totalBalance: -1 },
         },
         {
-          $limit: 100
-        }
+          $limit: 100,
+        },
       ]).exec();
 
       if (balances.length === 0) {
@@ -61,7 +63,7 @@ export default {
             userTag,
             totalBalance,
             wallet: balance.balance,
-            bank: balance.bank
+            bank: balance.bank,
           };
         })
       );
@@ -72,16 +74,19 @@ export default {
       for (let i = 0; i < leaderboardEntries.length; i += itemsPerPage) {
         const pageContent = leaderboardEntries
           .slice(i, i + itemsPerPage)
-          .map(entry => 
-            `${entry.index === 1 ? '🥇' : entry.index === 2 ? '🥈' : entry.index === 3 ? '🥉' : '🏅'} **${entry.index}. ${entry.userTag}**\nTotal: ${entry.totalBalance.toLocaleString()} coins\nWallet: ${entry.wallet.toLocaleString()} | Bank: ${entry.bank.toLocaleString()}\n`
+          .map(
+            (entry) =>
+              `${entry.index === 1 ? '🥇' : entry.index === 2 ? '🥈' : entry.index === 3 ? '🥉' : '🏅'} **${entry.index}. ${entry.userTag}**\nTotal: ${entry.totalBalance.toLocaleString()} coins\nWallet: ${entry.wallet.toLocaleString()} | Bank: ${entry.bank.toLocaleString()}\n`
           )
           .join('\n');
 
         const embed = new EmbedBuilder()
           .setTitle('🏆 Leaderboard')
           .setDescription(pageContent)
-          .setColor(0xFFD700) // Gold color
-          .setFooter({ text: `Page ${Math.floor(i / itemsPerPage) + 1} of ${Math.ceil(leaderboardEntries.length / itemsPerPage)}` });
+          .setColor(0xffd700) // Gold color
+          .setFooter({
+            text: `Page ${Math.floor(i / itemsPerPage) + 1} of ${Math.ceil(leaderboardEntries.length / itemsPerPage)}`,
+          });
 
         pages.push(embed);
       }
@@ -92,12 +97,14 @@ export default {
       console.error('Error fetching leaderboard:', error);
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({
-          content: 'An error occurred while fetching the leaderboard. Please try again later.',
+          content:
+            'An error occurred while fetching the leaderboard. Please try again later.',
           ephemeral: true,
         });
       } else if (interaction.deferred) {
         await interaction.editReply({
-          content: 'An error occurred while fetching the leaderboard. Please try again later.',
+          content:
+            'An error occurred while fetching the leaderboard. Please try again later.',
         });
       }
     }

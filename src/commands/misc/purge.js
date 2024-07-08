@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, PermissionsBitField } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  PermissionsBitField,
+  EmbedBuilder,
+} from 'discord.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -7,12 +11,20 @@ export default {
     .addIntegerOption((option) =>
       option
         .setName('amount')
-        .setDescription('Number of messages to delete')
+        .setDescription('Number of messages to delete (1-100)')
         .setRequired(true)
+        .setMinValue(1)
+        .setMaxValue(100)
+    )
+    .addUserOption((option) =>
+      option
+        .setName('user')
+        .setDescription('Only delete messages from this user')
+        .setRequired(false)
     )
     .toJSON(),
   userPermissions: [PermissionsBitField.Flags.MANAGE_MESSAGES],
-  botPermissions: [],
+  botPermissions: [PermissionsBitField.Flags.MANAGE_MESSAGES],
   cooldown: 5,
   nwfwMode: false,
   testMode: false,
@@ -20,36 +32,58 @@ export default {
 
   run: async (client, interaction) => {
     const amount = interaction.options.getInteger('amount');
+    const user = interaction.options.getUser('user');
 
-    if (isNaN(amount) || amount <= 0) {
-      return await interaction.reply({
-        content: 'Please enter a valid number of messages to delete.',
-        ephemeral: true,
-      });
-    }
-
-    if (amount > 100) {
-      return await interaction.reply({
-        content: 'You can only delete up to 100 messages at a time.',
-        ephemeral: true,
-      });
-    }
-
-    // Defer the reply as deleting messages can take some time
     await interaction.deferReply({ ephemeral: true });
 
     try {
+      let messages;
+      if (user) {
+        messages = await interaction.channel.messages.fetch({ limit: 100 });
+        messages = messages
+          .filter((m) => m.author.id === user.id)
+          .first(amount);
+      } else {
+        messages = await interaction.channel.messages.fetch({ limit: amount });
+      }
+
       const deletedMessages = await interaction.channel.bulkDelete(
-        amount,
+        messages,
         true
       );
-      await interaction.editReply({
-        content: `Successfully deleted ${deletedMessages.size} messages.`,
-      });
+
+      const embed = new EmbedBuilder()
+        .setColor('#00FF00')
+        .setTitle('Purge Command Executed')
+        .setDescription(
+          `Successfully deleted ${deletedMessages.size} messages.`
+        )
+        .addFields(
+          { name: 'Channel', value: interaction.channel.name, inline: true },
+          { name: 'Executor', value: interaction.user.tag, inline: true },
+          {
+            name: 'Target User',
+            value: user ? user.tag : 'All Users',
+            inline: true,
+          }
+        )
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+
+      // Log the action
+      const logChannel = interaction.guild.channels.cache.find(
+        (channel) => channel.name === 'mod-logs'
+      );
+      if (logChannel) {
+        await logChannel.send({ embeds: [embed] });
+      }
     } catch (error) {
-      console.error(error);
+      console.error('Error in purge command:', error);
       await interaction.editReply({
-        content: 'There was an error trying to purge messages in this channel!',
+        content:
+          'There was an error trying to purge messages. Make sure the messages are not older than 14 days.',
+        ephemeral: true,
       });
     }
   },
