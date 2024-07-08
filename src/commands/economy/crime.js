@@ -13,7 +13,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
          const CrimeCooldown = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
          const MinimumBalanceToCommitCrime = 20; // Minimum balance required to commit a crime
@@ -75,16 +74,5 @@ export default {
 
          // Reply with the embed message
          await interaction.reply({ embeds: [rEmbed] });
-      } catch (error) {
-         console.error('Error processing crime command:', error);
-         const errorEmbed = new EmbedBuilder()
-            .setColor('#FF0000') // Red color for error
-            .setTitle('Error')
-            .setDescription(
-               'There was an error processing your crime. Please try again later.'
-            );
-
-         await interaction.reply({ embeds: [errorEmbed] });
-      }
    },
 };

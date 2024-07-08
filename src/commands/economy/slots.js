@@ -23,7 +23,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
          const betAmount = interaction.options.getNumber('bet');
          const slotCooldown = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -86,12 +85,5 @@ export default {
             `🎰 | ${result.join(' ')} | You ${win ? 'won' : 'lost'} ${win ? betAmount * 5 : betAmount} coins! Your new balance is ${userBalance.balance} coins.`
          );
          await interaction.reply({ embeds: [responseEmbed] });
-      } catch (error) {
-         console.error('Error processing slots command:', error);
-         const embed = new EmbedBuilder().setDescription(
-            'Something went wrong while processing your slots command. Please try again later.'
-         );
-         await interaction.reply({ embeds: [embed], ephemeral: true });
       }
-   },
 };

@@ -23,7 +23,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const items = await Item.find().lean();
 
          if (items.length === 0) {
@@ -61,19 +60,7 @@ export default {
             components: [row],
             ephemeral: true,
          });
-      } catch (error) {
-         console.error('Error processing shop command:', error);
-         await interaction.reply({
-            embeds: [
-               createErrorEmbed(
-                  interaction,
-                  'Error',
-                  'There was an error processing your request.'
-               ),
-            ],
-            ephemeral: true,
-         });
-      }
+
    },
 };
 

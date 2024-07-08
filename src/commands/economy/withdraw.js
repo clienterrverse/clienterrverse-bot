@@ -26,7 +26,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
          const amount = interaction.options.getInteger('amount');
 
@@ -94,19 +93,6 @@ export default {
             .setTimestamp();
 
          await interaction.reply({ embeds: [embed] });
-      } catch (error) {
-         console.error('Error processing withdraw command:', error);
-         await interaction.reply({
-            embeds: [
-               createErrorEmbed(
-                  interaction,
-                  'Error',
-                  'There was an error processing your withdrawal. Please try again later.'
-               ),
-            ],
-            ephemeral: true,
-         });
-      }
    },
 };
 

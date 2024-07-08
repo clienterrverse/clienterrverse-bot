@@ -38,7 +38,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
          const rollResult = interaction.options.getString('roll_result');
          const gambleAmount = interaction.options.getInteger('gamble_amount');
@@ -112,15 +111,6 @@ export default {
 
          // Reply with the outcome of the clienterr coinflip
          await interaction.reply({ embeds: [embed] });
-      } catch (error) {
-         console.error('Error processing clienterr coinflip command:', error);
-         const embed = new EmbedBuilder()
-            .setDescription(
-               'There was an error trying to process your clienterr coinflip.'
-            )
-            .setColor(mconfig.embedColorError);
 
-         await interaction.reply({ embeds: [embed] });
-      }
    },
 };

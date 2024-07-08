@@ -17,7 +17,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          // Defer the interaction
          await interaction.deferReply();
 
@@ -93,20 +92,6 @@ export default {
 
          // Use pagination to display the leaderboard
          await pagination(interaction, pages);
-      } catch (error) {
-         console.error('Error fetching leaderboard:', error);
-         if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({
-               content:
-                  'An error occurred while fetching the leaderboard. Please try again later.',
-               ephemeral: true,
-            });
-         } else if (interaction.deferred) {
-            await interaction.editReply({
-               content:
-                  'An error occurred while fetching the leaderboard. Please try again later.',
-            });
-         }
-      }
+      
    },
 };
