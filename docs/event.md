@@ -36,7 +36,7 @@ This structure visually represents your directory hierarchy with proper indentat
 
 ```javascript
 export default async (client, message) => {
-  console.log(`New message received: ${message.content}`);
+   console.log(`New message received: ${message.content}`);
 };
 ```
 
@@ -54,8 +54,8 @@ If you create a folder named `validations`, it will be treated as part of the `i
 
 ## Error Handling
 
-- If an individual event file fails to load or execute, an error message is logged, but other event handlers continue to function.
-- If there's an error in the overall setup process, it's caught and logged.
+-  If an individual event file fails to load or execute, an error message is logged, but other event handlers continue to function.
+-  If there's an error in the overall setup process, it's caught and logged.
 
 ## Best Practices
 
@@ -66,6 +66,6 @@ If you create a folder named `validations`, it will be treated as part of the `i
 
 ## Troubleshooting
 
-- If an event isn't firing, check that the correct event name is used for the folder.
-- Ensure that your bot has the necessary intents enabled for the events you're listening to.
-- Check the console for any error messages related to event loading.
+-  If an event isn't firing, check that the correct event name is used for the folder.
+-  Ensure that your bot has the necessary intents enabled for the events you're listening to.
+-  Check the console for any error messages related to event loading.

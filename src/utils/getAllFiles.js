@@ -9,28 +9,28 @@ import path from 'path';
  * @returns {string[]} - List of file or directory paths.
  */
 const getAllFiles = (directory, foldersOnly = false) => {
-  const items = [];
+   const items = [];
 
-  const files = fs.readdirSync(directory, { withFileTypes: true });
+   const files = fs.readdirSync(directory, { withFileTypes: true });
 
-  for (const file of files) {
-    const filePath = path.join(directory, file.name);
+   for (const file of files) {
+      const filePath = path.join(directory, file.name);
 
-    if (foldersOnly) {
-      if (file.isDirectory()) {
-        items.push(filePath);
-        items.push(...getAllFiles(filePath, foldersOnly)); // Recursively get subfolders
+      if (foldersOnly) {
+         if (file.isDirectory()) {
+            items.push(filePath);
+            items.push(...getAllFiles(filePath, foldersOnly)); // Recursively get subfolders
+         }
+      } else {
+         if (file.isDirectory()) {
+            items.push(...getAllFiles(filePath, foldersOnly)); // Recursively get files and subfolders
+         } else if (file.isFile()) {
+            items.push(filePath);
+         }
       }
-    } else {
-      if (file.isDirectory()) {
-        items.push(...getAllFiles(filePath, foldersOnly)); // Recursively get files and subfolders
-      } else if (file.isFile()) {
-        items.push(filePath);
-      }
-    }
-  }
+   }
 
-  return items;
+   return items;
 };
 
 export default getAllFiles;

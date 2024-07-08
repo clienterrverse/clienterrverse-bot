@@ -1,5 +1,3 @@
-
-
 /**
  * Fetches and caches the commands for a given client and guild ID.
  * @param {Client} client - The Discord client instance.
@@ -8,14 +6,14 @@
  */
 
 export default async (client, guildId) => {
-  let applicationCommands;
-  if (guildId) {
-    const guild = await client.guilds.fetch(guildId);
-    applicationCommands = guild.commands;
-  } else {
-    applicationCommands = await client.application.commands;
-  }
+   let applicationCommands;
+   if (guildId) {
+      const guild = await client.guilds.fetch(guildId);
+      applicationCommands = guild.commands;
+   } else {
+      applicationCommands = await client.application.commands;
+   }
 
-  await applicationCommands.fetch();
-  return applicationCommands;
+   await applicationCommands.fetch();
+   return applicationCommands;
 };

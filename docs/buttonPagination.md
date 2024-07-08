@@ -4,13 +4,13 @@ This function creates an interactive paginated embed message for Discord.js appl
 
 ## Features
 
-- Interactive navigation buttons (Previous, Home, Next)
-- Customizable button emojis and styles
-- Automatic button state management (enabling/disabling based on current page)
-- Page caching for improved performance
-- Automatic timeout to remove interactivity after a set duration
-- User-specific interaction (only the command initiator can use the buttons)
-- Error handling and logging
+-  Interactive navigation buttons (Previous, Home, Next)
+-  Customizable button emojis and styles
+-  Automatic button state management (enabling/disabling based on current page)
+-  Page caching for improved performance
+-  Automatic timeout to remove interactivity after a set duration
+-  User-specific interaction (only the command initiator can use the buttons)
+-  Error handling and logging
 
 ## Usage
 
@@ -73,15 +73,15 @@ You can customize button emojis and styles:
 
 ```javascript
 const customEmojis = {
-  prev: '◀️',
-  home: '🏠',
-  next: '▶️',
+   prev: '◀️',
+   home: '🏠',
+   next: '▶️',
 };
 
 const customStyles = {
-  prev: ButtonStyle.Secondary,
-  home: ButtonStyle.Primary,
-  next: ButtonStyle.Secondary,
+   prev: ButtonStyle.Secondary,
+   home: ButtonStyle.Primary,
+   next: ButtonStyle.Secondary,
 };
 
 await pagination(interaction, pages, 60000, customEmojis, customStyles);
@@ -99,9 +99,9 @@ await pagination(interaction, pages, 60000, customEmojis, customStyles);
 
 ## Error Handling
 
-- The function includes error handling for invalid interactions or page arrays.
-- Errors are logged to the console for debugging purposes.
-- A user-friendly error message is sent as an ephemeral reply if possible.
+-  The function includes error handling for invalid interactions or page arrays.
+-  Errors are logged to the console for debugging purposes.
+-  A user-friendly error message is sent as an ephemeral reply if possible.
 
 ## Advanced Usage
 
@@ -112,18 +112,18 @@ import { SlashCommandBuilder } from 'discord.js';
 import pagination from '../../utils/buttonPagination.js';
 
 export default {
-  data: new SlashCommandBuilder()
-    .setName('multipage')
-    .setDescription('Displays a multi-page embed'),
-  async execute(interaction) {
-    const pages = [
-      new EmbedBuilder().setDescription('Page 1').setColor('#FF0000'),
-      new EmbedBuilder().setDescription('Page 2').setColor('#00FF00'),
-      new EmbedBuilder().setDescription('Page 3').setColor('#0000FF'),
-    ];
+   data: new SlashCommandBuilder()
+      .setName('multipage')
+      .setDescription('Displays a multi-page embed'),
+   async execute(interaction) {
+      const pages = [
+         new EmbedBuilder().setDescription('Page 1').setColor('#FF0000'),
+         new EmbedBuilder().setDescription('Page 2').setColor('#00FF00'),
+         new EmbedBuilder().setDescription('Page 3').setColor('#0000FF'),
+      ];
 
-    await pagination(interaction, pages);
-  },
+      await pagination(interaction, pages);
+   },
 };
 ```
 
@@ -139,10 +139,10 @@ await pagination(interaction, pages);
 
 ## Performance Considerations
 
-- The function uses a `Map` to cache formatted pages, reducing processing time for frequently viewed pages.
-- Button collectors are set up only once, minimizing the number of listeners.
+-  The function uses a `Map` to cache formatted pages, reducing processing time for frequently viewed pages.
+-  Button collectors are set up only once, minimizing the number of listeners.
 
 ## Limitations
 
-- The function is designed for use with Discord.js v14 and may need adjustments for other versions.
-- The maximum number of pages is not limited by the function, but Discord has a limit on the number of embeds that can be sent in a single message.
+-  The function is designed for use with Discord.js v14 and may need adjustments for other versions.
+-  The maximum number of pages is not limited by the function, but Discord has a limit on the number of embeds that can be sent in a single message.
