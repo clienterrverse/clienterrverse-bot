@@ -116,7 +116,9 @@ export default {
       collector.on('collect', async (i) => {
         await i.deferUpdate();
         const newResponse = await axios.get(
-          `https://nekobot.xyz/api/imagegen?type=magik&image=${encodeURIComponent(avatarURL)}&intensity=${intensity}`,
+          `https://nekobot.xyz/api/imagegen?type=magik&image=${encodeURIComponent(
+            avatarURL
+          )}&intensity=${intensity}`,
           { timeout: 15000 }
         );
         const newMagikImageURL = newResponse.data.message;

@@ -29,7 +29,7 @@ export default async (client) => {
     await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 15000, 
+      serverSelectionTimeoutMS: 15000,
     });
 
     console.log('Connected to the MongoDB database'.green);

@@ -1,66 +1,126 @@
-/** @format */
-// Credit: This code is adapted from the Nory bot
+import {
+  EmbedBuilder,
+  SlashCommandBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from 'discord.js';
 
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-
-// Export the modulFe to be used elsewhere
 export default {
-  // Slash command data
   data: new SlashCommandBuilder()
-    .setName('avatar') // Sets the command name
-    .setDescription('Show avatar of any user') // Sets the command description
+    .setName('avatar')
+    .setDescription('Show avatar of any user')
     .addUserOption((option) =>
       option
-        .setName('user') // Adds a user option to specify the user whose avatar to show
-        .setDescription('User whose avatar you want to see:') // Option description
-        .setRequired(true)
-    ), // Option is required
+        .setName('user')
+        .setDescription('User whose avatar you want to see:')
+        .setRequired(false)
+    ),
 
-  userPermissions: [], // No user permissions required
-  botPermissions: [], // No bot permissions required
+  userPermissions: [],
+  botPermissions: [],
   cooldown: 5,
   deleted: false,
   nwfwMode: false,
   testMode: false,
   devOnly: false,
 
-  // Function to be executed when the command is used
   run: async (client, interaction) => {
     try {
-      // Get the specified user
-      const user = interaction.options.getUser('user');
-      // Get the member from the guild or interaction member
-      const member =
-        interaction.guild.members.cache.find((m) => m.user.id === user.id) ||
-        interaction.member;
+      const user = interaction.options.getUser('user') || interaction.user;
+      const member = interaction.guild.members.cache.get(user.id);
 
-      // Get the avatar URL of the user
-      const avatar = member.user.displayAvatarURL({
-        format: 'png',
-        dynamic: true,
-        size: 1024,
+      const getAvatarUrl = (userOrMember, size = 1024) => {
+        return userOrMember.displayAvatarURL({
+          format: 'png',
+          dynamic: true,
+          size: size,
+        });
+      };
+
+      const userAvatar = getAvatarUrl(user);
+      const memberAvatar = member ? getAvatarUrl(member) : null;
+
+      const embed = new EmbedBuilder()
+        .setTitle(`${user.username}'s Avatar`)
+        .setDescription(`[Avatar URL](${userAvatar})`)
+        .setImage(userAvatar)
+        .setColor(member?.displayHexColor || '#eb3434')
+        .addFields(
+          { name: '🆔 User ID', value: user.id, inline: true },
+          {
+            name: '📅 Account Created',
+            value: `<t:${Math.floor(user.createdTimestamp / 1000)}:R>`,
+            inline: true,
+          }
+        )
+        .setFooter({
+          text: `Requested by ${interaction.user.username}`,
+          iconURL: getAvatarUrl(interaction.user, 32),
+        })
+        .setTimestamp();
+
+      if (memberAvatar && memberAvatar !== userAvatar) {
+        embed.addFields({
+          name: '🔗 Server Avatar',
+          value: `[View](${memberAvatar})`,
+          inline: true,
+        });
+      }
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('🌐 View in Browser')
+          .setStyle(ButtonStyle.Link)
+          .setURL(userAvatar),
+        new ButtonBuilder()
+          .setCustomId('avatar_refresh')
+          .setLabel('🔄 Refresh')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId('avatar_delete')
+          .setLabel('🗑️ Delete')
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      const response = await interaction.reply({
+        embeds: [embed],
+        components: [row],
+        fetchReply: true,
       });
 
-      // Construct embed to display the user's avatar
-      const embed = new EmbedBuilder()
-        .setTitle(`${member.user.username}'s Avatar`) // Set the title as the username followed by "Avatar"
-        .setURL(avatar) // Set the URL of the embed to the avatar URL
-        .setImage(avatar) // Set the image of the embed to the avatar URL
-        .setFooter({
-          text: `Requested by ${interaction.user.username}`, // Set the footer text as the username of the requester
-          iconURL: interaction.user.displayAvatarURL({
-            format: 'png',
-            dynamic: true,
-            size: 1024,
-          }), // Set the footer icon as the requester's avatar
-        })
-        .setColor('#eb3434'); // Set the embed color
+      const collector = response.createMessageComponentCollector({
+        time: 60000,
+      });
 
-      // Send the embed containing the user's avatar as a reply
-      await interaction.reply({ embeds: [embed] });
+      collector.on('collect', async (i) => {
+        if (i.user.id !== interaction.user.id) {
+          return i.reply({
+            content: 'You cannot use these buttons.',
+            ephemeral: true,
+          });
+        }
+
+        if (i.customId === 'avatar_refresh') {
+          const refreshedEmbed = EmbedBuilder.from(embed).setImage(
+            getAvatarUrl(user, 1024) + '?t=' + Date.now()
+          );
+          await i.update({ embeds: [refreshedEmbed] });
+        } else if (i.customId === 'avatar_delete') {
+          await i.message.delete();
+        }
+      });
+
+      collector.on('end', async () => {
+        const disabledRow = ActionRowBuilder.from(row).setComponents(
+          row.components.map((component) =>
+            ButtonBuilder.from(component).setDisabled(true)
+          )
+        );
+        await response.edit({ components: [disabledRow] }).catch(() => {});
+      });
     } catch (error) {
       console.error(`An error occurred in the avatar command: ${error}`);
-      // Send an error message if an error occurs
       await interaction.reply({
         content:
           'An error occurred while processing your command. Please try again later.',

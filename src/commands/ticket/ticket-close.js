@@ -16,7 +16,6 @@ export default {
   botPermissions: [PermissionFlagsBits.ManageChannels],
 
   run: async (client, interaction) => {
-    // Defer the reply as ticket closing might take some time
     await interaction.deferReply({ ephemeral: true });
 
     const reason =

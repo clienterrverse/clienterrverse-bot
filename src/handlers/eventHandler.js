@@ -11,7 +11,10 @@ const __dirname = path.dirname(__filename);
 
 export default async (client) => {
   try {
-    const eventFolders = getAllFiles(path.join(__dirname, '..', 'events'), true);
+    const eventFolders = getAllFiles(
+      path.join(__dirname, '..', 'events'),
+      true
+    );
 
     const eventRegistry = new Map();
 
@@ -32,7 +35,9 @@ export default async (client) => {
       for (const eventFile of eventFiles) {
         if (fs.lstatSync(eventFile).isFile()) {
           try {
-            const { default: eventFunction } = await import(`file://${eventFile}`);
+            const { default: eventFunction } = await import(
+              `file://${eventFile}`
+            );
             const eventInfo = {
               function: eventFunction,
               fileName: path.basename(eventFile),
