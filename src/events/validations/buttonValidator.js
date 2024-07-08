@@ -8,23 +8,26 @@ import getButtons from '../../utils/getButtons.js';
 
 const buttons = new Collection();
 
-const sendEmbedReply = (interaction, color, description, ephemeral = false) => {
-  const embed = new EmbedBuilder().setColor(color).setDescription(description);
-  return interaction.reply({ embeds: [embed], ephemeral });
-};
-
-const checkPermissions = (interaction, permissions, type) => {
-  const member =
-    type === 'user' ? interaction.member : interaction.guild.members.me;
-  return permissions.every((permission) => member.permissions.has(permission));
-};
-
+// Load buttons once at the start and cache them
 const loadButtons = async () => {
   const buttonFiles = await getButtons();
   for (const button of buttonFiles) {
     buttons.set(button.customId, button);
   }
   console.log(`Loaded ${buttons.size} buttons`.green);
+};
+
+// Initialize buttons when the module is loaded
+loadButtons();
+
+const sendEmbedReply = (interaction, color, description, ephemeral = false) => {
+  const embed = new EmbedBuilder().setColor(mConfig.embedColors[color]).setDescription(description);
+  return interaction.reply({ embeds: [embed], ephemeral });
+};
+
+const checkPermissions = (interaction, permissions, type) => {
+  const member = type === 'user' ? interaction.member : interaction.guild.members.me;
+  return permissions.every((permission) => member.permissions.has(permission));
 };
 
 const handleButton = async (client, interaction) => {
@@ -104,6 +107,5 @@ const handleButton = async (client, interaction) => {
 
 export default async (client, interaction) => {
   if (!interaction.isButton()) return;
-  await loadButtons();
   await handleButton(client, interaction);
 };

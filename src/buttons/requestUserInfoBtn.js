@@ -77,10 +77,12 @@ export default {
         const claimedBy = ticket.claimedBy
           ? `<@${ticket.claimedBy}>`
           : 'Unclaimed';
+        const transcriptURL = `https://transcript.clienterr.com/api/transcript/${ticket.ticketChannelID}`;
         const closeReason = ticket.closeReason || 'No reason provided';
 
         return new EmbedBuilder()
           .setTitle(`Ticket ID: ${ticket.ticketChannelID}`)
+          .setURL(transcriptURL)
           .addFields(
             {
               name: '📝 Subject',
