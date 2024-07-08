@@ -1,38 +1,39 @@
 {
-  "name": "clienterrverse_economy",
-  "version": "2.0.0",
-  "main": "src/index.js",
-  "type": "module",
-  "scripts": {
-    "start": "node --no-warnings src/index.js",
-    "dev": "nodemon src/index.js",
-    "pre": "npx prettier --write ."
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/clienterrverse/clienterrverse_economy.git"
-  },
-  "author": ".clienterr",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/clienterrverse/clienterrverse_economy/issues"
-  },
-  "homepage": "https://github.com/clienterrverse/clienterrverse_economy#readme",
-  "description": "",
-  "dependencies": {
-    "@google/generative-ai": "^0.13.0",
-    "axios": "^1.7.2",
-    "colors": "^1.4.0",
-    "date-fns": "^3.6.0",
-    "discord-html-transcripts": "^3.2.0",
-    "discord.js": "^14.15.2",
-    "dotenv": "^16.4.5",
-    "mathjs": "^12.4.2",
-    "mongoose": "^8.4.0",
-    "os": "^0.1.2"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.1",
-    "prettier": "3.3.2"
-  }
+   "name": "clienterrverse_economy",
+   "version": "2.0.0",
+   "main": "src/index.js",
+   "type": "module",
+   "scripts": {
+      "start": "node --no-warnings src/index.js",
+      "dev": "nodemon src/index.js",
+      "pre": "npx prettier --write ."
+   },
+   "repository": {
+      "type": "git",
+      "url": "git+https://github.com/clienterrverse/clienterrverse_economy.git"
+   },
+   "author": ".clienterr",
+   "license": "ISC",
+   "bugs": {
+      "url": "https://github.com/clienterrverse/clienterrverse_economy/issues"
+   },
+   "homepage": "https://github.com/clienterrverse/clienterrverse_economy#readme",
+   "description": "",
+   "dependencies": {
+      "axios": "^1.7.2",
+      "bottleneck": "^2.19.5",
+      "colors": "^1.4.0",
+      "date-fns": "^3.6.0",
+      "discord-html-transcripts": "^3.2.0",
+      "discord.js": "^14.15.2",
+      "mathjs": "^12.4.2",
+      "mongoose": "^8.4.0",
+      "os": "^0.1.2"
+   },
+   "devDependencies": {
+      "nodemon": "^3.1.1",
+      "prettier": "3.3.2",
+      "dotenv": "^16.4.5"
+
+   }
 }

@@ -1,335 +1,294 @@
 import { Client, WebhookClient, EmbedBuilder, Events } from 'discord.js';
-import { AsyncLocalStorage } from 'async_hooks';
 import { formatISO } from 'date-fns';
+import Bottleneck from 'bottleneck';
 
 class DiscordBotErrorHandler {
-  constructor(config) {
-    this.config = {
-      webhookUrl: process.env.ERROR_WEBHOOK_URL,
-      maxCacheSize: 100,
-      rateLimitWindow: 60000,
-      maxErrorsPerWindow: 10,
-      retryAttempts: 3,
-      retryDelay: 1000,
-      ...config,
-    };
-
-    this.webhookClient = new WebhookClient({ url: this.config.webhookUrl });
-    this.errorCache = new Set();
-    this.rateLimit = { count: 0, lastReset: Date.now() };
-    this.errorQueue = [];
-    this.processingQueue = false;
-    this.asyncLocalStorage = new AsyncLocalStorage();
-    this.errorPatterns = new Map();
-    this.anomalyDetector = new AnomalyDetector();
-  }
-
-  initialize(client) {
-    this.client = client;
-    this.setupEventListeners();
-  }
-
-  setupEventListeners() {
-    this.client.on(Events.Error, (error) =>
-      this.handleError(error, { type: 'clientError' })
-    );
-    this.client.on(Events.Warn, (info) =>
-      this.handleError(new Error(info), {
-        type: 'clientWarning',
-        severity: 'Warning',
-      })
-    );
-    process.on('unhandledRejection', (reason, promise) =>
-      this.handleError(reason, { type: 'unhandledRejection', promise })
-    );
-    process.on('uncaughtException', (error) =>
-      this.handleError(error, { type: 'uncaughtException' })
-    );
-  }
-
-  async handleError(error, context = {}) {
-    try {
-      const errorDetails = await this.formatErrorDetails(error, context);
-      await this.processError(errorDetails);
-    } catch (err) {
-      console.error('Failed to handle error:', err);
-    }
-  }
-
-  async formatErrorDetails(error, context) {
-    const asyncContext = this.asyncLocalStorage.getStore() || {};
-    return {
-      timestamp: formatISO(new Date()),
-      message: error.message,
-      stackTrace: this.cleanStackTrace(error.stack),
-      context: await this.captureContext(context, asyncContext),
-      category: this.determineErrorCategory(error),
-      severity: this.determineErrorSeverity(error),
-      performance: this.capturePerformanceMetrics(),
-      environment: {
-        nodeVersion: process.version,
-        discordJsVersion: require('discord.js').version,
-        botUptime: this.client.uptime,
-      },
-    };
-  }
-
-  cleanStackTrace(stack) {
-    return stack
-      .split('\n')
-      .filter((line) => !line.includes('node_modules'))
-      .slice(0, 10)
-      .join('\n');
-  }
-
-  async captureContext(providedContext, asyncContext) {
-    const guildContext = await this.getGuildContext();
-    const userContext = await this.getUserContext();
-    return {
-      ...providedContext,
-      ...asyncContext,
-      guild: guildContext,
-      user: userContext,
-    };
-  }
-
-  async getGuildContext() {
-    const store = this.asyncLocalStorage.getStore();
-    const guildId = store?.get('guildId');
-    if (guildId) {
-      const guild = await this.client.guilds.fetch(guildId);
-      return {
-        id: guild.id,
-        name: guild.name,
-        memberCount: guild.memberCount,
+   constructor(config) {
+      this.config = {
+         webhookUrl: process.env.ERROR_WEBHOOK_URL,
+         maxCacheSize: 100,
+         retryAttempts: 3,
+         retryDelay: 1000,
+         rateLimit: { maxConcurrent: 1, minTime: 2000 }, // adjust these values as needed
+         ...config,
       };
-    }
-    return null;
-  }
 
-  async getUserContext() {
-    const store = this.asyncLocalStorage.getStore();
-    const userId = store?.get('userId');
-    if (userId) {
-      const user = await this.client.users.fetch(userId);
-      return {
-        id: user.id,
-        tag: user.tag,
-        createdAt: user.createdAt,
-      };
-    }
-    return null;
-  }
+      this.webhookClient = new WebhookClient({ url: this.config.webhookUrl });
+      this.errorCache = new Map();
+      this.errorQueue = [];
+      this.processingQueue = false;
 
-  determineErrorCategory(error) {
-    for (const [pattern, category] of this.errorPatterns) {
-      if (pattern.test(error.message)) {
-        return category;
+      this.limiter = new Bottleneck(this.config.rateLimit);
+   }
+
+   initialize(client) {
+      this.client = client;
+      if (!this.client) {
+         console.error('Discord client is not provided');
+         return;
       }
-    }
-    if (error.message.includes('API')) return 'Discord API Error';
-    if (error.message.includes('permission')) return 'Permission Error';
-    return 'Unknown Error';
-  }
+      this.setupEventListeners();
+   }
 
-  determineErrorSeverity(error) {
-    if (error.critical) return 'Critical';
-    if (error instanceof TypeError) return 'Warning';
-    if (error.message.includes('rate limit')) return 'Major';
-    if (error.message.includes('unknown')) return 'Minor';
-    return 'Moderate';
-  }
+   setupEventListeners() {
+      this.client.on(Events.Error, (error) =>
+         this.handleError(error, { type: 'clientError' })
+      );
+      this.client.on(Events.Warn, (info) =>
+         this.handleError(new Error(info), {
+            type: 'clientWarning',
+            severity: 'Warning',
+         })
+      );
+      process.on('unhandledRejection', (reason) =>
+         this.handleError(reason, { type: 'unhandledRejection' })
+      );
+      process.on('uncaughtException', (error) =>
+         this.handleError(error, { type: 'uncaughtException' })
+      );
+   }
 
-  capturePerformanceMetrics() {
-    const memoryUsage = process.memoryUsage();
-    return {
-      heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
-      heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
-      uptime: this.client.uptime + ' ms',
-      guildCount: this.client.guilds.cache.size,
-      userCount: this.client.users.cache.size,
-    };
-  }
-
-  async processError(errorDetails) {
-    if (this.shouldReportError(errorDetails)) {
-      this.errorQueue.push(errorDetails);
-      if (!this.processingQueue) {
-        this.processingQueue = true;
-        await this.processErrorQueue();
-      }
-    }
-    this.anomalyDetector.addError(errorDetails);
-  }
-
-  shouldReportError(errorDetails) {
-    const errorSignature = `${errorDetails.message}:${errorDetails.stackTrace.split('\n')[1]}`;
-
-    if (this.errorCache.has(errorSignature)) return false;
-
-    this.errorCache.add(errorSignature);
-    if (this.errorCache.size > this.config.maxCacheSize) {
-      const firstItem = this.errorCache.values().next().value;
-      this.errorCache.delete(firstItem);
-    }
-
-    return this.isWithinRateLimit();
-  }
-
-  isWithinRateLimit() {
-    const now = Date.now();
-    if (now - this.rateLimit.lastReset > this.config.rateLimitWindow) {
-      this.rateLimit.count = 0;
-      this.rateLimit.lastReset = now;
-    }
-
-    if (this.rateLimit.count < this.config.maxErrorsPerWindow) {
-      this.rateLimit.count++;
-      return true;
-    }
-
-    return false;
-  }
-
-  async processErrorQueue() {
-    while (this.errorQueue.length > 0) {
-      const errorDetails = this.errorQueue.shift();
-      await this.sendErrorToWebhook(errorDetails);
-    }
-    this.processingQueue = false;
-  }
-
-  async sendErrorToWebhook(errorDetails) {
-    for (let attempt = 0; attempt < this.config.retryAttempts; attempt++) {
+   async handleError(error, context = {}) {
       try {
-        const embed = new EmbedBuilder()
-          .setColor(this.getColorForSeverity(errorDetails.severity))
-          .setTitle(`${errorDetails.category} - ${errorDetails.severity}`)
-          .setDescription(`\`\`\`${errorDetails.message}\`\`\``)
-          .addFields(
-            {
-              name: 'Stack Trace',
-              value: `\`\`\`${errorDetails.stackTrace}\`\`\``,
-              inline: false,
-            },
-            {
-              name: 'Context',
-              value: `\`\`\`json\n${JSON.stringify(errorDetails.context, null, 2)}\`\`\``,
-              inline: false,
-            },
-            {
-              name: 'Performance',
-              value: `\`\`\`json\n${JSON.stringify(errorDetails.performance, null, 2)}\`\`\``,
-              inline: false,
-            }
-          )
-          .setTimestamp(new Date(errorDetails.timestamp))
-          .setFooter({
-            text: `Environment: ${errorDetails.environment.nodeVersion}`,
-          });
-
-        await this.webhookClient.send({
-          content: `New ${errorDetails.severity} error reported`,
-          embeds: [embed],
-        });
-        return;
+         const errorDetails = await this.formatErrorDetails(error, context);
+         await this.processError(errorDetails);
       } catch (err) {
-        console.error(
-          `Failed to send error to webhook (attempt ${attempt + 1}):`,
-          err
-        );
-        if (attempt < this.config.retryAttempts - 1) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, this.config.retryDelay)
-          );
-        }
+         console.error('Failed to handle error:', err);
       }
-    }
-  }
+   }
 
-  getColorForSeverity(severity) {
-    const colors = {
-      Minor: 0xffa500,
-      Moderate: 0xff4500,
-      Major: 0xff0000,
-      Critical: 0x8b0000,
-      Warning: 0xffff00,
-    };
-    return colors[severity] || 0x000000;
-  }
+   cleanStackTrace(error, limit = 10) {
 
-  addErrorPattern(pattern, category) {
-    this.errorPatterns.set(pattern, category);
-  }
+      const stack = (error.stack || '').split('\n')
+      .filter(line => 
+         !line.includes('node_modules') && 
+         !line.includes('timers.js')
+      )
+      .slice(0, limit)
+      .join('\n');
 
-  wrapAsync(fn) {
-    return async (...args) => {
-      const store = new Map();
-      return this.asyncLocalStorage.run(store, async () => {
-        try {
-          return await fn(...args);
-        } catch (error) {
-          await this.handleError(error);
-          throw error;
-        }
-      });
-    };
-  }
+   const errorType = error.name ? `${error.name}: ` : '';
+   
+   return `\`\`\`${errorType}${stack}\`\`\``;
+   }
 
-  wrapCommand(command) {
-    return async (interaction) => {
-      const store = new Map();
-      store.set('guildId', interaction.guildId);
-      store.set('userId', interaction.user.id);
-      return this.asyncLocalStorage.run(store, async () => {
-        try {
-          await command(interaction);
-        } catch (error) {
-          await this.handleError(error, { command: interaction.commandName });
-          await interaction.reply({
-            content: 'An error occurred while executing this command.',
-            ephemeral: true,
-          });
-        }
-      });
-    };
-  }
-}
+   async captureContext(providedContext) {
+      const guildContext = await this.getGuildContext(providedContext.guildId);
+      const userContext = await this.getUserContext(providedContext.userId);
+      return {
+         ...providedContext,
+         guild: guildContext,
+         user: userContext,
+      };
+   }
 
-class AnomalyDetector {
-  constructor() {
-    this.errorCounts = new Map();
-    this.timeWindow = 3600000; // 1 hour
-  }
+   async getGuildContext(guildId) {
+      if (guildId) {
+         try {
+            const guild = await this.client.guilds.fetch(guildId);
+            return {
+               id: guild.id,
+               name: guild.name,
+               memberCount: guild.memberCount,
+            };
+         } catch (error) {
+            console.error('Failed to fetch guild context:', error);
+         }
+      }
+      return null;
+   }
 
-  addError(errorDetails) {
-    const now = Date.now();
-    const key = `${errorDetails.category}:${errorDetails.severity}`;
+   async getUserContext(userId) {
+      if (userId) {
+         try {
+            const user = await this.client.users.fetch(userId);
+            return {
+               id: user.id,
+               tag: user.tag,
+               createdAt: user.createdAt,
+            };
+         } catch (error) {
+            console.error('Failed to fetch user context:', error);
+         }
+      }
+      return null;
+   }
 
-    if (!this.errorCounts.has(key)) {
-      this.errorCounts.set(key, []);
-    }
+   determineErrorCategory(error) {
+      const message = error.message.toLowerCase();
 
-    this.errorCounts.get(key).push(now);
-    this.cleanOldErrors(key, now);
+      if (message.includes('api')) return 'Discord API Error';
+      if (message.includes('permission')) return 'Permission Error';
+      if (message.includes('rate limit')) return 'Rate Limit Error';
+      if (message.includes('network')) return 'Network Error';
+      if (message.includes('validation')) return 'Validation Error';
+      if (message.includes('timeout')) return 'Timeout Error';
+      if (message.includes('not found')) return 'Not Found Error';
+      if (message.includes('database')) return 'Database Error';
+      if (message.includes('auth') || message.includes('token'))
+         return 'Authentication Error';
+      if (message.includes('connect') || message.includes('connection'))
+         return 'Connection Error';
+      if (message.includes('parse') || message.includes('syntax'))
+         return 'Parsing Error';
+      if (message.includes('memory')) return 'Memory Error';
+      if (message.includes('disk') || message.includes('storage'))
+         return 'Storage Error';
+      if (message.includes('gateway')) return 'Gateway Error';
+      if (message.includes('unexpected token')) return 'Unexpected Token Error';
+      if (message.includes('invalid form body'))
+         return 'Invalid Form Body Error';
+      if (message.includes('unknown interaction'))
+         return 'Unknown Interaction Error';
 
-    if (this.isAnomaly(key)) {
-      console.warn(`Anomaly detected for ${key}`);
-      // Implement additional anomaly handling (e.g., alerting)
-    }
-  }
+      return 'Unknown Error';
+   }
 
-  cleanOldErrors(key, now) {
-    const errors = this.errorCounts.get(key);
-    const newErrors = errors.filter((time) => now - time < this.timeWindow);
-    this.errorCounts.set(key, newErrors);
-  }
+   determineErrorSeverity(error) {
+      if (error instanceof DiscordAPIError) {
+         if (error.code === 50013) return 'Critical';
+         if (error.code === 50001) return 'Critical';
+         if (error.code === 10008) return 'Major';
+         if (error.code === 10003) return 'Major';
+         return 'Moderate';
+      }
 
-  isAnomaly(key) {
-    const errors = this.errorCounts.get(key);
-    const threshold = 10; // Define your threshold
-    return errors.length > threshold;
-  }
+      if (error.critical) return 'Critical';
+      if (error instanceof TypeError) return 'Warning';
+      if (error.message.includes('rate limit')) return 'Major';
+      if (error.message.includes('unknown')) return 'Minor';
+      return 'Moderate';
+   }
+
+   async capturePerformanceMetrics() {
+      if (!this.client) {
+         console.error('Discord client is not initialized');
+         return {};
+      }
+
+      const memoryUsage = process.memoryUsage();
+      return {
+         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
+         heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
+         guildCount: this.client.guilds?.cache?.size || 0,
+         userCount: this.client.users?.cache?.size || 0,
+      };
+   }
+
+   async processError(errorDetails) {
+      const errorKey = `${errorDetails.category}:${errorDetails.message}`;
+      if (this.errorCache.has(errorKey)) {
+         this.updateErrorFrequency(errorKey);
+      } else {
+         this.errorCache.set(errorKey, {
+            count: 1,
+            lastOccurrence: new Date(),
+         });
+         this.errorQueue.push(errorDetails);
+         if (this.errorCache.size > this.config.maxCacheSize) {
+            const oldestError = [...this.errorCache.entries()].sort(
+               (a, b) => a[1].lastOccurrence - b[1].lastOccurrence
+            )[0][0];
+            this.errorCache.delete(oldestError);
+         }
+      }
+
+      if (!this.processingQueue) {
+         this.processingQueue = true;
+         await this.processErrorQueue();
+      }
+   }
+
+   async processErrorQueue() {
+      while (this.errorQueue.length > 0) {
+         const errorDetails = this.errorQueue.shift();
+         await this.limiter.schedule(() =>
+            this.sendErrorToWebhook(errorDetails)
+         );
+      }
+      this.processingQueue = false;
+   }
+
+   async sendErrorToWebhook(errorDetails) {
+      for (let attempt = 0; attempt < this.config.retryAttempts; attempt++) {
+         try {
+            const embed = new EmbedBuilder()
+               .setColor(this.getColorForSeverity(errorDetails.severity))
+               .setTitle(`${errorDetails.category} - ${errorDetails.severity}`)
+               .setDescription(`\`\`\`${errorDetails.message}\`\`\``)
+               .addFields(
+                  {
+                     name: 'Stack Trace',
+                     value: `\`\`\`${errorDetails.stackTrace}\`\`\``,
+                     inline: false,
+                  },
+                  {
+                     name: 'Context',
+                     value: `\`\`\`json\n${JSON.stringify(errorDetails.context, null, 2)}\`\`\``,
+                     inline: false,
+                  },
+                  {
+                     name: 'Performance',
+                     value: `\`\`\`json\n${JSON.stringify(await errorDetails.performance, null, 2)}\`\`\``,
+                     inline: false,
+                  }
+               )
+               .setTimestamp(new Date(errorDetails.timestamp))
+               .setFooter({
+                  text: `Environment: ${errorDetails.environment.nodeVersion}`,
+               });
+
+            await this.webhookClient.send({
+               content: `New ${errorDetails.severity} error reported`,
+               embeds: [embed],
+            });
+            return;
+         } catch (err) {
+            console.error(
+               `Failed to send error to webhook (attempt ${attempt + 1}):`,
+               err
+            );
+            if (attempt < this.config.retryAttempts - 1) {
+               await new Promise((resolve) =>
+                  setTimeout(resolve, this.config.retryDelay)
+               );
+            }
+         }
+      }
+   }
+
+   getColorForSeverity(severity) {
+      const colors = {
+         Minor: 0xffa500,
+         Moderate: 0xff4500,
+         Major: 0xff0000,
+         Critical: 0x8b0000,
+         Warning: 0xffff00,
+      };
+      return colors[severity] || 0x000000;
+   }
+
+   updateErrorFrequency(errorKey) {
+      const errorInfo = this.errorCache.get(errorKey);
+      errorInfo.count += 1;
+      errorInfo.lastOccurrence = new Date();
+      this.errorCache.set(errorKey, errorInfo);
+   }
+
+   async formatErrorDetails(error, context) {
+      const fullContext = await this.captureContext(context);
+
+      return {
+         message: error.message,
+         stackTrace: this.cleanStackTrace(error),
+         category: this.determineErrorCategory(error),
+         severity: this.determineErrorSeverity(error),
+         context: fullContext,
+         performance: await this.capturePerformanceMetrics(),
+         timestamp: formatISO(new Date()),
+         environment: { nodeVersion: process.version },
+      };
+   }
 }
 
 export default DiscordBotErrorHandler;
