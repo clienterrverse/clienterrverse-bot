@@ -5,17 +5,22 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from 'discord.js';
+import Bottleneck from 'bottleneck';
 
+const limiter = new Bottleneck({
+  minTime: 1000, // Minimum time between each request (1 second)
+  maxConcurrent: 1 // Only allow 1 request at a time
+});
 
 export default {
   data: new SlashCommandBuilder()
     .setName('dm')
-    .setDescription('Send a direct message to a user or role')
+    .setDescription('Send a direct message to a user, role, or all members in the server')
     .addSubcommand(subcommand =>
       subcommand
         .setName('user')
         .setDescription('Send a DM to a specific user')
-        .addUserOption(option => 
+        .addUserOption(option =>
           option.setName('target')
             .setDescription('The user to send the DM to')
             .setRequired(true))
@@ -36,8 +41,17 @@ export default {
           option.setName('message')
             .setDescription('The message to send (Use {user} for recipient\'s name)')
             .setRequired(true))
-    ).toJSON(),
-
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('all')
+        .setDescription('Send a DM to all members in the server')
+        .addStringOption(option =>
+          option.setName('message')
+            .setDescription('The message to send (Use {user} for recipient\'s name)')
+            .setRequired(true))
+    )
+    .toJSON(),
 
   userPermissions: [PermissionFlagsBits.ManageMessages],
   botPermissions: [PermissionFlagsBits.SendMessages],
@@ -49,14 +63,15 @@ export default {
   run: async (client, interaction) => {
     const subcommand = interaction.options.getSubcommand();
     let message = interaction.options.getString('message').trim();
+
     const sendMessage = async (user) => {
-      if (!user) {
-        return { success: false, reason: 'USER_NOT_FOUND' };
+      if (!user || user.bot) {
+        return { success: false, reason: 'USER_NOT_FOUND_OR_BOT' };
       }
     
       try {
         const personalizedMessage = message.replace(/{user}/g, user.displayName);
-        await user.send(personalizedMessage);
+        await limiter.schedule(() => user.send(personalizedMessage));
         return { success: true };
       } catch (error) {
         if (error.code === 50007) {
@@ -70,6 +85,87 @@ export default {
         }
         return { success: false, reason: 'UNKNOWN', error };
       }
+    };
+
+    const handleProcess = async (members, description) => {
+      const row = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('confirm')
+            .setLabel('Confirm')
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId('cancel')
+            .setLabel('Cancel')
+            .setStyle(ButtonStyle.Danger),
+        );
+
+      await interaction.reply({ 
+        content: `Are you sure you want to send this message to ${members.size} ${description}?`, 
+        components: [row],
+        ephemeral: true 
+      });
+
+      const filter = i => i.user.id === interaction.user.id;
+      const confirmation = await interaction.channel.awaitMessageComponent({ filter, time: 30000 })
+        .catch(() => null);
+
+      if (!confirmation || confirmation.customId === 'cancel') {
+        return interaction.editReply({ content: 'Command cancelled.', components: [] });
+      }
+
+      let successCount = 0;
+      let failureCount = 0;
+      let count = 0;
+      const totalMembers = members.size;
+      const updateInterval = Math.max(1, Math.floor(totalMembers / 20)); // Update every 5%
+      let cancelled = false;
+
+      const processMember = async (member) => {
+        if (cancelled) return;
+        const result = await sendMessage(member.user);
+        if (result.success) successCount++; else failureCount++;
+        count++;
+
+        if (count % updateInterval === 0 || count === totalMembers) {
+          const progress = (count / totalMembers * 100).toFixed(2);
+          const progressBar = '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
+          await interaction.editReply({ 
+            content: `Progress: ${progressBar} ${progress}%\n${count}/${totalMembers} messages sent`, 
+            components: [new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId('cancel_sending')
+                .setLabel('Cancel Sending')
+                .setStyle(ButtonStyle.Danger)
+            )],
+            ephemeral: true 
+          });
+        }
+      };
+
+      const cancelListener = interaction.channel.createMessageComponentCollector({ filter, time: 600000 });
+      cancelListener.on('collect', async i => {
+        if (i.customId === 'cancel_sending') {
+          cancelled = true;
+          await i.update({ content: 'Cancelling the operation. Please wait...', components: [] });
+        }
+      });
+
+      for (const member of members.values()) {
+        await processMember(member);
+        if (cancelled) break;
+      }
+
+      cancelListener.stop();
+
+      const finalMessage = cancelled 
+        ? `Operation cancelled. ${successCount} messages sent, ${failureCount} failed.`
+        : `Finished! ${successCount} messages sent, ${failureCount} failed.`;
+
+      await interaction.editReply({ 
+        content: finalMessage, 
+        components: [] 
+      });
     };
 
     if (subcommand === 'user') {
@@ -101,100 +197,11 @@ export default {
     } else if (subcommand === 'role') {
       const role = interaction.options.getRole('target');
       const members = role.members;
-      
-      const row = new ActionRowBuilder()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('confirm')
-            .setLabel('Confirm')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId('cancel')
-            .setLabel('Cancel')
-            .setStyle(ButtonStyle.Danger),
-        );
-
-      await interaction.reply({ 
-        content: `Are you sure you want to send this message to ${members.size} members with the ${role.name} role?`, 
-        components: [row],
-        ephemeral: true 
-      });
-
-      const filter = i => i.user.id === interaction.user.id;
-      const confirmation = await interaction.channel.awaitMessageComponent({ filter, time: 30000 })
-        .catch(() => null);
-
-      if (!confirmation || confirmation.customId === 'cancel') {
-        return interaction.editReply({ content: 'Command cancelled.', components: [] });
-      }
-
-      let successCount = 0;
-      let failureCount = 0;
-      let count = 0;
-      const totalMembers = members.size;
-      const updateInterval = Math.max(1, Math.floor(totalMembers / 20)); // Update every 5%
-      let cancelled = false;
-
-      const queue = members.map(member => ({ member, sent: false }));
-      const batchSize = 10; 
-      const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-      const processBatch = async () => {
-        const batch = queue.filter(item => !item.sent).slice(0, batchSize);
-        if (batch.length === 0 || cancelled) return;
-
-        await Promise.all(batch.map(async (item) => {
-          if (cancelled) return;
-          const result = await sendMessage(item.member);
-          item.sent = true;
-          if (result.success) successCount++; else failureCount++;
-          count++;
-
-          if (count % updateInterval === 0 || count === totalMembers) {
-            const progress = (count / totalMembers * 100).toFixed(2);
-            const progressBar = '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
-            await interaction.editReply({ 
-              content: `Progress: ${progressBar} ${progress}%\n${count}/${totalMembers} messages sent`, 
-              components: [new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                  .setCustomId('cancel_sending')
-                  .setLabel('Cancel Sending')
-                  .setStyle(ButtonStyle.Danger)
-              )],
-              ephemeral: true 
-            });
-          }
-        }));
-
-        await delay(1000);
-        await processBatch();
-      };
-
-      processBatch();
-
-      const cancelListener = interaction.channel.createMessageComponentCollector({ filter, time: 600000 });
-      cancelListener.on('collect', async i => {
-        if (i.customId === 'cancel_sending') {
-          cancelled = true;
-          await i.update({ content: 'Cancelling the operation. Please wait...', components: [] });
-        }
-      });
-
-      while (queue.some(item => !item.sent) && !cancelled) {
-        await delay(1000);
-      }
-
-      cancelListener.stop();
-
-      const finalMessage = cancelled 
-        ? `Operation cancelled. ${successCount} messages sent, ${failureCount} failed.`
-        : `Finished! ${successCount} messages sent, ${failureCount} failed.`;
-
-      await interaction.editReply({ 
-        content: finalMessage, 
-        components: [] 
-      });
+      await handleProcess(members, `members with the ${role.name} role`);
+    } else if (subcommand === 'all') {
+      const members = await interaction.guild.members.fetch();
+      const humanMembers = members.filter(member => !member.user.bot);
+      await handleProcess(humanMembers, 'members in the server');
     }
-
   },
 };
