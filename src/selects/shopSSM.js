@@ -1,7 +1,6 @@
 import { Client, EmbedBuilder } from 'discord.js';
 import { Balance, Transaction, Item, Inventory } from '../schemas/economy.js';
-import { config } from '../../config/config.js';
-import mconfig from '../../config/messageConfig.js';
+import mconfig from '../config/messageConfig.js';
 
 export default {
    customId: 'shop',
