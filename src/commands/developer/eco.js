@@ -161,7 +161,6 @@ export default {
 
          await interaction.reply({ embeds: [embed] });
       } catch (error) {
-         console.error('Error executing eco command:', error);
          await interaction.reply({
             embeds: [
                createErrorEmbed(
@@ -172,6 +171,7 @@ export default {
             ],
             ephemeral: true,
          });
+         throw error;
       }
    },
 };

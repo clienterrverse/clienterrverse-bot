@@ -98,11 +98,12 @@ export default {
             return paginate(interaction, pages);
          }
       } catch (error) {
-         console.error('Error in help command: ', error);
          return interaction.reply({
             content: 'An error occurred while fetching help information.',
             ephemeral: true,
          });
+         throw error;
+
       }
    },
 };

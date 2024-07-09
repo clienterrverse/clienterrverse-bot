@@ -70,13 +70,13 @@ export default {
 
                         warningCooldowns.set(user.id, now);
                      } catch (error) {
-                        console.error(
-                           `Error sending warning message to ${message.author.username}: ${error.message}`
-                        );
+
 
                         await message.channel.send(
                            `Unable to send a warning message to ${message.author.username} because they have direct messages disabled.`
                         );
+                        throw error;
+
                      }
                   }
                }
