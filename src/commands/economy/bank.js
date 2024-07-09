@@ -16,7 +16,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
 
          // Fetch the user's balance from the database
@@ -46,11 +45,9 @@ export default {
 
          // Reply with the embed containing the user's bank balance
          await interaction.reply({ embeds: [bankEmbed] });
-      } catch (error) {
          console.error('Error fetching bank balance:', error);
          await interaction.reply(
             'There was an error trying to fetch your bank balance.'
          );
-      }
    },
 };

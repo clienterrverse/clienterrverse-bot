@@ -70,20 +70,6 @@ const getImageURL = (message) => {
    return null;
 };
 
-const createActionRow = (messageId) => {
-   return new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-         .setCustomId(`delete_${messageId}`)
-         .setLabel('Delete')
-         .setStyle(ButtonStyle.Danger)
-         .setEmoji(EMOJIS.DELETE),
-      new ButtonBuilder()
-         .setCustomId(`edit_${messageId}`)
-         .setLabel('Edit')
-         .setStyle(ButtonStyle.Primary)
-         .setEmoji(EMOJIS.EDIT)
-   );
-};
 
 export default async (client, errorHandler, message) => {
    if (message.author.bot || message.guild.id !== config.testServerId) return;
@@ -107,11 +93,9 @@ export default async (client, errorHandler, message) => {
          time,
          imageURL
       );
-      const actionRow = createActionRow(message.id);
 
       const logMessage = await logChannel.send({
          embeds: [embed],
-         components: [actionRow],
       });
 
       // Add reactions to the logged message

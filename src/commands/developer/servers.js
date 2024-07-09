@@ -244,6 +244,7 @@ async function handleLeaveSubcommand(client, interaction) {
          content: 'No response received, cancelling server leave.',
          components: [],
       });
+      throw error;
    }
 }
 

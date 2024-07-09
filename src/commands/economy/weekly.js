@@ -16,7 +16,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
          const emoji = '🎁'; // Using a gift emoji for the weekly reward
          const minAmount = 20; // Minimum amount to be received
@@ -65,13 +64,6 @@ export default {
             content: `${emoji} You have claimed your weekly reward of ${amount} coins! Your new balance is ${userBalance.balance} coins.`,
             ephemeral: true,
          });
-      } catch (error) {
-         console.error('Error processing weekly command:', error);
-         await interaction.reply({
-            content:
-               'There was an error trying to process your weekly reward. Please try again later.',
-            ephemeral: true,
-         });
-      }
+
    },
 };

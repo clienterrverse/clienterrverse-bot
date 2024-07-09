@@ -16,7 +16,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
          const emoji = '🙏'; // Using a praying hands emoji for begging
          const minAmount = 1; // Minimum amount to be received
@@ -74,14 +73,5 @@ export default {
 
          // Reply with the embed
          await interaction.reply({ embeds: [begEmbed] });
-      } catch (error) {
-         console.error('Error processing beg command:', error);
-         const errorEmbed = new EmbedBuilder()
-            .setColor('#FF0000') // Red color to indicate error
-            .setDescription(
-               'There was an error trying to process your beg request.'
-            );
-         await interaction.reply({ embeds: [errorEmbed] });
-      }
    },
 };

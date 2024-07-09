@@ -32,7 +32,8 @@ export default {
 
          await interaction.reply({ embeds: [rembed] });
       } catch (error) {
-         console.error('Error while getting random fact: ', error);
+         throw error;
+
       }
    },
 };

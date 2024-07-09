@@ -15,7 +15,7 @@ export default {
             .setRequired(true)
       )
       .toJSON(),
-   userPermissions: ['ADMINISTRATOR'], // Add appropriate permission
+   userPermissions: [], 
    botPermissions: [],
    cooldown: 10,
    nsfwMode: false,
@@ -79,7 +79,6 @@ export default {
 
          await interaction.reply({ embeds: [embed] });
       } catch (error) {
-         console.error('Error deleting item:', error);
          await interaction.reply({
             embeds: [
                createErrorEmbed(
@@ -90,6 +89,8 @@ export default {
             ],
             ephemeral: true,
          });
+         throw error;
+
       }
    },
 };

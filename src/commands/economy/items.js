@@ -17,7 +17,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          // Fetch all items from the database
          const items = await Item.find();
 
@@ -49,9 +48,5 @@ export default {
 
          // Use the pagination utility to handle pagination
          await pagination(interaction, pages);
-      } catch (error) {
-         console.error('Error fetching items:', error);
-         interaction.reply('There was an error trying to fetch the items.');
-      }
    },
 };

@@ -14,7 +14,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
 
          // Fetch the user's inventory from the database
@@ -53,11 +52,5 @@ export default {
 
          // Reply with the user's inventory as an Embed
          interaction.reply({ embeds: [embed] });
-      } catch (error) {
-         console.error('Error fetching inventory:', error);
-         interaction.reply(
-            'There was an error trying to fetch your inventory.'
-         );
-      }
    },
 };

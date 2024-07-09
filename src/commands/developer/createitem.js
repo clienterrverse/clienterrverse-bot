@@ -118,7 +118,6 @@ export default {
 
          await interaction.reply({ embeds: [embed] });
       } catch (error) {
-         console.error('Error creating item:', error);
          await interaction.reply({
             embeds: [
                createErrorEmbed(
@@ -129,6 +128,7 @@ export default {
             ],
             ephemeral: true,
          });
+         throw error;
       }
    },
 };

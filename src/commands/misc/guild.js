@@ -74,11 +74,12 @@ export default {
 
             await interaction.showModal(modal);
          } catch (error) {
-            console.error(error);
             return interaction.reply({
                content: 'An error occurred while processing your request.',
                ephemeral: true,
             });
+            throw error;
+
          }
       }
    },

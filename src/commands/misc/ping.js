@@ -102,13 +102,11 @@ export default {
 
          await interaction.editReply({ embeds: [pongEmbed] });
       } catch (error) {
-         console.error(
-            'An error occurred while processing ping command:',
-            error
-         );
+
          await interaction.editReply(
             'An error occurred while processing the command. Please try again later.'
          );
+         throw error;
       }
    },
 };

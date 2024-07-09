@@ -24,7 +24,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
          const amount = interaction.options.getInteger('amount');
 
@@ -78,11 +77,6 @@ export default {
 
          // Send the embed as the reply
          await interaction.reply({ embeds: [embed] });
-      } catch (error) {
-         console.error('Error processing deposit command:', error);
-         await interaction.reply(
-            'There was an error trying to process your deposit.'
-         );
-      }
+      
    },
 };

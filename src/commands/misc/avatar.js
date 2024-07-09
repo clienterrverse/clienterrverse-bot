@@ -120,12 +120,12 @@ export default {
             await response.edit({ components: [disabledRow] }).catch(() => {});
          });
       } catch (error) {
-         console.error(`An error occurred in the avatar command: ${error}`);
          await interaction.reply({
             content:
                'An error occurred while processing your command. Please try again later.',
             ephemeral: true,
          });
+         throw error;
       }
    },
 };

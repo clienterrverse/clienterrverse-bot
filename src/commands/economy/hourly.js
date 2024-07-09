@@ -14,7 +14,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
          const emoji = '⏳'; // Using an hourglass emoji for the hourly reward
          const minAmount = 1; // Minimum amount to be received
@@ -72,25 +71,5 @@ export default {
 
          // Send the embed as the reply
          await interaction.reply({ embeds: [embed] });
-      } catch (error) {
-         console.error('Error processing hourly command:', error);
-         const errorEmbed = new EmbedBuilder()
-            .setTitle('Error')
-            .setDescription(
-               'There was an error trying to process your hourly reward.'
-            )
-            .setColor('#FF0000')
-            .setFooter({
-               text: `Requested by ${interaction.user.username}`,
-               iconURL: interaction.user.displayAvatarURL({
-                  format: 'png',
-                  dynamic: true,
-                  size: 1024,
-               }),
-            })
-            .setTimestamp();
-
-         await interaction.reply({ embeds: [errorEmbed] });
-      }
    },
 };

@@ -16,7 +16,6 @@ export default {
    devOnly: false,
 
    run: async (client, interaction) => {
-      try {
          const userId = interaction.user.id;
          const emoji = '🎁'; // Using a gift emoji for the daily reward
          const minAmount = 1; // Minimum amount to be received
@@ -77,16 +76,5 @@ export default {
 
          // Reply with the embed
          await interaction.reply({ embeds: [embed] });
-      } catch (error) {
-         console.error('Error processing daily command:', error);
-         const embed = new EmbedBuilder()
-            .setColor(0xff0000)
-            .setTitle('Error')
-            .setDescription(
-               'There was an error trying to process your daily reward.'
-            );
-
-         await interaction.reply({ embeds: [embed], ephemeral: true });
-      }
    },
 };
