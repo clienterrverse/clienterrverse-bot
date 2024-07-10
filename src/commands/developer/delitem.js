@@ -15,7 +15,7 @@ export default {
             .setRequired(true)
       )
       .toJSON(),
-   userPermissions: [], 
+   userPermissions: [],
    botPermissions: [],
    cooldown: 10,
    nsfwMode: false,
@@ -90,7 +90,6 @@ export default {
             ephemeral: true,
          });
          throw error;
-
       }
    },
 };

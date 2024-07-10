@@ -9,7 +9,6 @@ import getLocalCommands from '../../utils/getLocalCommands.js';
 const cooldowns = new Collection();
 const cache = new Map();
 
-
 const sendEmbedReply = async (
    interaction,
    color,
@@ -193,7 +192,6 @@ export default async (client, errorHandler, interaction) => {
             mConfig.embedColorError,
             'An error occurred while executing the command.'
          );
-
       }
 
       console.log(

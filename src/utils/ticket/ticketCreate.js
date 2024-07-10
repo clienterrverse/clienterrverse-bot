@@ -103,7 +103,6 @@ export async function createTicket(
       // Get ticket count for naming
       const ticketCount = await ticketSchema.countDocuments({
          guildID: guild.id,
-         closed: true,
       });
 
       // Create ticket channel

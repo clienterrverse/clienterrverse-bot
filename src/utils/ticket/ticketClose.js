@@ -150,10 +150,14 @@ export async function closeTicket(client, guild, channel, member, reason) {
             .setFooter({ text: 'Thank you for using our ticket system!' })
             .setTimestamp();
 
-         await userDM.send({
-            content: "Here's a summary of your closed ticket:",
-            embeds: [dmEmbed],
-         });
+         try {
+            await userDM.send({
+               content: "Here's a summary of your closed ticket:",
+               embeds: [dmEmbed],
+            });
+         } catch (error) {
+            throw error;
+         }
       }
 
       await uploadTranscriptToGitHub(channel.id, transcript);
@@ -222,6 +226,7 @@ async function uploadTranscriptToGitHub(channelId, transcript) {
          console.error('Error checking file existence:', error.response.data);
          throw error;
       }
+      throw error;
    }
 
    await axios.put(url, data, { headers });

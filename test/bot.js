@@ -5,26 +5,26 @@ import { Client, GatewayIntentBits } from 'discord.js';
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.once('ready', async () => {
-    console.log('Ready!');
+   console.log('Ready!');
 
-    try {
-        // Fetch all commands
-        const commands = await client.application.commands.fetch();
-        
-        // Loop through each command and delete it
-        for (const command of commands.values()) {
-            await client.application.commands.delete(command.id);
-            console.log(`Deleted command: ${command.name}`);
-        }
+   try {
+      // Fetch all commands
+      const commands = await client.application.commands.fetch();
 
-        console.log('All commands deleted.');
-    } catch (error) {
-        console.error('Error deleting commands:', error);
-    }
+      // Loop through each command and delete it
+      for (const command of commands.values()) {
+         await client.application.commands.delete(command.id);
+         console.log(`Deleted command: ${command.name}`);
+      }
 
-    // Close the bot after deleting commands
-    client.destroy();
+      console.log('All commands deleted.');
+   } catch (error) {
+      console.error('Error deleting commands:', error);
+   }
+
+   // Close the bot after deleting commands
+   client.destroy();
 });
 
 // Login to Discord with your client's token
-client.login("");
+client.login('');

@@ -103,7 +103,6 @@ export default {
             ephemeral: true,
          });
          throw error;
-
       }
    },
 };

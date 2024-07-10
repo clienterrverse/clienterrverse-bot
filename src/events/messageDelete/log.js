@@ -70,7 +70,6 @@ const getImageURL = (message) => {
    return null;
 };
 
-
 export default async (client, errorHandler, message) => {
    if (message.author.bot || message.guild.id !== config.testServerId) return;
 
