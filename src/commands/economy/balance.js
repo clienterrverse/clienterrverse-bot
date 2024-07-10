@@ -17,42 +17,41 @@ export default {
    dmAllowed: true,
 
    run: async (client, interaction) => {
-         const userId = interaction.user.id;
+      const userId = interaction.user.id;
 
-         // Fetch the user's balance from the database
-         let userBalance = await Balance.findOne({ userId });
+      // Fetch the user's balance from the database
+      let userBalance = await Balance.findOne({ userId });
 
-         // If the user does not exist in the database, create a new entry
-         if (!userBalance) {
-            userBalance = new Balance({ userId });
-            await userBalance.save();
-         }
+      // If the user does not exist in the database, create a new entry
+      if (!userBalance) {
+         userBalance = new Balance({ userId });
+         await userBalance.save();
+      }
 
-         // Create an embed to display the user's balance
-         const balanceEmbed = new EmbedBuilder()
-            .setColor('#00FF00') // Green color for positive information
-            .setTitle('Balance Information')
-            .setDescription(`Here is your current balance information:`)
-            .addFields(
-               {
-                  name: 'Wallet Balance',
-                  value: `${userBalance.balance} clienterr coins`,
-                  inline: true,
-               },
-               {
-                  name: 'Bank Balance',
-                  value: `${userBalance.bank} clienterr coins`,
-                  inline: true,
-               }
-            )
-            .setFooter({
-               text: `Requested by ${interaction.user.tag}`,
-               iconURL: interaction.user.displayAvatarURL(),
-            })
-            .setTimestamp();
+      // Create an embed to display the user's balance
+      const balanceEmbed = new EmbedBuilder()
+         .setColor('#00FF00') // Green color for positive information
+         .setTitle('Balance Information')
+         .setDescription(`Here is your current balance information:`)
+         .addFields(
+            {
+               name: 'Wallet Balance',
+               value: `${userBalance.balance} clienterr coins`,
+               inline: true,
+            },
+            {
+               name: 'Bank Balance',
+               value: `${userBalance.bank} clienterr coins`,
+               inline: true,
+            }
+         )
+         .setFooter({
+            text: `Requested by ${interaction.user.tag}`,
+            iconURL: interaction.user.displayAvatarURL(),
+         })
+         .setTimestamp();
 
-         // Reply with the embed containing the user's balance
-         await interaction.reply({ embeds: [balanceEmbed] });
-
+      // Reply with the embed containing the user's balance
+      await interaction.reply({ embeds: [balanceEmbed] });
    },
 };

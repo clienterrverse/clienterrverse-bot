@@ -33,7 +33,6 @@ export default {
          await interaction.reply({ embeds: [rembed] });
       } catch (error) {
          throw error;
-
       }
    },
 };

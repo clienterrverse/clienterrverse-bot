@@ -102,7 +102,6 @@ export default {
 
          await interaction.editReply({ embeds: [pongEmbed] });
       } catch (error) {
-
          await interaction.editReply(
             'An error occurred while processing the command. Please try again later.'
          );
