@@ -1,12 +1,12 @@
 /** @format */
-
 import 'colors';
-import { EmbedBuilder, Collection } from 'discord.js';
+import { EmbedBuilder, Collection, PermissionsBitField } from 'discord.js';
 import { config } from '../../config/config.js';
 import mConfig from '../../config/messageConfig.js';
 import getModals from '../../utils/getModals.js';
 
 const modals = new Collection();
+let modalsLoaded = false;
 
 const sendEmbedReply = async (
    interaction,
@@ -21,25 +21,46 @@ const sendEmbedReply = async (
 const checkPermissions = (interaction, permissions, type) => {
    const member =
       type === 'user' ? interaction.member : interaction.guild.members.me;
-   return permissions.every((permission) => member.permissions.has(permission));
+   return permissions.every((permission) =>
+      member.permissions.has(PermissionsBitField.Flags[permission])
+   );
 };
 
-const loadModals = async () => {
-   const modalFiles = await getModals();
-   for (const modal of modalFiles) {
-      modals.set(modal.customId, modal);
+const loadModals = async (errorHandler) => {
+   try {
+      const modalFiles = await getModals();
+      for (const modal of modalFiles) {
+         modals.set(modal.customId, modal);
+      }
+      console.log(`Loaded ${modals.size} modal commands`.green);
+      modalsLoaded = true;
+   } catch (error) {
+      errorHandler.handleError(error, { type: 'modalLoad' });
+      console.error('Error loading modals:'.red, error);
    }
-   console.log(`Loaded ${modals.size} modal commands`.green);
 };
 
-const handleModal = async (client, interaction) => {
+const handleModal = async (client, errorHandler, interaction) => {
    const { customId } = interaction;
    const modalObject = modals.get(customId);
 
-   if (!modalObject) return;
+   if (!modalObject) {
+      errorHandler.handleError(new Error(`Unknown modal: ${customId}`), {
+         type: 'unknownModal',
+         modalId: customId,
+         userId: interaction.user.id,
+         guildId: interaction.guild.id,
+      });
+      return sendEmbedReply(
+         interaction,
+         mConfig.embedColorError,
+         'This modal is not recognized.'
+      );
+   }
 
    const { developersId, testServerId } = config;
 
+   // Check if the modal is developer-only
    if (modalObject.devOnly && !developersId.includes(interaction.user.id)) {
       return sendEmbedReply(
          interaction,
@@ -48,6 +69,7 @@ const handleModal = async (client, interaction) => {
       );
    }
 
+   // Check if the modal is in test mode
    if (modalObject.testMode && interaction.guild.id !== testServerId) {
       return sendEmbedReply(
          interaction,
@@ -56,6 +78,7 @@ const handleModal = async (client, interaction) => {
       );
    }
 
+   // Check user permissions
    if (
       modalObject.userPermissions?.length &&
       !checkPermissions(interaction, modalObject.userPermissions, 'user')
@@ -67,6 +90,7 @@ const handleModal = async (client, interaction) => {
       );
    }
 
+   // Check bot permissions
    if (
       modalObject.botPermissions?.length &&
       !checkPermissions(interaction, modalObject.botPermissions, 'bot')
@@ -78,13 +102,38 @@ const handleModal = async (client, interaction) => {
       );
    }
 
+   // Check cooldown
+   if (modalObject.cooldown) {
+      const cooldownKey = `${interaction.user.id}-${customId}`;
+      const cooldownTime = modals.get(cooldownKey);
+      if (cooldownTime && Date.now() < cooldownTime) {
+         const remainingTime = Math.ceil((cooldownTime - Date.now()) / 1000);
+         return sendEmbedReply(
+            interaction,
+            mConfig.embedColorError,
+            `Please wait ${remainingTime} seconds before submitting this modal again.`
+         );
+      }
+      modals.set(cooldownKey, Date.now() + modalObject.cooldown * 1000);
+   }
+
    try {
-      await modalObject.run(client, interaction);
       console.log(
-         `Modal command executed: ${customId} by ${interaction.user.tag}`.green
+         `Executing modal ${customId} for user ${interaction.user.tag}`.cyan
       );
+      await modalObject.run(client, interaction);
+      console.log(`Modal ${customId} executed successfully`.green);
    } catch (error) {
-      console.error(`Error executing modal command ${customId}:`.red, error);
+      console.error(`Error executing modal ${customId}:`.red, error);
+
+      // Use errorHandler to handle the error
+      await errorHandler.handleError(error, {
+         type: 'modalError',
+         modalId: customId,
+         userId: interaction.user.id,
+         guildId: interaction.guild.id,
+      });
+
       sendEmbedReply(
          interaction,
          mConfig.embedColorError,
@@ -96,7 +145,15 @@ const handleModal = async (client, interaction) => {
 export default async (client, errorHandler, interaction) => {
    if (!interaction.isModalSubmit()) return;
 
-   await loadModals();
+   if (!modalsLoaded) {
+      await loadModals(errorHandler);
+   }
 
-   await handleModal(client, interaction);
+   // Log modal usage
+   console.log(
+      `Modal ${interaction.customId} submitted by ${interaction.user.tag} in ${interaction.guild.name}`
+         .yellow
+   );
+
+   await handleModal(client, errorHandler, interaction);
 };

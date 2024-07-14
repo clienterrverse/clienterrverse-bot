@@ -8,6 +8,7 @@ import getLocalCommands from '../../utils/getLocalCommands.js';
 /**
  * Registers, updates, or deletes application commands based on local command files.
  * @param {Client} client - The Discord client instance.
+ * @param {DiscordBotErrorHandler} errorHandler - The error handler instance.
  */
 export default async (client, errorHandler) => {
    try {
@@ -17,9 +18,18 @@ export default async (client, errorHandler) => {
          getApplicationCommands(client, testServerId),
       ]);
 
-      await deleteUnusedCommands(applicationCommands, localCommands);
-      await updateOrCreateCommands(applicationCommands, localCommands);
+      await deleteUnusedCommands(
+         applicationCommands,
+         localCommands,
+         errorHandler
+      );
+      await updateOrCreateCommands(
+         applicationCommands,
+         localCommands,
+         errorHandler
+      );
    } catch (err) {
+      errorHandler.handleError(err, { type: 'commandSync' });
       console.error(
          `[${new Date().toISOString()}] Error during command sync: ${err.message}`
             .red
@@ -31,8 +41,13 @@ export default async (client, errorHandler) => {
  * Deletes unused commands from the application.
  * @param {Collection} applicationCommands - The current application commands.
  * @param {Array} localCommands - The local commands.
+ * @param {DiscordBotErrorHandler} errorHandler - The error handler instance.
  */
-async function deleteUnusedCommands(applicationCommands, localCommands) {
+async function deleteUnusedCommands(
+   applicationCommands,
+   localCommands,
+   errorHandler
+) {
    const localCommandNames = new Set(localCommands.map((cmd) => cmd.data.name));
    const commandsToDelete = applicationCommands.cache.filter(
       (cmd) =>
@@ -40,30 +55,44 @@ async function deleteUnusedCommands(applicationCommands, localCommands) {
          !localCommandNames.has(cmd.name)
    );
 
-   await Promise.all(commandsToDelete.map(deleteCommand(applicationCommands)));
+   await Promise.all(
+      commandsToDelete.map(deleteCommand(applicationCommands, errorHandler))
+   );
 }
 
 /**
  * Updates existing commands or creates new ones based on local command files.
  * @param {Collection} applicationCommands - The current application commands.
  * @param {Array} localCommands - The local commands.
+ * @param {DiscordBotErrorHandler} errorHandler - The error handler instance.
  */
-async function updateOrCreateCommands(applicationCommands, localCommands) {
-   await Promise.all(localCommands.map(processCommand(applicationCommands)));
+async function updateOrCreateCommands(
+   applicationCommands,
+   localCommands,
+   errorHandler
+) {
+   await Promise.all(
+      localCommands.map(processCommand(applicationCommands, errorHandler))
+   );
 }
 
 /**
  * Deletes a command from the application.
  * @param {Collection} applicationCommands - The current application commands.
+ * @param {DiscordBotErrorHandler} errorHandler - The error handler instance.
  * @returns {Function} The delete command function.
  */
-const deleteCommand = (applicationCommands) => async (cmd) => {
+const deleteCommand = (applicationCommands, errorHandler) => async (cmd) => {
    try {
       await applicationCommands.delete(cmd.id);
       console.log(
          `[${new Date().toISOString()}] Deleted command: ${cmd.name}`.red
       );
    } catch (err) {
+      errorHandler.handleError(err, {
+         type: 'deleteCommand',
+         commandName: cmd.name,
+      });
       console.error(
          `[${new Date().toISOString()}] Failed to delete command ${cmd.name}: ${err.message}`
             .red
@@ -74,66 +103,84 @@ const deleteCommand = (applicationCommands) => async (cmd) => {
 /**
  * Processes a local command, updating or creating it as needed.
  * @param {Collection} applicationCommands - The current application commands.
+ * @param {DiscordBotErrorHandler} errorHandler - The error handler instance.
  * @returns {Function} The process command function.
  */
-const processCommand = (applicationCommands) => async (localCommand) => {
-   const { data } = localCommand;
-   const commandName = data.name;
-   const existingCommand = applicationCommands.cache.find(
-      (cmd) => cmd.name === commandName
-   );
+const processCommand =
+   (applicationCommands, errorHandler) => async (localCommand) => {
+      const { data } = localCommand;
+      const commandName = data.name;
+      const existingCommand = applicationCommands.cache.find(
+         (cmd) => cmd.name === commandName
+      );
 
-   try {
-      if (existingCommand) {
-         await handleExistingCommand(
-            applicationCommands,
-            existingCommand,
-            localCommand
-         );
-      } else if (!localCommand.deleted) {
-         await createCommand(applicationCommands, data);
-      } else {
-         console.log(
-            `[${new Date().toISOString()}] Skipped command (marked as deleted): ${commandName}`
-               .grey
+      try {
+         if (existingCommand) {
+            await handleExistingCommand(
+               applicationCommands,
+               existingCommand,
+               localCommand,
+               errorHandler
+            );
+         } else if (!localCommand.deleted) {
+            await createCommand(applicationCommands, data, errorHandler);
+         } else {
+            console.log(
+               `[${new Date().toISOString()}] Skipped command (marked as deleted): ${commandName}`
+                  .grey
+            );
+         }
+      } catch (err) {
+         errorHandler.handleError(err, { type: 'processCommand', commandName });
+         console.error(
+            `[${new Date().toISOString()}] Failed to process command ${commandName}: ${err.message}`
+               .red
          );
       }
-   } catch (err) {
-      console.error(
-         `[${new Date().toISOString()}] Failed to process command ${commandName}: ${err.message}`
-            .red
-      );
-   }
-};
+   };
 
 /**
  * Handles the updating or deletion of an existing command.
  * @param {Collection} applicationCommands - The current application commands.
  * @param {Object} existingCommand - The existing command to handle.
  * @param {Object} localCommand - The local command data.
+ * @param {DiscordBotErrorHandler} errorHandler - The error handler instance.
  */
 async function handleExistingCommand(
    applicationCommands,
    existingCommand,
-   localCommand
+   localCommand,
+   errorHandler
 ) {
    const { data, deleted } = localCommand;
    const commandName = data.name;
 
-   if (deleted) {
-      await applicationCommands.delete(existingCommand.id);
-      console.log(
-         `[${new Date().toISOString()}] Deleted command (marked as deleted): ${commandName}`
-            .red
-      );
-   } else if (commandComparing(existingCommand, localCommand)) {
-      await applicationCommands.edit(existingCommand.id, {
-         name: commandName,
-         description: data.description,
-         options: data.options,
+   try {
+      if (deleted) {
+         await applicationCommands.delete(existingCommand.id);
+         console.log(
+            `[${new Date().toISOString()}] Deleted command (marked as deleted): ${commandName}`
+               .red
+         );
+      } else if (commandComparing(existingCommand, localCommand)) {
+         await applicationCommands.edit(existingCommand.id, {
+            name: commandName,
+            description: data.description,
+            options: data.options,
+         });
+         console.log(
+            `[${new Date().toISOString()}] Updated command: ${commandName}`
+               .yellow
+         );
+      }
+   } catch (err) {
+      errorHandler.handleError(err, {
+         type: 'handleExistingCommand',
+         commandName,
       });
-      console.log(
-         `[${new Date().toISOString()}] Updated command: ${commandName}`.yellow
+      console.error(
+         `[${new Date().toISOString()}] Failed to handle existing command ${commandName}: ${err.message}`
+            .red
       );
    }
 }
@@ -142,14 +189,27 @@ async function handleExistingCommand(
  * Creates a new command in the application.
  * @param {Collection} applicationCommands - The current application commands.
  * @param {Object} data - The command data.
+ * @param {DiscordBotErrorHandler} errorHandler - The error handler instance.
  */
-async function createCommand(applicationCommands, data) {
-   await applicationCommands.create({
-      name: data.name,
-      description: data.description,
-      options: data.options,
-   });
-   console.log(
-      `[${new Date().toISOString()}] Registered new command: ${data.name}`.green
-   );
+async function createCommand(applicationCommands, data, errorHandler) {
+   try {
+      await applicationCommands.create({
+         name: data.name,
+         description: data.description,
+         options: data.options,
+      });
+      console.log(
+         `[${new Date().toISOString()}] Registered new command: ${data.name}`
+            .green
+      );
+   } catch (err) {
+      errorHandler.handleError(err, {
+         type: 'createCommand',
+         commandName: data.name,
+      });
+      console.error(
+         `[${new Date().toISOString()}] Failed to create command ${data.name}: ${err.message}`
+            .red
+      );
+   }
 }
