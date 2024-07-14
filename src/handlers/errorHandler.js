@@ -1,11 +1,4 @@
-import {
-   Client,
-   WebhookClient,
-   EmbedBuilder,
-   Events,
-   DiscordAPIError,
-} from 'discord.js';
-import { formatISO } from 'date-fns';
+import { WebhookClient, EmbedBuilder, Events, DiscordAPIError } from 'discord.js';
 import Bottleneck from 'bottleneck';
 
 class DiscordBotErrorHandler {
@@ -22,13 +15,9 @@ class DiscordBotErrorHandler {
       };
 
       if (!this.config.webhookUrl) {
-         console.error(
-            'ERROR_WEBHOOK_URL is not set in the environment variables'
-         );
+         console.error('ERROR_WEBHOOK_URL is not set in the environment variables');
       } else {
-         this.webhookClient = new WebhookClient({
-            url: this.config.webhookUrl,
-         });
+         this.webhookClient = new WebhookClient({ url: this.config.webhookUrl });
       }
 
       this.errorCache = new Map();
@@ -44,29 +33,21 @@ class DiscordBotErrorHandler {
          console.error('Discord client is not provided');
          return;
       }
-      this.config.clientName =
-         this.client.user?.username || this.config.clientName;
+      this.config.clientName = this.client.user?.username || this.config.clientName;
       this.setupEventListeners();
       this.client.ws.on('error', this.handleWebSocketError.bind(this));
    }
 
    setupEventListeners() {
-      this.client.on(Events.Error, (error) =>
-         this.handleError(error, { type: 'clientError' })
-      );
-      this.client.on(Events.Warn, (info) =>
-         this.handleError(new Error(info), {
-            type: 'clientWarning',
-            severity: 'Warning',
-         })
-      );
-      process.on('unhandledRejection', (reason) =>
-         this.handleError(reason, { type: 'unhandledRejection' })
-      );
-      process.on('uncaughtException', (error) =>
-         this.handleError(error, { type: 'uncaughtException' })
-      );
+      this.client.on(Events.Error, (error) => this.handleError(error, { type: 'clientError' }));
+      this.client.on(Events.Warn, (info) => this.handleError(new Error(info), {
+         type: 'clientWarning',
+         severity: 'Warning',
+      }));
+      process.on('unhandledRejection', (reason) => this.handleError(reason, { type: 'unhandledRejection' }));
+      process.on('uncaughtException', (error) => this.handleError(error, { type: 'uncaughtException' }));
    }
+
    handleWebSocketError(error) {
       this.handleError(error, { type: 'webSocketError' });
    }
@@ -83,37 +64,25 @@ class DiscordBotErrorHandler {
    cleanStackTrace(error, limit = 10) {
       const stack = (error.stack || '')
          .split('\n')
-         .filter(
-            (line) =>
-               !line.includes('node_modules') && !line.includes('timers.js')
-         )
+         .filter(line => !line.includes('node_modules') && !line.includes('timers.js'))
          .slice(0, limit)
          .join('\n');
 
       const errorType = error.name ? `${error.name}: ` : '';
-
       return `\`\`\`${errorType}${stack}\`\`\``;
    }
 
    async captureContext(providedContext) {
       const guildContext = await this.getGuildContext(providedContext.guildId);
       const userContext = await this.getUserContext(providedContext.userId);
-      return {
-         ...providedContext,
-         guild: guildContext,
-         user: userContext,
-      };
+      return { ...providedContext, guild: guildContext, user: userContext };
    }
 
    async getGuildContext(guildId) {
       if (guildId) {
          try {
             const guild = await this.client.guilds.fetch(guildId);
-            return {
-               id: guild.id,
-               name: guild.name,
-               memberCount: guild.memberCount,
-            };
+            return { id: guild.id, name: guild.name, memberCount: guild.memberCount };
          } catch (error) {
             console.error('Failed to fetch guild context:', error);
          }
@@ -125,11 +94,7 @@ class DiscordBotErrorHandler {
       if (userId) {
          try {
             const user = await this.client.users.fetch(userId);
-            return {
-               id: user.id,
-               tag: user.tag,
-               createdAt: user.createdAt,
-            };
+            return { id: user.id, tag: user.tag, createdAt: user.createdAt };
          } catch (error) {
             console.error('Failed to fetch user context:', error);
          }
@@ -139,7 +104,6 @@ class DiscordBotErrorHandler {
 
    determineErrorCategory(error) {
       const message = error.message.toLowerCase();
-
       if (message.includes('api')) return 'Discord API Error';
       if (message.includes('permission')) return 'Permission Error';
       if (message.includes('rate limit')) return 'Rate Limit Error';
@@ -148,43 +112,26 @@ class DiscordBotErrorHandler {
       if (message.includes('timeout')) return 'Timeout Error';
       if (message.includes('not found')) return 'Not Found Error';
       if (message.includes('database')) return 'Database Error';
-      if (message.includes('auth') || message.includes('token'))
-         return 'Authentication Error';
-      if (message.includes('connect') || message.includes('connection'))
-         return 'Connection Error';
-      if (message.includes('parse') || message.includes('syntax'))
-         return 'Parsing Error';
+      if (message.includes('auth') || message.includes('token')) return 'Authentication Error';
+      if (message.includes('connect') || message.includes('connection')) return 'Connection Error';
+      if (message.includes('parse') || message.includes('syntax')) return 'Parsing Error';
       if (message.includes('memory')) return 'Memory Error';
-      if (message.includes('disk') || message.includes('storage'))
-         return 'Storage Error';
+      if (message.includes('disk') || message.includes('storage')) return 'Storage Error';
       if (message.includes('gateway')) return 'Gateway Error';
       if (message.includes('unexpected token')) return 'Unexpected Token Error';
-      if (message.includes('invalid form body'))
-         return 'Invalid Form Body Error';
-      if (message.includes('unknown interaction'))
-         return 'Unknown Interaction Error';
-      if (
-         error instanceof Error &&
-         error.message === "Unhandled 'error' event emitted"
-      )
-         return 'WebSocket Error';
-
+      if (message.includes('invalid form body')) return 'Invalid Form Body Error';
+      if (message.includes('unknown interaction')) return 'Unknown Interaction Error';
+      if (error instanceof Error && error.message === "Unhandled 'error' event emitted") return 'WebSocket Error';
       return 'Unknown Error';
    }
 
    determineErrorSeverity(error) {
       if (error instanceof DiscordAPIError) {
-         if (error.code === 50013) return 'Critical';
-         if (error.code === 50001) return 'Critical';
-         if (error.code === 10008) return 'Major';
-         if (error.code === 10003) return 'Major';
+         if ([50013, 50001].includes(error.code)) return 'Critical';
+         if ([10008, 10003].includes(error.code)) return 'Major';
          return 'Moderate';
       }
-      if (
-         error instanceof Error &&
-         error.message === "Unhandled 'error' event emitted"
-      )
-         return 'Major';
+      if (error instanceof Error && error.message === "Unhandled 'error' event emitted") return 'Major';
       if (error.critical) return 'Critical';
       if (error instanceof TypeError) return 'Warning';
       if (error.message.includes('rate limit')) return 'Major';
@@ -200,8 +147,8 @@ class DiscordBotErrorHandler {
 
       const memoryUsage = process.memoryUsage();
       return {
-         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
-         heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
+         heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+         heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
          guildCount: this.client.guilds?.cache?.size || 0,
          userCount: this.client.users?.cache?.size || 0,
       };
@@ -234,9 +181,7 @@ class DiscordBotErrorHandler {
    async processErrorQueue() {
       while (this.errorQueue.length > 0) {
          const errorDetails = this.errorQueue.shift();
-         await this.limiter.schedule(() =>
-            this.sendErrorToWebhook(errorDetails)
-         );
+         await this.limiter.schedule(() => this.sendErrorToWebhook(errorDetails));
       }
       this.processingQueue = false;
    }
@@ -249,26 +194,12 @@ class DiscordBotErrorHandler {
                .setTitle(`${errorDetails.category} - ${errorDetails.severity}`)
                .setDescription(`\`\`\`${errorDetails.message}\`\`\``)
                .addFields(
-                  {
-                     name: 'Stack Trace',
-                     value: `\`\`\`${errorDetails.stackTrace}\`\`\``,
-                     inline: false,
-                  },
-                  {
-                     name: 'Context',
-                     value: `\`\`\`json\n${JSON.stringify(errorDetails.context, null, 2)}\`\`\``,
-                     inline: false,
-                  },
-                  {
-                     name: 'Performance',
-                     value: `\`\`\`json\n${JSON.stringify(await errorDetails.performance, null, 2)}\`\`\``,
-                     inline: false,
-                  }
+                  { name: 'Stack Trace', value: `\`\`\`${errorDetails.stackTrace}\`\`\``, inline: false },
+                  { name: 'Context', value: `\`\`\`json\n${JSON.stringify(errorDetails.context, null, 2)}\`\`\``, inline: false },
+                  { name: 'Performance', value: `\`\`\`json\n${JSON.stringify(await errorDetails.performance, null, 2)}\`\`\``, inline: false }
                )
                .setTimestamp(new Date(errorDetails.timestamp))
-               .setFooter({
-                  text: `Environment: ${errorDetails.environment.nodeVersion} | Client: ${errorDetails.environment.clientName}`,
-               });
+               .setFooter({ text: `Environment: ${errorDetails.environment.nodeVersion} | Client: ${errorDetails.environment.clientName}` });
 
             await this.webhookClient.send({
                content: `New ${errorDetails.severity} error reported`,
@@ -276,14 +207,9 @@ class DiscordBotErrorHandler {
             });
             return;
          } catch (err) {
-            console.error(
-               `Failed to send error to webhook (attempt ${attempt + 1}):`,
-               err
-            );
+            console.error(`Failed to send error to webhook (attempt ${attempt + 1}):`, err);
             if (attempt < this.config.retryAttempts - 1) {
-               await new Promise((resolve) =>
-                  setTimeout(resolve, this.config.retryDelay)
-               );
+               await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
             }
          }
       }
@@ -309,17 +235,14 @@ class DiscordBotErrorHandler {
 
    async formatErrorDetails(error, context) {
       const fullContext = await this.captureContext(context);
-
       return {
          message: error.message || 'Unknown error',
-         stackTrace: error.stack
-            ? this.cleanStackTrace(error)
-            : 'No stack trace available',
+         stackTrace: error.stack ? this.cleanStackTrace(error) : 'No stack trace available',
          category: this.determineErrorCategory(error),
          severity: this.determineErrorSeverity(error),
          context: fullContext,
          performance: await this.capturePerformanceMetrics(),
-         timestamp: formatISO(new Date()),
+         timestamp: new Date().toISOString(),
          environment: {
             nodeVersion: process.version,
             clientName: this.config.clientName,

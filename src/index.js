@@ -4,33 +4,24 @@ import 'dotenv/config';
 import { Client, GatewayIntentBits } from 'discord.js';
 import DiscordBotErrorHandler from './handlers/errorHandler.js';
 
-// Function to check environment variables
 const checkEnvVariables = () => {
    if (!process.env.TOKEN) {
-      console.error(
-         'ERROR: TOKEN is not defined in the environment variables.'
-      );
+      console.error('ERROR: TOKEN is not defined in the environment variables.');
       process.exit(1);
    }
    if (!process.env.MONGODB_TOKEN) {
-      console.error(
-         'ERROR: MONGODB_TOKEN is not defined in the environment variables.'
-      );
+      console.error('ERROR: MONGODB_TOKEN is not defined in the environment variables.');
       process.exit(1);
    }
    if (!process.env.GITHUB_TOKEN) {
-      console.error(
-         'ERROR: GITHUB_TOKEN is not defined in the environment variables.'
-      );
+      console.error('ERROR: GITHUB_TOKEN is not defined in the environment variables.');
       process.exit(1);
    }
 };
 
-// Main function to set up and start the Discord client
 const main = async () => {
    checkEnvVariables();
-
-   // Import the event handler dynamically
+w
    let eventHandler;
    try {
       const module = await import('./handlers/eventHandler.js');
@@ -55,7 +46,11 @@ const main = async () => {
       webhookUrl: process.env.ERROR_WEBHOOK_URL,
    });
 
-   // Handle events using the imported event handler
+   client.ws.on('error', (error) => {
+      errorHandler.handleError(error, { type: 'webSocketError' });
+      console.error('WebSocket error:', error);
+   });
+
    try {
       eventHandler(client, errorHandler);
    } catch (error) {
@@ -63,7 +58,6 @@ const main = async () => {
       process.exit(1);
    }
 
-   // Attempt to log in to Discord with the provided token
    try {
       errorHandler.initialize(client);
       await client.login(process.env.TOKEN);
@@ -73,4 +67,7 @@ const main = async () => {
    }
 };
 
-main();
+main().catch((error) => {
+   console.error('Unhandled error in main function:', error);
+   process.exit(1);
+});
