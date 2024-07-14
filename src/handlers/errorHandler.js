@@ -12,14 +12,25 @@ class DiscordBotErrorHandler {
    constructor(config) {
       this.config = {
          webhookUrl: process.env.ERROR_WEBHOOK_URL,
+         environment: process.env.NODE_ENV || 'development',
          maxCacheSize: 100,
          retryAttempts: 3,
          retryDelay: 1000,
          rateLimit: { maxConcurrent: 1, minTime: 2000 },
+         clientName: 'unknown client',
          ...config,
       };
 
-      this.webhookClient = new WebhookClient({ url: this.config.webhookUrl });
+      if (!this.config.webhookUrl) {
+         console.error(
+            'ERROR_WEBHOOK_URL is not set in the environment variables'
+         );
+      } else {
+         this.webhookClient = new WebhookClient({
+            url: this.config.webhookUrl,
+         });
+      }
+
       this.errorCache = new Map();
       this.errorQueue = [];
       this.processingQueue = false;
@@ -33,7 +44,10 @@ class DiscordBotErrorHandler {
          console.error('Discord client is not provided');
          return;
       }
+      this.config.clientName =
+         this.client.user?.username || this.config.clientName;
       this.setupEventListeners();
+      this.client.ws.on('error', this.handleWebSocketError.bind(this));
    }
 
    setupEventListeners() {
@@ -52,6 +66,9 @@ class DiscordBotErrorHandler {
       process.on('uncaughtException', (error) =>
          this.handleError(error, { type: 'uncaughtException' })
       );
+   }
+   handleWebSocketError(error) {
+      this.handleError(error, { type: 'webSocketError' });
    }
 
    async handleError(error, context = {}) {
@@ -146,6 +163,11 @@ class DiscordBotErrorHandler {
          return 'Invalid Form Body Error';
       if (message.includes('unknown interaction'))
          return 'Unknown Interaction Error';
+      if (
+         error instanceof Error &&
+         error.message === "Unhandled 'error' event emitted"
+      )
+         return 'WebSocket Error';
 
       return 'Unknown Error';
    }
@@ -158,7 +180,11 @@ class DiscordBotErrorHandler {
          if (error.code === 10003) return 'Major';
          return 'Moderate';
       }
-
+      if (
+         error instanceof Error &&
+         error.message === "Unhandled 'error' event emitted"
+      )
+         return 'Major';
       if (error.critical) return 'Critical';
       if (error instanceof TypeError) return 'Warning';
       if (error.message.includes('rate limit')) return 'Major';
@@ -241,7 +267,7 @@ class DiscordBotErrorHandler {
                )
                .setTimestamp(new Date(errorDetails.timestamp))
                .setFooter({
-                  text: `Environment: ${errorDetails.environment.nodeVersion}`,
+                  text: `Environment: ${errorDetails.environment.nodeVersion} | Client: ${errorDetails.environment.clientName}`,
                });
 
             await this.webhookClient.send({
@@ -285,14 +311,19 @@ class DiscordBotErrorHandler {
       const fullContext = await this.captureContext(context);
 
       return {
-         message: error.message,
-         stackTrace: this.cleanStackTrace(error),
+         message: error.message || 'Unknown error',
+         stackTrace: error.stack
+            ? this.cleanStackTrace(error)
+            : 'No stack trace available',
          category: this.determineErrorCategory(error),
          severity: this.determineErrorSeverity(error),
          context: fullContext,
          performance: await this.capturePerformanceMetrics(),
          timestamp: formatISO(new Date()),
-         environment: { nodeVersion: process.version },
+         environment: {
+            nodeVersion: process.version,
+            clientName: this.config.clientName,
+         },
       };
    }
 }

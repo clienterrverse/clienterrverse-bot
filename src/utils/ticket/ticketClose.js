@@ -226,7 +226,6 @@ async function uploadTranscriptToGitHub(channelId, transcript) {
          console.error('Error checking file existence:', error.response.data);
          throw error;
       }
-      throw error;
    }
 
    await axios.put(url, data, { headers });

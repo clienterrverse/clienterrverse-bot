@@ -6,7 +6,7 @@ import getLocalContextMenus from '../../utils/getLocalContextMenus.js';
 /**
  * Registers, updates, or deletes application context menus based on local context menu files.
  * @param {Client} client - The Discord client instance.
- * @param {Object} errorHandler - Error handler instance.
+ * @param {DiscordBotErrorHandler} errorHandler - Error handler instance.
  */
 export default async (client, errorHandler) => {
    try {
@@ -58,6 +58,11 @@ export default async (client, errorHandler) => {
                );
             }
          } catch (err) {
+            errorHandler.handleError(err, {
+               type: 'contextMenuSync',
+               contextMenuName,
+               action: existingContextMenu ? 'update' : 'create',
+            });
             console.error(
                `Failed to process context menu ${contextMenuName}: ${err.message}`
                   .red
@@ -70,6 +75,7 @@ export default async (client, errorHandler) => {
 
       console.log('Context menu synchronization complete.'.green);
    } catch (err) {
+      errorHandler.handleError(err, { type: 'contextMenuSync' });
       console.error(
          `Error while registering context menus: ${err.message}`.red
       );

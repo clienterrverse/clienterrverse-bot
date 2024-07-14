@@ -1,12 +1,13 @@
 /** @format */
 
 import 'colors';
-import { EmbedBuilder, Collection } from 'discord.js';
+import { EmbedBuilder, Collection, PermissionsBitField } from 'discord.js';
 import { config } from '../../config/config.js';
 import mConfig from '../../config/messageConfig.js';
 import getSelects from '../../utils/getSelects.js';
 
 const selects = new Collection();
+let selectsLoaded = false;
 
 const sendEmbedReply = async (
    interaction,
@@ -21,22 +22,42 @@ const sendEmbedReply = async (
 const checkPermissions = (interaction, permissions, type) => {
    const member =
       type === 'user' ? interaction.member : interaction.guild.members.me;
-   return permissions.every((permission) => member.permissions.has(permission));
+   return permissions.every((permission) =>
+      member.permissions.has(PermissionsBitField.Flags[permission])
+   );
 };
 
-const loadSelects = async () => {
-   const selectFiles = await getSelects();
-   for (const select of selectFiles) {
-      selects.set(select.customId, select);
+const loadSelects = async (errorHandler) => {
+   try {
+      const selectFiles = await getSelects();
+      for (const select of selectFiles) {
+         selects.set(select.customId, select);
+      }
+      console.log(`Loaded ${selects.size} select menu commands`.green);
+      selectsLoaded = true;
+   } catch (error) {
+      errorHandler.handleError(error, { type: 'selectLoad' });
+      console.error('Error loading select menus:'.red, error);
    }
-   console.log(`Loaded ${selects.size} select menu commands`.green);
 };
 
-const handleSelect = async (client, interaction) => {
+const handleSelect = async (client, errorHandler, interaction) => {
    const { customId } = interaction;
    const selectObject = selects.get(customId);
 
-   if (!selectObject) return;
+   if (!selectObject) {
+      errorHandler.handleError(new Error(`Unknown select menu: ${customId}`), {
+         type: 'unknownSelect',
+         selectId: customId,
+         userId: interaction.user.id,
+         guildId: interaction.guild.id,
+      });
+      return sendEmbedReply(
+         interaction,
+         mConfig.embedColorError,
+         'This select menu is not recognized.'
+      );
+   }
 
    const { developersId, testServerId } = config;
 
@@ -89,13 +110,38 @@ const handleSelect = async (client, interaction) => {
       );
    }
 
+   // Check cooldown
+   if (selectObject.cooldown) {
+      const cooldownKey = `${interaction.user.id}-${customId}`;
+      const cooldownTime = selects.get(cooldownKey);
+      if (cooldownTime && Date.now() < cooldownTime) {
+         const remainingTime = Math.ceil((cooldownTime - Date.now()) / 1000);
+         return sendEmbedReply(
+            interaction,
+            mConfig.embedColorError,
+            `Please wait ${remainingTime} seconds before using this select menu again.`
+         );
+      }
+      selects.set(cooldownKey, Date.now() + selectObject.cooldown * 1000);
+   }
+
    try {
       await selectObject.run(client, interaction);
       console.log(
-         `Select menu executed: ${customId} by ${interaction.user.tag}`.green
+         `Select menu ${interaction.customId} used by ${interaction.user.tag} in ${interaction.guild.name}`
+            .yellow
       );
    } catch (error) {
       console.error(`Error executing select menu ${customId}:`.red, error);
+
+      // Use errorHandler to handle the error
+      await errorHandler.handleError(error, {
+         type: 'selectError',
+         selectId: customId,
+         userId: interaction.user.id,
+         guildId: interaction.guild.id,
+      });
+
       sendEmbedReply(
          interaction,
          mConfig.embedColorError,
@@ -106,7 +152,10 @@ const handleSelect = async (client, interaction) => {
 
 export default async (client, errorHandler, interaction) => {
    if (!interaction.isAnySelectMenu()) return;
-   await loadSelects();
 
-   await handleSelect(client, interaction);
+   if (!selectsLoaded) {
+      await loadSelects(errorHandler);
+   }
+
+   await handleSelect(client, errorHandler, interaction);
 };
