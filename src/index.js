@@ -6,22 +6,28 @@ import DiscordBotErrorHandler from './handlers/errorHandler.js';
 
 const checkEnvVariables = () => {
    if (!process.env.TOKEN) {
-      console.error('ERROR: TOKEN is not defined in the environment variables.');
+      console.error(
+         'ERROR: TOKEN is not defined in the environment variables.'
+      );
       process.exit(1);
    }
    if (!process.env.MONGODB_TOKEN) {
-      console.error('ERROR: MONGODB_TOKEN is not defined in the environment variables.');
+      console.error(
+         'ERROR: MONGODB_TOKEN is not defined in the environment variables.'
+      );
       process.exit(1);
    }
    if (!process.env.GITHUB_TOKEN) {
-      console.error('ERROR: GITHUB_TOKEN is not defined in the environment variables.');
+      console.error(
+         'ERROR: GITHUB_TOKEN is not defined in the environment variables.'
+      );
       process.exit(1);
    }
 };
 
 const main = async () => {
    checkEnvVariables();
-w
+   w;
    let eventHandler;
    try {
       const module = await import('./handlers/eventHandler.js');
