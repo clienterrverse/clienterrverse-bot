@@ -39,21 +39,7 @@ const handleButton = async (client, errorHandler, interaction) => {
    const { customId } = interaction;
    const button = buttons.get(customId);
 
-   if (!button) {
-      errorHandler.handleError(new Error(`Unknown button: ${customId}`), {
-         type: 'unknownButton',
-         buttonId: customId,
-         userId: interaction.user.id,
-         guildId: interaction.guild.id,
-      });
-      return sendEmbedReply(
-         interaction,
-         mConfig.embedColorError,
-         'This button is not recognized.',
-         true
-      );
-   }
-
+   if (!button) return;
    const { developersId, testServerId } = config;
 
    // Check if the button is developer-only

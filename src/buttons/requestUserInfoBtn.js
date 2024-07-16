@@ -12,9 +12,8 @@ export default {
 
    run: async (client, interaction) => {
       try {
-         const { guild, member } = interaction;
+         const { guild, member, channel } = interaction;
 
-         // Defer the interaction immediately to prevent timeout
          await interaction.deferReply();
 
          // Get the ticket setup configuration
@@ -37,20 +36,22 @@ export default {
             });
          }
 
-         // Get user ticket information
-         const ticket = await ticketSchema.findOne({
+         // Get the ticket information
+         const sticket = await ticketSchema.findOne({
             guildID: guild.id,
-            ticketMemberID: interaction.user.id,
+            ticketChannelID: channel.id,
+            closed: false,
          });
-         if (!ticket) {
+
+         if (!sticket) {
             return await interaction.editReply({
-               content: 'User not found. Please specify a valid user.',
+               content: 'This ticket is not valid or is closed.',
                ephemeral: true,
             });
          }
 
          const user = await guild.members
-            .fetch(ticket.ticketMemberID)
+            .fetch(sticket.ticketMemberID)
             .catch(() => null);
          if (!user) {
             return await interaction.editReply({
@@ -67,13 +68,13 @@ export default {
 
          if (!tickets || tickets.length === 0) {
             return await interaction.editReply({
-               content: 'This user has no tickets.',
+               content: 'This user has no closed tickets.',
                ephemeral: true,
             });
          }
 
          // Format tickets into pages
-         const pages = tickets.map((ticket, index) => {
+         const pages = tickets.map((ticket) => {
             const claimedBy = ticket.claimedBy
                ? `<@${ticket.claimedBy}>`
                : 'Unclaimed';
@@ -103,16 +104,12 @@ export default {
                   },
                   {
                      name: '⏳ Open Duration',
-                     value: `<t:${Math.floor(
-                        new Date(ticket.createdAt).getTime() / 1000
-                     )}:R>`,
+                     value: `<t:${Math.floor(new Date(ticket.createdAt).getTime() / 1000)}:R>`,
                      inline: true,
                   },
                   {
                      name: '🔒 Closed At',
-                     value: `<t:${Math.floor(
-                        new Date(ticket.createdAt).getTime() / 1000
-                     )}:R>`,
+                     value: `<t:${Math.floor(new Date(ticket.closedAt).getTime() / 1000)}:R>`,
                      inline: true,
                   },
                   {
