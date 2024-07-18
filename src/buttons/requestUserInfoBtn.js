@@ -14,9 +14,8 @@ export default {
       try {
          const { guild, member, channel } = interaction;
 
-         await interaction.deferReply();
+         await interaction.deferReply({ ephemeral: true });
 
-         // Get the ticket setup configuration
          const ticketSetup = await ticketSetupSchema.findOne({
             guildID: guild.id,
          });
@@ -24,7 +23,6 @@ export default {
             return await interaction.editReply({
                content:
                   'Ticket system is not configured properly. Please contact an administrator.',
-               ephemeral: true,
             });
          }
 
@@ -32,44 +30,32 @@ export default {
          if (!member.roles.cache.has(ticketSetup.staffRoleID)) {
             return await interaction.editReply({
                content: 'You do not have permission to request user info.',
-               ephemeral: true,
             });
          }
 
-         // Get the ticket information
-         const sticket = await ticketSchema.findOne({
+         // Get the current ticket information
+         const currentTicket = await ticketSchema.findOne({
             guildID: guild.id,
             ticketChannelID: channel.id,
             closed: false,
          });
 
-         if (!sticket) {
+         if (!currentTicket) {
             return await interaction.editReply({
                content: 'This ticket is not valid or is closed.',
-               ephemeral: true,
             });
          }
 
-         const user = await guild.members
-            .fetch(sticket.ticketMemberID)
-            .catch(() => null);
-         if (!user) {
-            return await interaction.editReply({
-               content: 'User not found in this guild.',
-               ephemeral: true,
-            });
-         }
-
+         // Fetch all closed tickets for this user
          const tickets = await ticketSchema.find({
             guildID: guild.id,
-            ticketMemberID: user.id,
+            ticketMemberID: currentTicket.ticketMemberID,
             closed: true,
-         });
+         }).sort({ closedAt: -1 }); // Sort by closing date, newest first
 
          if (!tickets || tickets.length === 0) {
             return await interaction.editReply({
                content: 'This user has no closed tickets.',
-               ephemeral: true,
             });
          }
 
@@ -98,28 +84,32 @@ export default {
                   {
                      name: '📅 Created At',
                      value: ticket.createdAt
-                        ? ticket.createdAt.toDateString()
+                        ? `<t:${Math.floor(new Date(ticket.createdAt).getTime() / 1000)}:F>`
                         : 'Unknown',
                      inline: true,
                   },
                   {
                      name: '⏳ Open Duration',
-                     value: `<t:${Math.floor(new Date(ticket.createdAt).getTime() / 1000)}:R>`,
+                     value: ticket.createdAt
+                        ? `<t:${Math.floor(new Date(ticket.createdAt).getTime() / 1000)}:R>`
+                        : 'Unknown',
                      inline: true,
                   },
                   {
                      name: '🔒 Closed At',
-                     value: `<t:${Math.floor(new Date(ticket.closedAt).getTime() / 1000)}:R>`,
+                     value: ticket.closedAt 
+                        ? `<t:${Math.floor(new Date(ticket.closedAt).getTime() / 1000)}:R>`
+                        : 'Not closed yet',
                      inline: true,
                   },
                   {
                      name: '🔖 Claimed By',
-                     value: claimedBy || 'Not claimed',
+                     value: claimedBy,
                      inline: true,
                   },
                   {
                      name: '📝 Close Reason',
-                     value: closeReason || 'No reason specified',
+                     value: closeReason,
                      inline: true,
                   },
                   {
@@ -140,7 +130,7 @@ export default {
                   'An error occurred while processing your request. Please try again later.',
                ephemeral: true,
             });
-         } else if (interaction.deferred) {
+         } else {
             await interaction.editReply({
                content:
                   'An error occurred while processing your request. Please try again later.',
