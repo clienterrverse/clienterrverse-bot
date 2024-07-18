@@ -1,8 +1,17 @@
 /** @format */
 
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { Balance, Transaction } from '../../schemas/economy.js';
 import mconfig from '../../config/messageConfig.js';
+
+const COLORS = {
+   DEFAULT: 0x7289DA,  // Discord blurple
+   SUCCESS: 0x43B581,  // Discord green
+   WARNING: 0xFAA61A,  // Discord yellow
+   INFO: 0x5865F2,     // Discord blue
+   ERROR: 0xED4245     // Discord red
+};
+
 
 export default {
    data: new SlashCommandBuilder()
@@ -11,17 +20,17 @@ export default {
       .addSubcommand((subcommand) =>
          subcommand
             .setName('add')
-            .setDescription("Add clienterr coins to a user's balance")
+            .setDescription("Add coins to a user's balance")
             .addUserOption((option) =>
                option
                   .setName('user')
-                  .setDescription('The user you want to add clienterr coins to')
+                  .setDescription('The user you want to add coins to')
                   .setRequired(true)
             )
             .addIntegerOption((option) =>
                option
                   .setName('amount')
-                  .setDescription('The amount of clienterr coins to add')
+                  .setDescription('The amount of coins to add')
                   .setRequired(true)
                   .setMinValue(1)
             )
@@ -29,19 +38,17 @@ export default {
       .addSubcommand((subcommand) =>
          subcommand
             .setName('subtract')
-            .setDescription("Subtract clienterr coins from a user's balance")
+            .setDescription("Subtract coins from a user's balance")
             .addUserOption((option) =>
                option
                   .setName('user')
-                  .setDescription(
-                     'The user you want to subtract clienterr coins from'
-                  )
+                  .setDescription('The user you want to subtract coins from')
                   .setRequired(true)
             )
             .addIntegerOption((option) =>
                option
                   .setName('amount')
-                  .setDescription('The amount of clienterr coins to subtract')
+                  .setDescription('The amount of coins to subtract')
                   .setRequired(true)
                   .setMinValue(1)
             )
@@ -75,35 +82,48 @@ export default {
                   .setRequired(true)
             )
       )
+      .addSubcommand((subcommand) =>
+         subcommand
+            .setName('reset')
+            .setDescription("Reset a user's balance to 0")
+            .addUserOption((option) =>
+               option
+                  .setName('user')
+                  .setDescription('The user whose balance you want to reset')
+                  .setRequired(true)
+            )
+      )
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
       .toJSON(),
-   userPermissions: [],
+   userPermissions: ['Administrator'],
    botPermissions: [],
-   cooldown: 5, // Cooldown in seconds
+   cooldown: 5,
    nsfwMode: false,
    testMode: false,
    devOnly: true,
+
 
    run: async (client, interaction) => {
       const subcommand = interaction.options.getSubcommand();
       const user = interaction.options.getUser('user');
       const amount = interaction.options.getInteger('amount');
-
+   
       try {
          let userBalance = await Balance.findOneAndUpdate(
             { userId: user.id },
             { $setOnInsert: { balance: 0, bank: 0 } },
             { upsert: true, new: true }
          );
-
+   
          let responseMessage;
-         let color;
+         let color = COLORS.DEFAULT; // Default color
          let transactionType;
-
+   
          switch (subcommand) {
             case 'add':
                userBalance.balance += amount;
-               responseMessage = `Added ${amount} clienterr coins to ${user.username}'s balance. New balance: ${userBalance.balance} clienterr coins.`;
-               color = mconfig.embedColorSuccess;
+               responseMessage = `Added ${amount} coins to ${user.username}'s balance. New balance: ${userBalance.balance} coins.`;
+               color = COLORS.SUCCESS;
                transactionType = 'add';
                break;
             case 'subtract':
@@ -113,39 +133,47 @@ export default {
                         createErrorEmbed(
                            interaction,
                            'Insufficient Balance',
-                           `${user.username} does not have enough balance to subtract ${amount} clienterr coins.`
+                           `${user.username} does not have enough balance to subtract ${amount} coins.`
                         ),
                      ],
                      ephemeral: true,
                   });
                }
                userBalance.balance -= amount;
-               responseMessage = `Subtracted ${amount} clienterr coins from ${user.username}'s balance. New balance: ${userBalance.balance} clienterr coins.`;
-               color = mconfig.embedColorWarning;
+               responseMessage = `Subtracted ${amount} coins from ${user.username}'s balance. New balance: ${userBalance.balance} coins.`;
+               color = COLORS.WARNING;
                transactionType = 'subtract';
                break;
             case 'set':
                userBalance.balance = amount;
-               responseMessage = `Set ${user.username}'s balance to ${amount} clienterr coins.`;
-               color = mconfig.embedColorInfo;
+               responseMessage = `Set ${user.username}'s balance to ${amount} coins.`;
+               color = COLORS.INFO;
                transactionType = 'set';
                break;
             case 'view':
-               responseMessage = `${user.username}'s current balance: ${userBalance.balance} clienterr coins.`;
-               color = mconfig.embedColorDefault;
+               responseMessage = `${user.username}'s current balance: ${userBalance.balance} coins.`;
+               // color remains default
                break;
+            case 'reset':
+               userBalance.balance = 0;
+               responseMessage = `Reset ${user.username}'s balance to 0 coins.`;
+               color = COLORS.WARNING;
+               transactionType = 'reset';
+               break;
+            default:
+               throw new Error('Invalid subcommand');
          }
-
+   
          if (subcommand !== 'view') {
             await userBalance.save();
             await Transaction.create({
                userId: user.id,
                type: transactionType,
-               amount: amount,
+               amount: subcommand === 'reset' ? userBalance.balance : amount,
                executorId: interaction.user.id,
             });
          }
-
+   
          const embed = new EmbedBuilder()
             .setDescription(responseMessage)
             .setColor(color)
@@ -158,27 +186,27 @@ export default {
                }),
             })
             .setTimestamp();
-
+   
          await interaction.reply({ embeds: [embed] });
       } catch (error) {
+         console.error('Economy command error:', error);
          await interaction.reply({
             embeds: [
                createErrorEmbed(
                   interaction,
                   'Error',
-                  'There was an error processing your request.'
+                  'There was an error processing your request. Please try again later.'
                ),
             ],
             ephemeral: true,
          });
-         throw error;
       }
    },
 };
-
+   
 function createErrorEmbed(interaction, title, description) {
    return new EmbedBuilder()
-      .setColor(mconfig.embedColorError)
+      .setColor(COLORS.ERROR)
       .setTitle(`❌ ${title}`)
       .setDescription(description)
       .setFooter({
