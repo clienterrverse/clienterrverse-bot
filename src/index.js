@@ -21,7 +21,7 @@ const checkEnvVariables = () => {
 
 const main = async () => {
    checkEnvVariables();
-w
+
    let eventHandler;
    try {
       const module = await import('./handlers/eventHandler.js');
