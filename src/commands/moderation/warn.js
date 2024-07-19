@@ -10,6 +10,8 @@ import { config } from '../../config/config.js';
 
 import { Infraction } from '../../schemas/infractionSchema.js';
 
+import ms from 'ms';
+
 export default {
    data: new SlashCommandBuilder()
       .setName('warn')
@@ -24,7 +26,13 @@ export default {
          option
             .setName('reason')
             .setDescription('The reason for warning this member.')
-            .setRequired(true)
+      )
+      .addStringOption((opt) =>
+         opt
+            .setName('duration')
+            .setDescription(
+               'Delete the warning after the specific duration. Use `permanent` for it to never expire.'
+            )
       ),
 
    userPermissions: [PermissionsBitField.Flags.ModerateMembers],
@@ -36,17 +44,31 @@ export default {
 
    run: async (client, interaction) => {
       const { options, guild, member, channel } = interaction;
-
-      // Constants
-      const reason = options.getString('reason');
-      const target = options.getMember('member');
-      const date = `<t:${Math.round(Date.now() / 1000)}:F>`;
-      const infractionId = SnowflakeUtil.generate();
       const embed = new EmbedBuilder().setColor(Colors.Red);
 
-      // Checks
+      const date = Date.now();
+      const reason = options.getString('reason') ?? 'Unspecified Reason.';
+      const target = options.getMember('member');
+      const durationStr = options.getString('duration');
+      let duration = durationStr ? ms(durationStr) : null;
+      let expires = duration ? duration + date : null;
+
+      const infractionId = SnowflakeUtil.generate();
+
+      if (!target) {
+         embed.setDescription(
+            `${client.config.emotes.fail} User is not in the guild.`
+         );
+         return interaction.reply({
+            embeds: [embed],
+            ephemeral: true,
+         });
+      }
+
       if (target.user.bot) {
-         embed.setDescription('You cannot warn a bot!');
+         embed.setDescription(
+            `${client.config.emotes.fail} You cannot warn a bot.`
+         );
          return interaction.reply({
             embeds: [embed],
             ephemeral: true,
@@ -54,7 +76,9 @@ export default {
       }
 
       if (target.id === member.id) {
-         embed.setDescription('You cannot warn yourself!');
+         embed.setDescription(
+            `${client.config.emotes.fail} You cannot warn yourself.`
+         );
          return interaction.reply({
             embeds: [embed],
             ephemeral: true,
@@ -63,7 +87,24 @@ export default {
 
       if (target.roles.highest.position >= member.roles.highest.position) {
          embed.setDescription(
-            `You cannot warn a member with a role superior (or equal) to yours!`
+            `${client.config.emotes.fail} You cannot warn a member with a role superior (or equal) to yours.`
+         );
+         return interaction.reply({
+            embeds: [embed],
+            ephemeral: true,
+         });
+      }
+
+      if (isNaN(duration) && durationStr !== 'permanent') {
+         embed.setDescription('Invalid Duration.');
+         return interaction.reply({
+            embeds: [embed],
+            ephemeral: true,
+         });
+      }
+      if (duration && duration < 1000) {
+         embed.setDescription(
+            `${client.config.emotes.fail} Temporary warn duration must be at least 1 second.`
          );
          return interaction.reply({
             embeds: [embed],
@@ -96,31 +137,50 @@ export default {
             date: date,
             reason: reason,
             type: 'Warn',
-            expires: 'Never',
+            expires:
+               duration && duration !== 'Permanent'
+                  ? `${Date.now() + duration}`
+                  : 'Never',
          };
          await new Infraction(infractionData).save();
       } catch (e) {
          console.log(e);
       }
 
-      const dmLog = new EmbedBuilder()
-         .setColor('#fcd44c')
-         .setAuthor({
-            name: `You were warned in ${interaction.guild.name}`,
-            iconURL: interaction.guild.iconURL({
-               dynamic: true,
-            }),
-         })
-         .addFields({
-            name: `Reason`,
-            value: `${reason}`,
-         })
+      const dmLog = new EmbedBuilder();
+      dmLog.setColor(Colors.Yellow);
+      dmLog.setAuthor({
+         name: `You were warned in ${interaction.guild.name}`,
+         iconURL: interaction.guild.iconURL({
+            dynamic: true,
+         }),
+      });
+      dmLog
+         .addFields(
+            {
+               name: `Reason`,
+               value: `${reason}`,
+            },
+            { name: `Moderator`, value: `${member.user}` }
+         )
+
          .setFooter({
             text: `Infraction ID: ${infractionId}`,
          });
-      await target.send({
-         embeds: [dmLog],
-      });
+      if (expires) {
+         dmLog.addFields({
+            name: 'Expires',
+            value: `<t:${Math.floor(Number(expires) / 1000)}> (<t:${Math.floor(
+               Number(expires) / 1000
+            )}:R>)`,
+         });
+      }
+
+      await target
+         .send({
+            embeds: [dmLog],
+         })
+         .catch(() => {});
 
       const logChannel = guild.channels.cache.find(
          (channel) => channel.id === config.logChannel
@@ -128,9 +188,9 @@ export default {
       if (!logChannel) return;
 
       const embedLog = new EmbedBuilder()
-         .setColor('fcd44c')
+         .setColor(Colors.Yellow)
          .setAuthor({
-            name: `Member Warned | ${target.user.username}`,
+            name: `Warn | ${target.user.username}`,
             iconURL: target.user.displayAvatarURL(),
          })
          .addFields(
@@ -139,10 +199,25 @@ export default {
                name: 'Moderator',
                value: `${member.user} `,
             },
-            { name: 'Reason', value: reason },
-            { name: 'Date', value: date }
+            { name: 'Reason', value: reason }
          )
-         .setFooter({ text: `Infraction ID: ${infractionId}` });
+
+         .setFooter({ text: `Infraction ID: ${infractionId}` })
+         .setTimestamp();
+      if (duration && duration !== 'permanent') {
+         embedLog.addFields(
+            {
+               name: 'Duration',
+               value: `${ms(Number(duration), { long: true })}`,
+            },
+            {
+               name: 'Expires',
+               value: `<t:${Math.floor(
+                  Number(Date.now() + duration) / 1000
+               )}> (<t:${Math.floor(Number(Date.now() + duration) / 1000)}:R>)`,
+            }
+         );
+      }
 
       await logChannel
          .send({
