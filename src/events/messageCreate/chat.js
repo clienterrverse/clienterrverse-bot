@@ -12,6 +12,8 @@ const GIFS = {
       'https://tenor.com/view/clienterrverse-clienterr-fakepixel-kobe-gif-3978810040281653181',
    tameNory:
       'https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTF4eGs3Y2U4bHY0b2FkeGpkaXgwZjdxcGE4d2xnNjlvM2o0cnVpZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/HOTfzC3IjaJxK/giphy.webp',
+   demoteclienterr:
+      'https://tenor.com/view/clienterr-fakepixel-demo-pls-gif-10228665671878098589',
 };
 
 // Define actions in a more structured way
@@ -35,6 +37,10 @@ const ACTIONS = [
    {
       regex: /how\s*to\s*tame\s*(nory|norysight)/i,
       action: async (message) => message.reply(GIFS.tameNory),
+   },
+   {
+      regex: /demote\s*clienterr/i,
+      action: async (message) => message.reply(GIFS.demoteclienterr),
    },
 ];
 
