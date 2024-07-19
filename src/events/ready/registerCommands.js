@@ -15,7 +15,7 @@ export default async (client, errorHandler) => {
       const { testServerId } = config;
       const [localCommands, applicationCommands] = await Promise.all([
          getLocalCommands(),
-         getApplicationCommands(client, testServerId),
+         getApplicationCommands(client),
       ]);
 
       await deleteUnusedCommands(
