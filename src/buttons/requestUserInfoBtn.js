@@ -47,11 +47,13 @@ export default {
          }
 
          // Fetch all closed tickets for this user
-         const tickets = await ticketSchema.find({
-            guildID: guild.id,
-            ticketMemberID: currentTicket.ticketMemberID,
-            closed: true,
-         }).sort({ closedAt: -1 }); // Sort by closing date, newest first
+         const tickets = await ticketSchema
+            .find({
+               guildID: guild.id,
+               ticketMemberID: currentTicket.ticketMemberID,
+               closed: true,
+            })
+            .sort({ closedAt: -1 }); // Sort by closing date, newest first
 
          if (!tickets || tickets.length === 0) {
             return await interaction.editReply({
@@ -97,7 +99,7 @@ export default {
                   },
                   {
                      name: '🔒 Closed At',
-                     value: ticket.closedAt 
+                     value: ticket.closedAt
                         ? `<t:${Math.floor(new Date(ticket.closedAt).getTime() / 1000)}:R>`
                         : 'Not closed yet',
                      inline: true,

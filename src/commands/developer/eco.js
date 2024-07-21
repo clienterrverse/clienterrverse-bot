@@ -1,17 +1,20 @@
 /** @format */
 
-import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import {
+   SlashCommandBuilder,
+   EmbedBuilder,
+   PermissionFlagsBits,
+} from 'discord.js';
 import { Balance, Transaction } from '../../schemas/economy.js';
 import mconfig from '../../config/messageConfig.js';
 
 const COLORS = {
-   DEFAULT: 0x7289DA,  // Discord blurple
-   SUCCESS: 0x43B581,  // Discord green
-   WARNING: 0xFAA61A,  // Discord yellow
-   INFO: 0x5865F2,     // Discord blue
-   ERROR: 0xED4245     // Discord red
+   DEFAULT: 0x7289da, // Discord blurple
+   SUCCESS: 0x43b581, // Discord green
+   WARNING: 0xfaa61a, // Discord yellow
+   INFO: 0x5865f2, // Discord blue
+   ERROR: 0xed4245, // Discord red
 };
-
 
 export default {
    data: new SlashCommandBuilder()
@@ -102,23 +105,22 @@ export default {
    testMode: false,
    devOnly: true,
 
-
    run: async (client, interaction) => {
       const subcommand = interaction.options.getSubcommand();
       const user = interaction.options.getUser('user');
       const amount = interaction.options.getInteger('amount');
-   
+
       try {
          let userBalance = await Balance.findOneAndUpdate(
             { userId: user.id },
             { $setOnInsert: { balance: 0, bank: 0 } },
             { upsert: true, new: true }
          );
-   
+
          let responseMessage;
          let color = COLORS.DEFAULT; // Default color
          let transactionType;
-   
+
          switch (subcommand) {
             case 'add':
                userBalance.balance += amount;
@@ -163,7 +165,7 @@ export default {
             default:
                throw new Error('Invalid subcommand');
          }
-   
+
          if (subcommand !== 'view') {
             await userBalance.save();
             await Transaction.create({
@@ -173,7 +175,7 @@ export default {
                executorId: interaction.user.id,
             });
          }
-   
+
          const embed = new EmbedBuilder()
             .setDescription(responseMessage)
             .setColor(color)
@@ -186,7 +188,7 @@ export default {
                }),
             })
             .setTimestamp();
-   
+
          await interaction.reply({ embeds: [embed] });
       } catch (error) {
          console.error('Economy command error:', error);
@@ -203,7 +205,7 @@ export default {
       }
    },
 };
-   
+
 function createErrorEmbed(interaction, title, description) {
    return new EmbedBuilder()
       .setColor(COLORS.ERROR)

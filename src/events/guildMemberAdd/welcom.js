@@ -1,33 +1,75 @@
+import { AttachmentBuilder, EmbedBuilder } from 'discord.js';
+import { profileImage } from 'discord-arts';
+import Welcome from '../../schemas/welcomeSchema.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export default async (client, errorHandler, member) => {
-   const welcomeChannelId = '1208141730810044416';
-   const autoRoleId = '1208103840667402260';
-
-   const welcomeChannel = member.guild.channels.cache.get(welcomeChannelId);
-   const autoRole = member.guild.roles.cache.get(autoRoleId);
-
-   if (!welcomeChannel) {
-      console.error(`Welcome channel with ID ${welcomeChannelId} not found.`);
-      return;
-   }
-
-   if (!autoRole) {
-      console.error(`Auto role with ID ${autoRoleId} not found.`);
-      return;
-   }
-
    try {
-      // Send a welcome message
-      const welcomeMessage = await welcomeChannel.send(
-         `Welcome to Clienterrverse, ${member}!`
+      const guildId = member.guild.id;
+      const welcomeSettings = await Welcome.findOne({ guildId });
+
+      if (!welcomeSettings?.enabled) {
+         return; // Welcome feature is not enabled for this guild
+      }
+
+      const welcomeChannel = member.guild.channels.cache.get(
+         welcomeSettings.channelId
       );
+      const autoRole = member.guild.roles.cache.get(welcomeSettings.roleId);
 
-      // Add custom emoji reaction
-      const emoji = '<:whip:1223554028794024018>'; // Custom emoji format
-      await welcomeMessage.react(emoji);
+      if (!welcomeChannel) {
+         throw new Error(
+            `Welcome channel with ID ${welcomeSettings.channelId} not found.`
+         );
+      }
 
-      // Add the auto role to the member
+      if (!autoRole) {
+         throw new Error(
+            `Auto role with ID ${welcomeSettings.roleId} not found.`
+         );
+      }
+
+      // Generate profile image
+      const backgroundPath = path.join(
+         __dirname,
+         '..',
+         '..',
+         'assets',
+         'welcome.png'
+      );
+      const img = await profileImage(member.user.id, {
+         customTag: `Member #${member.guild.memberCount}`,
+         customBackground: backgroundPath,
+      });
+
+      // Create an attachment from the generated image
+      const attachment = new AttachmentBuilder(img, {
+         name: 'welcome-image.png',
+      });
+
+      // Create an embed for the welcome message
+      const embed = new EmbedBuilder()
+         .setColor('#0099ff')
+         .setTitle(`Welcome to ${member.guild.name}!`)
+         .setDescription(
+            welcomeSettings.message.replace('{user}', `<@${member.id}>`)
+         )
+         .setImage('attachment://welcome-image.png')
+         .setTimestamp()
+         .setFooter({ text: `Joined: ${member.joinedAt.toUTCString()}` });
+
+      const welcomeMessage = await welcomeChannel.send({
+         content: `Hey everyone, please welcome <@${member.id}>!`,
+         embeds: [embed],
+         files: [attachment],
+      });
+
       await member.roles.add(autoRole);
    } catch (error) {
-      console.error('An error occurred:', error);
+      errorHandler(error, 'Welcome Event');
    }
 };

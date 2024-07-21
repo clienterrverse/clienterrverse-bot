@@ -1,10 +1,5 @@
 import { config } from '../../config/config.js';
-import {
-   EmbedBuilder,
-   ActionRowBuilder,
-   ButtonBuilder,
-   ButtonStyle,
-} from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 
 const EMOJIS = {
    LOG: '📝',
@@ -18,7 +13,7 @@ const EMOJIS = {
 const createMessageEmbed = (message, author, content, time, imageURL) => {
    return new EmbedBuilder()
       .setColor('#0099ff')
-      .setTitle(`${EMOJIS.LOG} Message Logged`)
+      .setTitle(`${EMOJIS.LOG} Message Log`)
       .setThumbnail(author.displayAvatarURL())
       .addFields(
          {
@@ -95,58 +90,6 @@ export default async (client, errorHandler, message) => {
 
       const logMessage = await logChannel.send({
          embeds: [embed],
-      });
-
-      // Add reactions to the logged message
-      await logMessage.react(EMOJIS.REACTION);
-      if (imageURL) await logMessage.react(EMOJIS.IMAGE);
-
-      // Set up a reaction collector
-      const filter = (reaction, user) => {
-         return (
-            [EMOJIS.REACTION, EMOJIS.IMAGE, EMOJIS.DELETE].includes(
-               reaction.emoji.name
-            ) && !user.bot
-         );
-      };
-
-      const collector = logMessage.createReactionCollector({
-         filter,
-         time: 600000,
-      }); // 10 minutes
-
-      collector.on('collect', async (reaction, user) => {
-         if (
-            reaction.emoji.name === EMOJIS.DELETE &&
-            user.id === message.author.id
-         ) {
-            await logMessage.delete();
-            collector.stop();
-         }
-      });
-
-      // Set up a button interaction collector
-      const buttonCollector = logMessage.createMessageComponentCollector({
-         time: 600000,
-      }); // 10 minutes
-
-      buttonCollector.on('collect', async (interaction) => {
-         if (
-            interaction.customId === `delete_${message.id}` &&
-            interaction.user.id === message.author.id
-         ) {
-            await logMessage.delete();
-            buttonCollector.stop();
-         } else if (
-            interaction.customId === `edit_${message.id}` &&
-            interaction.user.id === message.author.id
-         ) {
-            // Implement edit functionality here
-            await interaction.reply({
-               content: 'Edit functionality not implemented yet.',
-               ephemeral: true,
-            });
-         }
       });
    } catch (error) {
       console.error('Error logging message:', error);
