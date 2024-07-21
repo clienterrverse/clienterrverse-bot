@@ -42,7 +42,7 @@ export default {
 
          await interaction.reply({ embeds: [bankEmbed] });
       } catch (error) {
-         throw error
+         throw error;
       }
    },
 };

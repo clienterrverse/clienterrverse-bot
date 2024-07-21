@@ -95,6 +95,12 @@ const createErrorEmbed = (error, client) => {
 export default async (client, errorHandler, oldMessage, newMessage) => {
    if (newMessage.author.bot || newMessage.guild.id !== config.testServerId)
       return;
+   if (
+      oldMessage.content === newMessage.content &&
+      oldMessage.embeds.length === newMessage.embeds.length &&
+      oldMessage.attachments.size === newMessage.attachments.size
+   )
+      return;
 
    const logChannel = client.channels.cache.get(config.logChannel);
    if (!logChannel) {
