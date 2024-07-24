@@ -14,6 +14,7 @@ export default {
 
    userPermissionsBitField: [],
    bot: [],
+   category: 'Misc',
    cooldown: 19, // Cooldown of 5 seconds
    nwfwMode: false,
    testMode: false,

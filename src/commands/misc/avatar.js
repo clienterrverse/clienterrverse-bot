@@ -19,6 +19,7 @@ export default {
 
    userPermissions: [],
    botPermissions: [],
+   category: 'Misc',
    cooldown: 5,
    deleted: false,
    nwfwMode: false,

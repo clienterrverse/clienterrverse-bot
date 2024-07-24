@@ -6,8 +6,33 @@ import { config } from '../../config/config.js';
 import mConfig from '../../config/messageConfig.js';
 import getLocalCommands from '../../utils/getLocalCommands.js';
 
+class LRUCache {
+   constructor(capacity) {
+      this.capacity = capacity;
+      this.cache = new Map();
+   }
+
+   get(key) {
+      if (!this.cache.has(key)) return undefined;
+      const value = this.cache.get(key);
+      this.cache.delete(key);
+      this.cache.set(key, value);
+      return value;
+   }
+
+   set(key, value) {
+      if (this.cache.has(key)) this.cache.delete(key);
+      else if (this.cache.size >= this.capacity) {
+         const firstKey = this.cache.keys().next().value;
+         this.cache.delete(firstKey);
+      }
+      this.cache.set(key, value);
+   }
+}
+
+const cache = new LRUCache(100); // Adjust capacity as needed
 const cooldowns = new Collection();
-const cache = new Map();
+const commandMap = new Map();
 
 const sendEmbedReply = async (
    interaction,
@@ -26,21 +51,26 @@ const sendEmbedReply = async (
 };
 
 const getCachedData = async (key, fetchFunction) => {
-   const now = Date.now();
-   const cacheDuration = config.cacheDuration * 1000;
    const cachedItem = cache.get(key);
-
-   if (cachedItem && now - cachedItem.timestamp < cacheDuration) {
-      return cachedItem.data;
-   }
+   if (cachedItem) return cachedItem;
 
    const data = await fetchFunction();
-   cache.set(key, { data, timestamp: now });
+   cache.set(key, data);
    return data;
 };
 
 const getCachedLocalCommands = () =>
    getCachedData('localCommands', getLocalCommands);
+
+const initializeCommandMap = async () => {
+   const localCommands = await getCachedLocalCommands();
+   localCommands.forEach((cmd) => {
+      commandMap.set(cmd.data.name, cmd);
+      if (cmd.aliases) {
+         cmd.aliases.forEach((alias) => commandMap.set(alias, cmd));
+      }
+   });
+};
 
 const applyCooldown = (interaction, commandName, cooldownAmount) => {
    const userCooldowns = cooldowns.get(commandName) || new Collection();
@@ -75,15 +105,14 @@ export default async (client, errorHandler, interaction) => {
    if (!interaction.isChatInputCommand() && !interaction.isAutocomplete())
       return;
 
-   const localCommands = await getCachedLocalCommands();
+   if (commandMap.size === 0) {
+      await initializeCommandMap(); // Initialize command map if it's empty
+   }
+
    const { developersId, testServerId, maintenance } = config;
 
    try {
-      const commandObject = localCommands.find(
-         (cmd) =>
-            cmd.data.name === interaction.commandName ||
-            cmd.aliases?.includes(interaction.commandName)
-      );
+      const commandObject = commandMap.get(interaction.commandName);
 
       if (!commandObject) {
          return sendEmbedReply(
@@ -175,11 +204,9 @@ export default async (client, errorHandler, interaction) => {
          );
       }
 
-      // Run the command in a try-catch block to ensure errors are handled
       try {
          await commandObject.run(client, interaction);
       } catch (err) {
-         // Use errorHandler to handle the error
          await errorHandler.handleError(err, {
             type: 'commandError',
             commandName: interaction.commandName,
@@ -199,7 +226,6 @@ export default async (client, errorHandler, interaction) => {
             .green
       );
    } catch (err) {
-      // Use errorHandler to handle the error
       await errorHandler.handleError(err, {
          type: 'commandError',
          commandName: interaction.commandName,

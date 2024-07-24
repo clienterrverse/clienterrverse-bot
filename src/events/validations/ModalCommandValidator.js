@@ -6,6 +6,7 @@ import mConfig from '../../config/messageConfig.js';
 import getModals from '../../utils/getModals.js';
 
 const modals = new Collection();
+const cooldowns = new Map();
 let modalsLoaded = false;
 
 const sendEmbedReply = async (
@@ -14,22 +15,38 @@ const sendEmbedReply = async (
    description,
    ephemeral = true
 ) => {
-   const embed = new EmbedBuilder().setColor(color).setDescription(description);
-   await interaction.reply({ embeds: [embed], ephemeral });
+   try {
+      const embed = new EmbedBuilder()
+         .setColor(color)
+         .setDescription(description);
+      await interaction.reply({ embeds: [embed], ephemeral });
+   } catch (error) {
+      console.error('Error sending embed reply:'.red, error);
+   }
 };
 
-const checkPermissions = (interaction, permissions, type) => {
-   const member =
-      type === 'user' ? interaction.member : interaction.guild.members.me;
-   return permissions.every((permission) =>
+const checkPermissions = (member, permissions) =>
+   permissions.every((permission) =>
       member.permissions.has(PermissionsBitField.Flags[permission])
    );
-};
 
-const loadModals = async (errorHandler) => {
+const loadModals = async (errorHandler, retryCount = 0) => {
    try {
       const modalFiles = await getModals();
       for (const modal of modalFiles) {
+         modal.compiledChecks = {
+            userPermissions: modal.userPermissions
+               ? (interaction) =>
+                    checkPermissions(interaction.member, modal.userPermissions)
+               : () => true,
+            botPermissions: modal.botPermissions
+               ? (interaction) =>
+                    checkPermissions(
+                       interaction.guild.members.me,
+                       modal.botPermissions
+                    )
+               : () => true,
+         };
          modals.set(modal.customId, modal);
       }
       console.log(`Loaded ${modals.size} modal commands`.green);
@@ -37,6 +54,16 @@ const loadModals = async (errorHandler) => {
    } catch (error) {
       errorHandler.handleError(error, { type: 'modalLoad' });
       console.error('Error loading modals:'.red, error);
+
+      if (retryCount < 3) {
+         console.log(
+            `Retrying modal load... (Attempt ${retryCount + 1})`.yellow
+         );
+         await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds before retry
+         await loadModals(errorHandler, retryCount + 1);
+      } else {
+         console.error('Failed to load modals after 3 attempts'.red);
+      }
    }
 };
 
@@ -67,10 +94,7 @@ const handleModal = async (client, errorHandler, interaction) => {
    }
 
    // Check user permissions
-   if (
-      modalObject.userPermissions?.length &&
-      !checkPermissions(interaction, modalObject.userPermissions, 'user')
-   ) {
+   if (!modalObject.compiledChecks.userPermissions(interaction)) {
       return sendEmbedReply(
          interaction,
          mConfig.embedColorError,
@@ -79,10 +103,7 @@ const handleModal = async (client, errorHandler, interaction) => {
    }
 
    // Check bot permissions
-   if (
-      modalObject.botPermissions?.length &&
-      !checkPermissions(interaction, modalObject.botPermissions, 'bot')
-   ) {
+   if (!modalObject.compiledChecks.botPermissions(interaction)) {
       return sendEmbedReply(
          interaction,
          mConfig.embedColorError,
@@ -93,7 +114,7 @@ const handleModal = async (client, errorHandler, interaction) => {
    // Check cooldown
    if (modalObject.cooldown) {
       const cooldownKey = `${interaction.user.id}-${customId}`;
-      const cooldownTime = modals.get(cooldownKey);
+      const cooldownTime = cooldowns.get(cooldownKey);
       if (cooldownTime && Date.now() < cooldownTime) {
          const remainingTime = Math.ceil((cooldownTime - Date.now()) / 1000);
          return sendEmbedReply(
@@ -102,7 +123,7 @@ const handleModal = async (client, errorHandler, interaction) => {
             `Please wait ${remainingTime} seconds before submitting this modal again.`
          );
       }
-      modals.set(cooldownKey, Date.now() + modalObject.cooldown * 1000);
+      cooldowns.set(cooldownKey, Date.now() + modalObject.cooldown * 1000);
    }
 
    try {
@@ -111,7 +132,6 @@ const handleModal = async (client, errorHandler, interaction) => {
    } catch (error) {
       console.error(`Error executing modal ${customId}:`.red, error);
 
-      // Use errorHandler to handle the error
       await errorHandler.handleError(error, {
          type: 'modalError',
          modalId: customId,
@@ -134,7 +154,6 @@ export default async (client, errorHandler, interaction) => {
       await loadModals(errorHandler);
    }
 
-   // Log modal usage
    console.log(
       `Modal ${interaction.customId} submitted by ${interaction.user.tag} in ${interaction.guild.name}`
          .yellow

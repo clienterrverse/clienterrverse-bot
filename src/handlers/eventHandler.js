@@ -7,49 +7,79 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default async (client, errorHandler) => {
+/**
+ * Registers an event and its handler in the event registry.
+ * @param {Map} eventRegistry - The event registry.
+ * @param {string} eventName - The name of the event.
+ * @param {Object} eventInfo - Information about the event handler.
+ */
+const registerEvent = (eventRegistry, eventName, eventInfo) => {
+   if (!eventRegistry.has(eventName)) {
+      eventRegistry.set(eventName, []);
+   }
+   eventRegistry.get(eventName).push(eventInfo);
+};
+
+/**
+ * Loads an event file and registers it in the event registry.
+ * @param {string} eventFile - The path to the event file.
+ * @param {string} eventName - The name of the event.
+ * @param {Function} errorHandler - The error handler function.
+ */
+const loadEventFile = async (
+   eventFile,
+   eventName,
+   errorHandler,
+   eventRegistry
+) => {
+   try {
+      const { default: eventFunction } = await import(`file://${eventFile}`);
+      const eventInfo = {
+         function: eventFunction,
+         fileName: path.basename(eventFile),
+         priority: eventFunction.priority || 0,
+      };
+      registerEvent(eventRegistry, eventName, eventInfo);
+   } catch (error) {
+      errorHandler.handleError(error, {
+         type: 'loadingEventFile',
+         eventFile,
+         eventName,
+      });
+   }
+};
+
+/**
+ * Processes an event folder and loads all event files within it.
+ * @param {string} eventFolder - The path to the event folder.
+ * @param {Function} errorHandler - The error handler function.
+ * @param {Map} eventRegistry - The event registry.
+ */
+const processEventFolder = async (eventFolder, errorHandler, eventRegistry) => {
+   const eventFiles = getAllFiles(eventFolder);
+   let eventName = path.basename(eventFolder);
+
+   if (eventName === 'validations') {
+      eventName = 'interactionCreate';
+   }
+
+   const loadPromises = eventFiles
+      .filter((eventFile) => fs.lstatSync(eventFile).isFile())
+      .map((eventFile) =>
+         loadEventFile(eventFile, eventName, errorHandler, eventRegistry)
+      );
+
+   await Promise.all(loadPromises);
+};
+
+/**
+ * Main function to load and register all event handlers.
+ * @param {Object} client - The Discord client.
+ * @param {Function} errorHandler - The error handler function.
+ */
+const loadEventHandlers = async (client, errorHandler) => {
    const eventRegistry = new Map();
    const loadedEvents = new Set();
-
-   const registerEvent = (eventName, eventInfo) => {
-      if (!eventRegistry.has(eventName)) {
-         eventRegistry.set(eventName, []);
-      }
-      eventRegistry.get(eventName).push(eventInfo);
-   };
-
-   const loadEventFile = async (eventFile, eventName) => {
-      try {
-         const { default: eventFunction } = await import(`file://${eventFile}`);
-         const eventInfo = {
-            function: eventFunction,
-            fileName: path.basename(eventFile),
-            priority: eventFunction.priority || 0,
-         };
-         registerEvent(eventName, eventInfo);
-      } catch (error) {
-         errorHandler.handleError(error, {
-            type: 'loadingEventFile',
-            eventFile,
-            eventName,
-         });
-      }
-   };
-
-   const processEventFolder = async (eventFolder) => {
-      const eventFiles = getAllFiles(eventFolder);
-      let eventName = eventFolder.replace(/\\/g, '/').split('/').pop();
-
-      if (eventName === 'validations') {
-         eventName = 'interactionCreate';
-      }
-
-      for (const eventFile of eventFiles) {
-         if (fs.lstatSync(eventFile).isFile()) {
-            await loadEventFile(eventFile, eventName);
-         }
-      }
-   };
 
    try {
       const eventFolders = getAllFiles(
@@ -57,9 +87,11 @@ export default async (client, errorHandler) => {
          true
       );
 
-      for (const eventFolder of eventFolders) {
-         await processEventFolder(eventFolder);
-      }
+      await Promise.all(
+         eventFolders.map((eventFolder) =>
+            processEventFolder(eventFolder, errorHandler, eventRegistry)
+         )
+      );
 
       for (const [eventName, eventHandlers] of eventRegistry) {
          eventHandlers.sort((a, b) => b.priority - a.priority);
@@ -88,6 +120,7 @@ export default async (client, errorHandler) => {
       }
    } catch (error) {
       errorHandler.handleError(error, { type: 'settingUpEventHandlers' });
-      console.error('Error setting up event handlers:'.red, error);
    }
 };
+
+export default loadEventHandlers;

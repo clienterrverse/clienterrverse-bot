@@ -1,12 +1,36 @@
 /** @format */
 
 import 'colors';
-import { EmbedBuilder, Collection } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 import { config } from '../../config/config.js';
 import mConfig from '../../config/messageConfig.js';
 import getLocalContextMenus from '../../utils/getLocalContextMenus.js';
 
-const contextMenus = new Collection();
+class LRUCache {
+   constructor(capacity) {
+      this.capacity = capacity;
+      this.cache = new Map();
+   }
+
+   get(key) {
+      if (!this.cache.has(key)) return undefined;
+      const value = this.cache.get(key);
+      this.cache.delete(key);
+      this.cache.set(key, value);
+      return value;
+   }
+
+   set(key, value) {
+      if (this.cache.has(key)) this.cache.delete(key);
+      else if (this.cache.size >= this.capacity) {
+         const firstKey = this.cache.keys().next().value;
+         this.cache.delete(firstKey);
+      }
+      this.cache.set(key, value);
+   }
+}
+
+const contextMenus = new LRUCache(100); // Adjust capacity as needed
 
 const sendEmbedReply = async (
    interaction,
@@ -25,11 +49,17 @@ const checkPermissions = (interaction, permissions, type) => {
 };
 
 const loadContextMenus = async () => {
-   const menuFiles = await getLocalContextMenus();
-   for (const menu of menuFiles) {
-      contextMenus.set(menu.data.name, menu);
+   try {
+      const menuFiles = await getLocalContextMenus();
+      for (const menu of menuFiles) {
+         contextMenus.set(menu.data.name, menu);
+      }
+      console.log(
+         `Loaded ${contextMenus.cache.size} context menu commands`.green
+      );
+   } catch (error) {
+      console.error('Error loading context menus:'.red, error);
    }
-   console.log(`Loaded ${contextMenus.size} context menu commands`.green);
 };
 
 const handleContextMenu = async (client, errorHandler, interaction) => {
@@ -90,7 +120,6 @@ const handleContextMenu = async (client, errorHandler, interaction) => {
          error
       );
 
-      // Use errorHandler to handle the error
       await errorHandler.handleError(error, {
          type: 'contextMenuError',
          commandName: commandName,
@@ -106,9 +135,11 @@ const handleContextMenu = async (client, errorHandler, interaction) => {
    }
 };
 
+// Call this function during bot initialization
+await loadContextMenus();
+
 export default async (client, errorHandler, interaction) => {
    if (!interaction.isContextMenuCommand()) return;
-   await loadContextMenus();
 
    await handleContextMenu(client, errorHandler, interaction);
 };

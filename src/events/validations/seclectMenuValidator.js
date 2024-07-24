@@ -31,7 +31,10 @@ const loadSelects = async (errorHandler) => {
    try {
       const selectFiles = await getSelects();
       for (const select of selectFiles) {
-         selects.set(select.customId, select);
+         if (select && select.customId) {
+            selects.set(select.customId, select);
+         } else {
+         }
       }
       console.log(`Loaded ${selects.size} select menu commands`.green);
       selectsLoaded = true;
@@ -44,20 +47,7 @@ const loadSelects = async (errorHandler) => {
 const handleSelect = async (client, errorHandler, interaction) => {
    const { customId } = interaction;
    const selectObject = selects.get(customId);
-
-   if (!selectObject) {
-      errorHandler.handleError(new Error(`Unknown select menu: ${customId}`), {
-         type: 'unknownSelect',
-         selectId: customId,
-         userId: interaction.user.id,
-         guildId: interaction.guild.id,
-      });
-      return sendEmbedReply(
-         interaction,
-         mConfig.embedColorError,
-         'This select menu is not recognized.'
-      );
-   }
+   if (!selectObject) return;
 
    const { developersId, testServerId } = config;
 
