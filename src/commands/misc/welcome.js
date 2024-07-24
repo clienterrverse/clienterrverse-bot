@@ -48,7 +48,7 @@ export default {
          subcommand.setName('test').setDescription('Test the welcome message.')
       )
       .toJSON(),
-   userPermissions: [PermissionsBitField.ManageGuild],
+   userPermissions: [PermissionsBitField.ADMINISTRATOR],
    botPermissions: [PermissionsBitField.ManageRoles],
    cooldown: 5,
 

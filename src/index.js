@@ -44,16 +44,12 @@ const main = async () => {
          GatewayIntentBits.GuildMessages,
          GatewayIntentBits.MessageContent,
          GatewayIntentBits.DirectMessages,
+         GatewayIntentBits.GuildVoiceStates,
       ],
    });
 
    const errorHandler = new DiscordBotErrorHandler({
       webhookUrl: process.env.ERROR_WEBHOOK_URL,
-   });
-
-   client.ws.on('error', (error) => {
-      errorHandler.handleError(error, { type: 'webSocketError' });
-      console.error('WebSocket error:', error);
    });
 
    try {
