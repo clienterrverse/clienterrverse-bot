@@ -70,6 +70,6 @@ export default async (client, errorHandler, member) => {
 
       await member.roles.add(autoRole);
    } catch (error) {
-      errorHandler(error, 'Welcome Event');
+      errorHandler.handleError(error, { type: 'Welcome Event' });
    }
 };

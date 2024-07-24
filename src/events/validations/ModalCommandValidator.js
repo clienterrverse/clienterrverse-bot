@@ -44,19 +44,7 @@ const handleModal = async (client, errorHandler, interaction) => {
    const { customId } = interaction;
    const modalObject = modals.get(customId);
 
-   if (!modalObject) {
-      errorHandler.handleError(new Error(`Unknown modal: ${customId}`), {
-         type: 'unknownModal',
-         modalId: customId,
-         userId: interaction.user.id,
-         guildId: interaction.guild.id,
-      });
-      return sendEmbedReply(
-         interaction,
-         mConfig.embedColorError,
-         'This modal is not recognized.'
-      );
-   }
+   if (!modalObject) return;
 
    const { developersId, testServerId } = config;
 
@@ -118,9 +106,6 @@ const handleModal = async (client, errorHandler, interaction) => {
    }
 
    try {
-      console.log(
-         `Executing modal ${customId} for user ${interaction.user.tag}`.cyan
-      );
       await modalObject.run(client, interaction);
       console.log(`Modal ${customId} executed successfully`.green);
    } catch (error) {
