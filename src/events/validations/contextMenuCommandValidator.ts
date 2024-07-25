@@ -7,6 +7,9 @@ import mConfig from '../../config/messageConfig.js';
 import getLocalContextMenus from '../../utils/getLocalContextMenus.js';
 
 class LRUCache {
+	public capacity: any;
+	public cache: any;
+
    constructor(capacity) {
       this.capacity = capacity;
       this.cache = new Map();

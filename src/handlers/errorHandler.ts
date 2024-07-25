@@ -7,6 +7,14 @@ import {
 import Bottleneck from 'bottleneck';
 
 class DiscordBotErrorHandler {
+	public config: any;
+	public webhookClient: any;
+	public errorCache: any;
+	public errorQueue: any;
+	public processingQueue: any;
+	public limiter: any;
+	public client: any;
+
    constructor(config) {
       this.config = {
          webhookUrl: process.env.ERROR_WEBHOOK_URL,

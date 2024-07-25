@@ -1,13 +1,14 @@
 {
    "name": "clienterrverse_economy",
    "version": "2.0.0",
-   "main": "src/index.js",
+   "main": "dist/index.js",
    "type": "module",
    "scripts": {
-      "start": "node --no-warnings src/index.js",
-      "dev": "nodemon src/index.js",
-      "pre": "npx prettier --write ."
-   },
+      "start": "node --experimental-specifier-resolution=node dist/index.js",
+      "dev": "node --loader ts-node/esm src/index.ts",
+      "build": "tsc",
+      "watch": "tsc -w"
+    },  
    "repository": {
       "type": "git",
       "url": "git+https://github.com/clienterrverse/clienterrverse_economy.git"
@@ -32,8 +33,11 @@
       "os": "^0.1.2"
    },
    "devDependencies": {
+      "@types/node": "^20.14.12",
       "dotenv": "^16.4.5",
       "nodemon": "^3.1.1",
-      "prettier": "3.3.2"
+      "prettier": "3.3.2",
+      "ts-node": "^10.9.2",
+      "typescript": "^5.5.4"
    }
 }
