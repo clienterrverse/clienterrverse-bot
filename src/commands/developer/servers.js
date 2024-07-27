@@ -74,6 +74,7 @@ export default {
    nsfwMode: false,
    testMode: false,
    devOnly: true,
+   category: 'Devloper',
 
    run: async (client, interaction) => {
       await interaction.deferReply({ ephemeral: true });

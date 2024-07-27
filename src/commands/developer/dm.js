@@ -64,6 +64,7 @@ export default {
    nwfwMode: false,
    testMode: false,
    devOnly: true,
+   category: 'Devloper',
 
    run: async (client, interaction) => {
       const subcommand = interaction.options.getSubcommand();

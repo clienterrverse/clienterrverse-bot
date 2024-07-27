@@ -11,9 +11,11 @@ export default {
       .setName('dog')
       .setDescription('send random dog image')
       .toJSON(),
+   category: 'Image',
    nwfwMode: false,
    testMode: false,
    devOnly: false,
+   prefix: true,
 
    userPermissionsBitField: [],
    bot: [],

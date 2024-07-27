@@ -15,6 +15,7 @@ export default {
    nsfwMode: false,
    testMode: false,
    devOnly: false,
+   category: 'economy',
 
    run: async (client, interaction) => {
       // Fetch all items from the database

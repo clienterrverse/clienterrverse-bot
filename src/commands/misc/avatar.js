@@ -19,11 +19,13 @@ export default {
 
    userPermissions: [],
    botPermissions: [],
+   category: 'Misc',
    cooldown: 5,
    deleted: false,
    nwfwMode: false,
    testMode: false,
    devOnly: false,
+   prefix: true,
 
    run: async (client, interaction) => {
       try {

@@ -32,6 +32,7 @@ export default {
    cooldown: 10,
    nsfwMode: false,
    testMode: false,
+   category: 'Image',
    devOnly: false,
    userPermissionsBitField: [],
    bot: [],

@@ -29,6 +29,8 @@ export default {
    nwfwMode: false,
    testMode: false,
    devOnly: false,
+   category: 'Admin',
+   prefix: true,
 
    run: async (client, interaction) => {
       const amount = interaction.options.getInteger('amount');

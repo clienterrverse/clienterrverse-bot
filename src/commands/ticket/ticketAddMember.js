@@ -15,6 +15,7 @@ export default {
 
    userPermissions: [PermissionFlagsBits.ManageChannels],
    botPermissions: [PermissionFlagsBits.ManageChannels],
+   category: 'ticket',
 
    run: async (client, interaction) => {
       await interaction.deferReply({ ephemeral: true });

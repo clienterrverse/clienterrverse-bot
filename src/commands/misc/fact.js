@@ -14,10 +14,13 @@ export default {
 
    userPermissionsBitField: [],
    bot: [],
+   category: 'Misc',
    cooldown: 19, // Cooldown of 5 seconds
    nwfwMode: false,
    testMode: false,
    devOnly: false,
+   prefix: true,
+
    run: async (client, interaction) => {
       try {
          const res = await axios.get(

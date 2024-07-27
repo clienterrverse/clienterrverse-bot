@@ -1,120 +1,159 @@
 /** @format */
 import 'colors';
-import { EmbedBuilder, Collection, PermissionsBitField } from 'discord.js';
+import { EmbedBuilder, PermissionsBitField } from 'discord.js';
 import { config } from '../../config/config.js';
 import mConfig from '../../config/messageConfig.js';
 import getButtons from '../../utils/getButtons.js';
 
-const buttons = new Collection();
+class LRUCache {
+   constructor(capacity) {
+      this.capacity = capacity;
+      this.cache = new Map();
+   }
 
-const loadButtons = async (errorHandler) => {
+   get(key) {
+      if (!this.cache.has(key)) return undefined;
+      const item = this.cache.get(key);
+      this.cache.delete(key);
+      this.cache.set(key, item);
+      return item;
+   }
+
+   set(key, value) {
+      if (this.cache.size >= this.capacity) {
+         const oldestKey = this.cache.keys().next().value;
+         this.cache.delete(oldestKey);
+      }
+      this.cache.set(key, value);
+   }
+}
+
+const buttons = new Map();
+const cooldowns = new Map();
+const buttonCache = new LRUCache(100); // Adjust capacity as needed
+let buttonsLoaded = false;
+
+const sendEmbedReply = async (
+   interaction,
+   color,
+   description,
+   ephemeral = false
+) => {
+   const embed = new EmbedBuilder()
+      .setColor('Yellow')
+      .setDescription(description);
+   await interaction.reply({ embeds: [embed], ephemeral });
+};
+
+const checkPermissions = (member, permissions) =>
+   permissions.every((permission) =>
+      member.permissions.has(PermissionsBitField.Flags[permission])
+   );
+
+const loadButtons = async (errorHandler, retryCount = 0) => {
    try {
       const buttonFiles = await getButtons();
       for (const button of buttonFiles) {
+         button.compiledChecks = {
+            userPermissions: button.userPermissions
+               ? (interaction) =>
+                    checkPermissions(interaction.member, button.userPermissions)
+               : () => true,
+            botPermissions: button.botPermissions
+               ? (interaction) =>
+                    checkPermissions(
+                       interaction.guild.members.me,
+                       button.botPermissions
+                    )
+               : () => true,
+         };
          buttons.set(button.customId, button);
       }
       console.log(`Loaded ${buttons.size} buttons`.green);
+      buttonsLoaded = true;
    } catch (error) {
       errorHandler.handleError(error, { type: 'buttonLoad' });
       console.error('Error loading buttons:'.red, error);
+
+      if (retryCount < 3) {
+         console.log(
+            `Retrying button load... (Attempt ${retryCount + 1})`.yellow
+         );
+         await new Promise((resolve) => setTimeout(resolve, 5000));
+         await loadButtons(errorHandler, retryCount + 1);
+      } else {
+         console.error('Failed to load buttons after 3 attempts'.red);
+      }
    }
-};
-
-const sendEmbedReply = (interaction, color, description, ephemeral = false) => {
-   const embed = new EmbedBuilder()
-      .setColor(mConfig.embedColors[color])
-      .setDescription(description);
-   return interaction.reply({ embeds: [embed], ephemeral });
-};
-
-const checkPermissions = (interaction, permissions, type) => {
-   const member =
-      type === 'user' ? interaction.member : interaction.guild.members.me;
-   return permissions.every((permission) =>
-      member.permissions.has(PermissionsBitField.Flags[permission])
-   );
 };
 
 const handleButton = async (client, errorHandler, interaction) => {
    const { customId } = interaction;
-   const button = buttons.get(customId);
+   let button = buttonCache.get(customId);
+   if (!button) {
+      button = buttons.get(customId);
+      if (button) buttonCache.set(customId, button);
+   }
 
    if (!button) return;
    const { developersId, testServerId } = config;
 
-   // Check if the button is developer-only
    if (button.devOnly && !developersId.includes(interaction.user.id)) {
-      return sendEmbedReply(
-         interaction,
-         mConfig.embedColorError,
-         mConfig.commandDevOnly,
-         true
-      );
+      return sendEmbedReply(interaction, 'error', mConfig.commandDevOnly, true);
    }
 
-   // Check if the button is in test mode
    if (button.testMode && interaction.guild.id !== testServerId) {
       return sendEmbedReply(
          interaction,
-         mConfig.embedColorError,
+         'error',
          mConfig.commandTestMode,
          true
       );
    }
 
-   // Check user permissions
-   if (
-      button.userPermissions?.length &&
-      !checkPermissions(interaction, button.userPermissions, 'user')
-   ) {
+   if (!button.compiledChecks.userPermissions(interaction)) {
       return sendEmbedReply(
          interaction,
-         mConfig.embedColorError,
+         'error',
          mConfig.userNoPermissions,
          true
       );
    }
 
-   // Check bot permissions
-   if (
-      button.botPermissions?.length &&
-      !checkPermissions(interaction, button.botPermissions, 'bot')
-   ) {
+   if (!button.compiledChecks.botPermissions(interaction)) {
       return sendEmbedReply(
          interaction,
-         mConfig.embedColorError,
+         'error',
          mConfig.botNoPermissions,
          true
       );
    }
 
-   // Check if the user is the original interaction user
    if (
       interaction.message.interaction &&
       interaction.message.interaction.user.id !== interaction.user.id
    ) {
       return sendEmbedReply(
          interaction,
-         mConfig.embedColorError,
+         'error',
          mConfig.cannotUseButton,
          true
       );
    }
 
-   // Check cooldown
    if (button.cooldown) {
       const cooldownKey = `${interaction.user.id}-${customId}`;
-      const cooldownTime = buttons.get(cooldownKey);
+      const cooldownTime = cooldowns.get(cooldownKey);
       if (cooldownTime && Date.now() < cooldownTime) {
          const remainingTime = Math.ceil((cooldownTime - Date.now()) / 1000);
          return sendEmbedReply(
             interaction,
-            mConfig.embedColorError,
+            'error',
             `Please wait ${remainingTime} seconds before using this button again.`,
             true
          );
       }
-      buttons.set(cooldownKey, Date.now() + button.cooldown * 1000);
+      cooldowns.set(cooldownKey, Date.now() + button.cooldown * 1000);
    }
 
    try {
@@ -124,31 +163,26 @@ const handleButton = async (client, errorHandler, interaction) => {
       await button.run(client, interaction);
    } catch (error) {
       console.error(`Error executing button ${customId}:`.red, error);
-
-      // Use errorHandler to handle the error
       await errorHandler.handleError(error, {
          type: 'buttonError',
          buttonId: customId,
          userId: interaction.user.id,
          guildId: interaction.guild.id,
       });
-
       sendEmbedReply(
          interaction,
-         mConfig.embedColorError,
+         'error',
          'There was an error while executing this button!',
          true
       );
    }
 };
-let buttonsLoaded = false;
 
 export default async (client, errorHandler, interaction) => {
    if (!interaction.isButton()) return;
 
    if (!buttonsLoaded) {
       await loadButtons(errorHandler);
-      buttonsLoaded = true;
    }
 
    await handleButton(client, errorHandler, interaction);

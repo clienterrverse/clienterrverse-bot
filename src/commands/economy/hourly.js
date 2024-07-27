@@ -12,6 +12,7 @@ export default {
    nwfwMode: false,
    testMode: false,
    devOnly: false,
+   category: 'economy',
 
    run: async (client, interaction) => {
       const userId = interaction.user.id;
