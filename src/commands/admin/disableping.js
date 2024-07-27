@@ -26,6 +26,7 @@ export default {
    nsfwMode: false,
    testMode: false,
    devOnly: false,
+   category: 'Admin',
 
    run: async (client, interaction) => {
       try {

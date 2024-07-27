@@ -19,6 +19,8 @@ export default {
    nwfwMode: false,
    testMode: false,
    devOnly: false,
+   prefix: true,
+
    run: async (client, interaction) => {
       try {
          const res = await axios.get(

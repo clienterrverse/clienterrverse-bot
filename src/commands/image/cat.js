@@ -12,9 +12,11 @@ export default {
       .setDescription('send random cat img')
 
       .toJSON(),
+   category: 'Image',
    nwfwMode: false,
    testMode: false,
    devOnly: false,
+   prefix: true,
 
    userPermissionsBitField: [],
    bot: [],

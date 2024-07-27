@@ -51,6 +51,7 @@ export default {
    userPermissions: [PermissionsBitField.ADMINISTRATOR],
    botPermissions: [PermissionsBitField.ManageRoles],
    cooldown: 5,
+   category: 'Admin',
 
    run: async (client, interaction) => {
       await interaction.deferReply({ ephemeral: true });

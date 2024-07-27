@@ -73,6 +73,7 @@ export default {
       PermissionFlagsBits.ManageChannels,
       PermissionFlagsBits.ManageRoles,
    ],
+   category: 'ticket',
 
    run: async (client, interaction) => {
       const subcommand = interaction.options.getSubcommand();

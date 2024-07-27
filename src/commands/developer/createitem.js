@@ -48,6 +48,8 @@ export default {
       .toJSON(),
    userPermissions: [],
    botPermissions: [],
+   category: 'Devloper',
+
    cooldown: 10,
    nsfwMode: false,
    testMode: false,

@@ -60,6 +60,7 @@ export default {
       PermissionFlagsBits.ManageChannels,
       PermissionFlagsBits.ManageRoles,
    ],
+   category: 'Admin',
 
    run: async (client, interaction) => {
       const subcommand = interaction.options.getSubcommand();

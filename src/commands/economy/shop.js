@@ -21,6 +21,8 @@ export default {
    nsfwMode: false,
    testMode: false,
    devOnly: false,
+   category: 'economy',
+
    run: async (client, interaction) => {
       try {
          const items = await Item.find().lean();

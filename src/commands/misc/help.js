@@ -1,24 +1,24 @@
 import {
    SlashCommandBuilder,
    EmbedBuilder,
-   AutocompleteInteraction,
    ActionRowBuilder,
    StringSelectMenuBuilder,
+   ButtonBuilder,
+   ButtonStyle,
+   ComponentType,
 } from 'discord.js';
 import getLocalCommands from '../../utils/getLocalCommands.js';
 import mConfig from '../../config/messageConfig.js';
-import paginate from '../../utils/buttonPagination.js';
 
 const MAX_DESCRIPTION_LENGTH = 2048;
-const COMMANDS_PER_PAGE = 10; // Adjust as necessary
+const COMMANDS_PER_PAGE = 10;
 const MAX_FIELD_LENGTH = 1024;
+const INTERACTION_TIMEOUT = 300000; // 5 minutes
 
-// Function to split text into chunks of a specified length
 const splitText = (text, length) => {
    return text.match(new RegExp(`.{1,${length}}`, 'g')) || [];
 };
 
-// Function to categorize commands
 const categorizeCommands = (commands) => {
    const categories = {};
    commands.forEach((cmd) => {
@@ -57,6 +57,7 @@ export default {
    nsfwMode: false,
    testMode: false,
    devOnly: false,
+   category: 'Misc',
 
    async autocomplete(client, interaction) {
       const focusedOption = interaction.options.getFocused(true);
@@ -64,7 +65,9 @@ export default {
 
       if (focusedOption.name === 'command') {
          const filtered = localCommands.filter((cmd) =>
-            cmd.data.name.startsWith(focusedOption.value)
+            cmd.data.name
+               .toLowerCase()
+               .startsWith(focusedOption.value.toLowerCase())
          );
          await interaction.respond(
             filtered.map((cmd) => ({
@@ -105,30 +108,14 @@ export default {
                embedColor
             );
          } else if (category) {
-            const categoryCommands = localCommands.filter(
-               (cmd) => (cmd.category || 'Uncategorized') === category
+            return await showCategoryCommands(
+               interaction,
+               localCommands,
+               category,
+               embedColor
             );
-            const commandsText = categoryCommands
-               .map(
-                  (cmd) =>
-                     `\`${cmd.data.name}\`: ${cmd.data.description || 'No description available.'}`
-               )
-               .join('\n');
-
-            const textChunks = splitText(commandsText, MAX_DESCRIPTION_LENGTH);
-            const pages = textChunks.map((chunk, index) =>
-               new EmbedBuilder()
-                  .setTitle(`Commands in ${category}`)
-                  .setDescription(chunk)
-                  .setColor(embedColor)
-                  .setFooter({
-                     text: `Page ${index + 1} of ${textChunks.length}`,
-                  })
-            );
-
-            return paginate(interaction, pages);
          } else {
-            return await showCommandList(
+            return await showCommandOverview(
                interaction,
                localCommands,
                embedColor
@@ -150,7 +137,9 @@ async function showCommandDetails(
    commandName,
    embedColor
 ) {
-   const command = localCommands.find((cmd) => cmd.data.name === commandName);
+   const command = localCommands.find(
+      (cmd) => cmd.data.name.toLowerCase() === commandName.toLowerCase()
+   );
    if (!command) {
       return interaction.reply({
          content: 'Command not found.',
@@ -200,7 +189,9 @@ async function showCommandDetails(
       const optionsText = command.data.options
          .map(
             (opt) =>
-               `• **${opt.name}**: ${opt.description} ${opt.required ? '*(Required)*' : ''}`
+               `• **${opt.name}**: ${opt.description} ${
+                  opt.required ? '*(Required)*' : ''
+               }`
          )
          .join('\n');
       embed.addFields({
@@ -210,13 +201,109 @@ async function showCommandDetails(
       });
    }
 
-   return interaction.reply({ embeds: [embed], ephemeral: true });
+   const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+         .setCustomId('return_to_overview')
+         .setLabel('Return to Overview')
+         .setStyle(ButtonStyle.Secondary)
+   );
+
+   const message = await interaction.reply({
+      embeds: [embed],
+      components: [row],
+   });
+
+   const collector = message.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time: INTERACTION_TIMEOUT,
+   });
+
+   collector.on('collect', async (i) => {
+      if (i.customId === 'return_to_overview') {
+         await showCommandOverview(i, localCommands, embedColor);
+      }
+   });
+
+   collector.on('end', () => {
+      row.components.forEach((component) => component.setDisabled(true));
+      interaction.editReply({ components: [row] });
+   });
 }
 
-async function showCommandList(interaction, localCommands, embedColor) {
-   const categories = [
-      ...new Set(localCommands.map((cmd) => cmd.category || 'Uncategorized')),
-   ];
+async function showCategoryCommands(
+   interaction,
+   localCommands,
+   category,
+   embedColor
+) {
+   const categoryCommands = localCommands.filter(
+      (cmd) => (cmd.category || 'Uncategorized') === category
+   );
+   const pages = createCommandPages(categoryCommands, category, embedColor);
+
+   let currentPage = 0;
+
+   const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+         .setCustomId('prev_page')
+         .setLabel('Previous')
+         .setStyle(ButtonStyle.Primary)
+         .setDisabled(true),
+      new ButtonBuilder()
+         .setCustomId('next_page')
+         .setLabel('Next')
+         .setStyle(ButtonStyle.Primary)
+         .setDisabled(pages.length <= 1),
+      new ButtonBuilder()
+         .setCustomId('return_to_overview')
+         .setLabel('Return to Overview')
+         .setStyle(ButtonStyle.Secondary)
+   );
+
+   const message = await interaction.reply({
+      embeds: [pages[currentPage]],
+      components: [row],
+   });
+
+   const collector = message.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time: INTERACTION_TIMEOUT,
+   });
+
+   collector.on('collect', async (i) => {
+      if (i.user.id !== interaction.user.id) {
+         return i.reply({
+            content: "You can't use this button.",
+            ephemeral: true,
+         });
+      }
+
+      if (i.customId === 'prev_page') {
+         currentPage = Math.max(0, currentPage - 1);
+      } else if (i.customId === 'next_page') {
+         currentPage = Math.min(pages.length - 1, currentPage + 1);
+      } else if (i.customId === 'return_to_overview') {
+         await showCommandOverview(i, localCommands, embedColor);
+         return;
+      }
+
+      row.components[0].setDisabled(currentPage === 0);
+      row.components[1].setDisabled(currentPage === pages.length - 1);
+
+      await i.update({ embeds: [pages[currentPage]], components: [row] });
+   });
+
+   collector.on('end', () => {
+      row.components.forEach((component) => component.setDisabled(true));
+      interaction.editReply({ components: [row] });
+   });
+}
+
+async function showCommandOverview(interaction, localCommands, embedColor) {
+   const categorizedCommands = categorizeCommands(localCommands);
+   const categories = Object.keys(categorizedCommands);
+
+   const overviewEmbed = createOverviewEmbed(categorizedCommands, embedColor);
 
    const categorySelect = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
@@ -231,39 +318,58 @@ async function showCommandList(interaction, localCommands, embedColor) {
          )
    );
 
-   const initialEmbed = new EmbedBuilder()
-      .setTitle('📚 Command Categories')
-      .setDescription(
-         'Select a category from the dropdown menu below to view its commands.'
-      )
-      .setColor(embedColor);
-
    const message = await interaction.reply({
-      embeds: [initialEmbed],
+      embeds: [overviewEmbed],
       components: [categorySelect],
-      ephemeral: true,
    });
 
-   const collector = message.createMessageComponentCollector({ time: 300000 }); // 5 minutes
+   const collector = message.createMessageComponentCollector({
+      componentType: ComponentType.StringSelect,
+      time: INTERACTION_TIMEOUT,
+   });
 
    collector.on('collect', async (i) => {
+      if (i.user.id !== interaction.user.id) {
+         return i.reply({
+            content: "You can't use this menu.",
+            ephemeral: true,
+         });
+      }
+
       if (i.customId === 'category_select') {
          const selectedCategory = i.values[0];
-         const categoryCommands = localCommands.filter(
-            (cmd) => (cmd.category || 'Uncategorized') === selectedCategory
-         );
-         const pages = createCommandPages(
-            categoryCommands,
+         await showCategoryCommands(
+            i,
+            localCommands,
             selectedCategory,
             embedColor
          );
-         await paginate(i, pages);
       }
    });
 
    collector.on('end', () => {
-      interaction.editReply({ components: [] });
+      categorySelect.components[0].setDisabled(true);
+      interaction.editReply({ components: [categorySelect] });
    });
+}
+
+function createOverviewEmbed(categorizedCommands, embedColor) {
+   const embed = new EmbedBuilder()
+      .setTitle('📚 Command Overview')
+      .setColor(embedColor)
+      .setDescription(
+         "Here's an overview of all command categories. Select a category from the dropdown menu to view detailed information."
+      );
+
+   Object.entries(categorizedCommands).forEach(([category, commands]) => {
+      embed.addFields({
+         name: `${getCategoryEmoji(category)} ${category}`,
+         value: `${commands.length} command${commands.length !== 1 ? 's' : ''}`,
+         inline: true,
+      });
+   });
+
+   return embed;
 }
 
 function createCommandPages(commands, category, embedColor) {
@@ -291,14 +397,20 @@ function createCommandPages(commands, category, embedColor) {
 }
 
 function getCategoryEmoji(category) {
-   // Add more emojis for different categories
    const emojiMap = {
       Uncategorized: '📁',
-      ticket: '🛡️',
+      ticket: '🎟️',
+      Admin: '🛡️',
       Misc: '🎉',
       image: '🔧',
       economy: '💰',
       Music: '🎵',
+      Developer: '👩🏾‍💻',
+      Moderation: '🚨',
+      Fun: '🎮',
+      Utility: '🛠️',
+      Information: 'ℹ️',
+      Configuration: '⚙️',
    };
    return emojiMap[category] || '📁';
 }

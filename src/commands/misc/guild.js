@@ -21,6 +21,7 @@ export default {
    cooldown: 5,
    userPermissionsBitField: [],
    bot: [],
+   category: 'Misc',
 
    run: async (client, interaction) => {
       if (interaction.options.getSubcommand() === 'join') {

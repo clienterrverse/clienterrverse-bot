@@ -104,6 +104,7 @@ export default {
    nsfwMode: false,
    testMode: false,
    devOnly: true,
+   category: 'Devloper',
 
    run: async (client, interaction) => {
       const subcommand = interaction.options.getSubcommand();
