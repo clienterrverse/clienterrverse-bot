@@ -16,6 +16,8 @@ export default {
    devOnly: false,
    dmAllowed: true,
    category: 'economy',
+   prefix: true,
+
 
    run: async (client, interaction) => {
       const userId = interaction.user.id;

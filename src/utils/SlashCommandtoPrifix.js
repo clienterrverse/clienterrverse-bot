@@ -194,10 +194,11 @@ function createMockInteraction(message, subcommand, mockOptions) {
 async function handleReply(message, options, isEdit = false) {
    const content = options.content || '';
    const embeds = options.embeds || [];
+   const components = options.components || [];
 
-   if (!content && embeds.length === 0) return;
+   if (!content && embeds.length === 0 && components.length === 0) return;
 
-   const replyOptions = { content, embeds };
+   const replyOptions = { content, embeds, components };
 
    if (options.ephemeral) {
       return message.author.send(replyOptions);
@@ -210,7 +211,6 @@ async function handleReply(message, options, isEdit = false) {
          return message.channel.send(replyOptions);
       }
    } else {
-      // For new replies, store the sent message
       const sentMessage = await message.reply(replyOptions);
       message.lastBotReply = sentMessage;
       return sentMessage;

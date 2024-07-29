@@ -33,7 +33,6 @@ const loadSelects = async (errorHandler) => {
       for (const select of selectFiles) {
          if (select && select.customId) {
             selects.set(select.customId, select);
-         } else {
          }
       }
       console.log(`Loaded ${selects.size} select menu commands`.green);
@@ -59,7 +58,11 @@ const handleSelect = async (client, errorHandler, interaction) => {
       );
    }
 
-   if (selectObject.testMode && interaction.guild.id !== testServerId) {
+   if (
+      selectObject.testMode &&
+      interaction.guild &&
+      interaction.guild.id !== testServerId
+   ) {
       return sendEmbedReply(
          interaction,
          mConfig.embedColorError,
@@ -100,7 +103,6 @@ const handleSelect = async (client, errorHandler, interaction) => {
       );
    }
 
-   // Check cooldown
    if (selectObject.cooldown) {
       const cooldownKey = `${interaction.user.id}-${customId}`;
       const cooldownTime = selects.get(cooldownKey);
@@ -118,18 +120,17 @@ const handleSelect = async (client, errorHandler, interaction) => {
    try {
       await selectObject.run(client, interaction);
       console.log(
-         `Select menu ${interaction.customId} used by ${interaction.user.tag} in ${interaction.guild.name}`
+         `Select menu ${interaction.customId} used by ${interaction.user.tag} in ${interaction.guild?.name}`
             .yellow
       );
    } catch (error) {
       console.error(`Error executing select menu ${customId}:`.red, error);
 
-      // Use errorHandler to handle the error
       await errorHandler.handleError(error, {
          type: 'selectError',
          selectId: customId,
          userId: interaction.user.id,
-         guildId: interaction.guild.id,
+         guildId: interaction.guild?.id,
       });
 
       sendEmbedReply(
