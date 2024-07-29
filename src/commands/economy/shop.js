@@ -24,7 +24,6 @@ export default {
    category: 'economy',
    prefix: true,
 
-
    run: async (client, interaction) => {
       try {
          const items = await Item.find().lean();

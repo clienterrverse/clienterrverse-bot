@@ -14,7 +14,6 @@ export default {
    category: 'economy',
    prefix: true,
 
-
    run: async (client, interaction) => {
       const userId = interaction.user.id;
       const CrimeCooldown = 6 * 60 * 60 * 1000; // 6 hours in milliseconds

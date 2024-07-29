@@ -3,9 +3,12 @@ import {
    EmbedBuilder,
    Events,
    DiscordAPIError,
+   Client
 } from 'discord.js';
 import Bottleneck from 'bottleneck';
-
+import crypto from 'crypto';
+import determineErrorCategory from "../utils/error/determineErrorCategory.js";
+import getRecoverySuggestions from "../utils/error/getRecoverySuggestions.js"
 class DiscordBotErrorHandler {
    constructor(config) {
       this.config = {
@@ -15,23 +18,27 @@ class DiscordBotErrorHandler {
          retryAttempts: 3,
          retryDelay: 1000,
          rateLimit: { maxConcurrent: 1, minTime: 2000 },
-         clientName: 'nory',
+         clientName: '',
+         rateLimitThreshold: 5,
+         rateLimitPeriod: 60000, // 1 minute
+         groupThreshold: 5,
+         trendThreshold: 3,
+         trendPeriod: 3600000, // 1 hour
          ...config,
       };
 
       if (!this.config.webhookUrl) {
-         console.error(
-            'ERROR_WEBHOOK_URL is not set in the environment variables'
-         );
+         console.error('ERROR_WEBHOOK_URL is not set in the environment variables');
       } else {
-         this.webhookClient = new WebhookClient({
-            url: this.config.webhookUrl,
-         });
+         this.webhookClient = new WebhookClient({ url: this.config.webhookUrl });
       }
 
       this.errorCache = new Map();
       this.errorQueue = [];
       this.processingQueue = false;
+      this.errorRateLimit = new Map();
+      this.errorGroups = new Map();
+      this.errorTrends = new Map();
 
       this.limiter = new Bottleneck(this.config.rateLimit);
    }
@@ -42,13 +49,14 @@ class DiscordBotErrorHandler {
          console.error('Discord client is not provided');
          return;
       }
-      this.config.clientName =
-         this.client.user?.username || this.config.clientName;
       this.setupEventListeners();
       this.client.ws.on('error', this.handleWebSocketError.bind(this));
    }
 
    setupEventListeners() {
+      this.client.on(Events.ClientReady, (client) => {
+         this.config.clientName = this.client.user?.username || this.config.clientName;
+      });       
       this.client.on(Events.Error, (error) =>
          this.handleError(error, { type: 'clientError' })
       );
@@ -82,10 +90,7 @@ class DiscordBotErrorHandler {
    cleanStackTrace(error, limit = 10) {
       const stack = (error.stack || '')
          .split('\n')
-         .filter(
-            (line) =>
-               !line.includes('node_modules') && !line.includes('timers.js')
-         )
+         .filter(line => !line.includes('node_modules') && !line.includes('timers.js'))
          .slice(0, limit)
          .join('\n');
 
@@ -96,7 +101,33 @@ class DiscordBotErrorHandler {
    async captureContext(providedContext) {
       const guildContext = await this.getGuildContext(providedContext.guildId);
       const userContext = await this.getUserContext(providedContext.userId);
-      return { ...providedContext, guild: guildContext, user: userContext };
+      const channelContext = await this.getChannelContext(providedContext.channelId);
+      
+      return {
+        ...providedContext,
+        guild: guildContext,
+        user: userContext,
+        channel: channelContext,
+        command: providedContext.command || 'Unknown',
+        timestamp: new Date().toISOString()
+      };
+   }
+    
+   async getChannelContext(channelId) {
+      if (channelId) {
+        try {
+          const channel = await this.client.channels.fetch(channelId);
+          return {
+            id: channel.id,
+            name: channel.name,
+            type: channel.type,
+            parentId: channel.parentId
+          };
+        } catch (error) {
+          console.error('Failed to fetch channel context:', error);
+        }
+      }
+      return null;
    }
 
    async getGuildContext(guildId) {
@@ -127,49 +158,15 @@ class DiscordBotErrorHandler {
       return null;
    }
 
-   determineErrorCategory(error) {
-      const message = error.message.toLowerCase();
-      if (message.includes('api')) return 'Discord API Error';
-      if (message.includes('permission')) return 'Permission Error';
-      if (message.includes('rate limit')) return 'Rate Limit Error';
-      if (message.includes('network')) return 'Network Error';
-      if (message.includes('validation')) return 'Validation Error';
-      if (message.includes('timeout')) return 'Timeout Error';
-      if (message.includes('not found')) return 'Not Found Error';
-      if (message.includes('database')) return 'Database Error';
-      if (message.includes('auth') || message.includes('token'))
-         return 'Authentication Error';
-      if (message.includes('connect') || message.includes('connection'))
-         return 'Connection Error';
-      if (message.includes('parse') || message.includes('syntax'))
-         return 'Parsing Error';
-      if (message.includes('memory')) return 'Memory Error';
-      if (message.includes('disk') || message.includes('storage'))
-         return 'Storage Error';
-      if (message.includes('gateway')) return 'Gateway Error';
-      if (message.includes('unexpected token')) return 'Unexpected Token Error';
-      if (message.includes('invalid form body'))
-         return 'Invalid Form Body Error';
-      if (message.includes('unknown interaction'))
-         return 'Unknown Interaction Error';
-      if (
-         error instanceof Error &&
-         error.message === "Unhandled 'error' event emitted"
-      )
-         return 'WebSocket Error';
-      return 'Unknown Error';
-   }
-
    determineErrorSeverity(error) {
       if (error instanceof DiscordAPIError) {
-         if ([50013, 50001].includes(error.code)) return 'Critical';
-         if ([10008, 10003].includes(error.code)) return 'Major';
-         return 'Moderate';
+         const code = error.code;
+         if ([40001, 40002, 40003, 50013, 50001, 50014].includes(code)) return 'Critical';
+         if ([10008, 10003, 30001, 30002, 30003, 30005, 30007, 30010, 30013, 30015, 30016].includes(code)) return 'Major';
+         if ([50035, 50041, 50045, 50046].includes(code)) return 'Moderate';
+         return 'Minor';
       }
-      if (
-         error instanceof Error &&
-         error.message === "Unhandled 'error' event emitted"
-      )
+      if (error instanceof Error && error.message === "Unhandled 'error' event emitted")
          return 'Major';
       if (error.critical) return 'Critical';
       if (error instanceof TypeError) return 'Warning';
@@ -185,16 +182,27 @@ class DiscordBotErrorHandler {
       }
 
       const memoryUsage = process.memoryUsage();
+      const uptime = process.uptime();
+
       return {
          heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
          heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
          guildCount: this.client.guilds?.cache?.size || 0,
          userCount: this.client.users?.cache?.size || 0,
+         uptime: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
+         cpuUsage: process.cpuUsage(),
+         latency: `${this.client.ws.ping}ms`
       };
    }
 
    async processError(errorDetails) {
       const errorKey = `${errorDetails.category}:${errorDetails.message}`;
+      
+      if (this.isRateLimited(errorKey)) {
+         console.log(`Error rate-limited: ${errorKey}`);
+         return;
+      }
+
       if (this.errorCache.has(errorKey)) {
          this.updateErrorFrequency(errorKey);
       } else {
@@ -211,20 +219,169 @@ class DiscordBotErrorHandler {
          }
       }
 
+      this.updateErrorTrend(errorDetails);
+
+      if (this.isErrorTrending(errorDetails)) {
+         await this.sendTrendAlert(errorDetails);
+      }
+
       if (!this.processingQueue) {
          this.processingQueue = true;
          await this.processErrorQueue();
       }
    }
 
+   isRateLimited(errorKey) {
+      const now = Date.now();
+      const errorTimes = this.errorRateLimit.get(errorKey) || [];
+      
+      // Remove old entries
+      while (errorTimes.length > 0 && errorTimes[0] < now - this.config.rateLimitPeriod) {
+         errorTimes.shift();
+      }
+
+      if (errorTimes.length >= this.config.rateLimitThreshold) {
+         return true;
+      }
+
+      errorTimes.push(now);
+      this.errorRateLimit.set(errorKey, errorTimes);
+      return false;
+   }
+
    async processErrorQueue() {
+      const processedErrors = new Set();
+
       while (this.errorQueue.length > 0) {
          const errorDetails = this.errorQueue.shift();
-         await this.limiter.schedule(() =>
-            this.sendErrorToWebhook(errorDetails)
-         );
+         const errorHash = this.generateErrorHash(errorDetails);
+
+         if (!processedErrors.has(errorHash)) {
+            this.addToErrorGroup(errorDetails);
+            processedErrors.add(errorHash);
+         }
       }
+
+      await this.sendGroupedErrors();
       this.processingQueue = false;
+   }
+
+   generateErrorHash(errorDetails) {
+      const { message, stackTrace, category, severity } = errorDetails;
+      return crypto.createHash('md5').update(`${message}${stackTrace}${category}${severity}`).digest('hex');
+   }
+
+   addToErrorGroup(errorDetails) {
+      const groupKey = `${errorDetails.category}:${errorDetails.severity}`;
+      if (!this.errorGroups.has(groupKey)) {
+         this.errorGroups.set(groupKey, []);
+      }
+      this.errorGroups.get(groupKey).push(errorDetails);
+   }
+
+   async sendGroupedErrors() {
+      for (const [groupKey, errors] of this.errorGroups.entries()) {
+         if (errors.length >= this.config.groupThreshold) {
+            await this.sendGroupedErrorToWebhook(groupKey, errors);
+         } else {
+            for (const error of errors) {
+               await this.limiter.schedule(() => this.sendErrorToWebhook(error));
+            }
+         }
+      }
+      this.errorGroups.clear();
+   }
+
+   async sendGroupedErrorToWebhook(groupKey, errors) {
+      const [category, severity] = groupKey.split(':');
+      const summary = this.createErrorSummary(errors);
+      
+      const embed = new EmbedBuilder()
+         .setColor(this.getColorForSeverity(severity))
+         .setTitle(`Grouped ${category} Errors - ${severity}`)
+         .setDescription(summary)
+         .addFields(
+            {
+               name: 'Error Count',
+               value: errors.length.toString(),
+               inline: true,
+            },
+            {
+               name: 'Time Range',
+               value: `${new Date(errors[0].timestamp).toISOString()} - ${new Date(errors[errors.length - 1].timestamp).toISOString()}`,
+               inline: true,
+            }
+         )
+         .setTimestamp();
+
+      await this.webhookClient.send({
+         content: `Grouped ${severity} errors reported`,
+         embeds: [embed],
+      });
+   }
+
+   createErrorSummary(errors) {
+      const messageCounts = {};
+      for (const error of errors) {
+         messageCounts[error.message] = (messageCounts[error.message] || 0) + 1;
+      }
+
+      return Object.entries(messageCounts)
+         .map(([message, count]) => `${message} (${count} occurrences)`)
+         .join('\n');
+   }
+
+   updateErrorTrend(errorDetails) {
+      const trendKey = `${errorDetails.category}:${errorDetails.message}`;
+      const now = Date.now();
+      
+      if (!this.errorTrends.has(trendKey)) {
+         this.errorTrends.set(trendKey, []);
+      }
+
+      const trend = this.errorTrends.get(trendKey);
+      trend.push(now);
+
+      // Remove old entries
+      while (trend.length > 0 && trend[0] < now - this.config.trendPeriod) {
+         trend.shift();
+      }
+   }
+
+   isErrorTrending(errorDetails) {
+      const trendKey = `${errorDetails.category}:${errorDetails.message}`;
+      const trend = this.errorTrends.get(trendKey);
+      return trend && trend.length >= this.config.trendThreshold;
+   }
+
+   async sendTrendAlert(errorDetails) {
+      const embed = new EmbedBuilder()
+         .setColor(this.getColorForSeverity('Warning'))
+         .setTitle('Error Trend Detected')
+         .setDescription(`The following error is trending:\n\`\`\`${errorDetails.message}\`\`\``)
+         .addFields(
+            {
+               name: 'Category',
+               value: errorDetails.category,
+               inline: true,
+            },
+            {
+               name: 'Severity',
+               value: errorDetails.severity,
+               inline: true,
+            },
+            {
+               name: 'Occurrences in the last hour',
+               value: this.errorTrends.get(`${errorDetails.category}:${errorDetails.message}`).length.toString(),
+               inline: true,
+            }
+         )
+         .setTimestamp();
+
+      await this.webhookClient.send({
+         content: 'Error trend alert',
+         embeds: [embed],
+      });
    }
 
    async sendErrorToWebhook(errorDetails) {
@@ -248,6 +405,11 @@ class DiscordBotErrorHandler {
                   {
                      name: 'Performance',
                      value: `\`\`\`json\n${JSON.stringify(await errorDetails.performance, null, 2)}\`\`\``,
+                     inline: false,
+                  },
+                  {
+                     name: 'Recovery Suggestions',
+                     value: errorDetails.recoverySuggestions,
                      inline: false,
                   }
                )
@@ -295,12 +457,14 @@ class DiscordBotErrorHandler {
 
    async formatErrorDetails(error, context) {
       const fullContext = await this.captureContext(context);
+      const recoverySuggestions = await getRecoverySuggestions(error);
+
       return {
          message: error.message || 'Unknown error',
          stackTrace: error.stack
             ? this.cleanStackTrace(error)
             : 'No stack trace available',
-         category: this.determineErrorCategory(error),
+         category: determineErrorCategory(error),
          severity: this.determineErrorSeverity(error),
          context: fullContext,
          performance: await this.capturePerformanceMetrics(),
@@ -309,8 +473,10 @@ class DiscordBotErrorHandler {
             nodeVersion: process.version,
             clientName: this.config.clientName,
          },
+         recoverySuggestions,
       };
    }
+
 }
 
 export default DiscordBotErrorHandler;

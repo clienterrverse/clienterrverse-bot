@@ -18,7 +18,6 @@ export default {
    category: 'economy',
    prefix: true,
 
-
    run: async (client, interaction) => {
       const userId = interaction.user.id;
 
