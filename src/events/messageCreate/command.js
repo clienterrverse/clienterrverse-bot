@@ -166,7 +166,7 @@ function checkCommandPrerequisites(message, command) {
 
 async function handleCommandError(err, command, message, errorHandler) {
    await errorHandler.handleError(err, {
-      type: 'commandError',
+      type: 'prefixcommandError',
       commandName: command.name,
       userId: message.author.id,
       guildId: message.guild?.id,
