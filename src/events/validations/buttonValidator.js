@@ -198,7 +198,3 @@ export default async (client, errorHandler, interaction) => {
    await handleButton(client, errorHandler, interaction);
 };
 
-// TODO List
-// 1. Implement a command to clear the button cache to facilitate updates and debugging.
-// 4. Implement additional error handling and validation for cases where the button action might not be defined or is missing required parameters.
-// 6. Optimize the button loading process to handle large numbers of buttons more efficiently, possibly by paginating or batching loads.
