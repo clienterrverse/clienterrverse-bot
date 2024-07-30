@@ -43,12 +43,18 @@ const sendEmbedReply = async (
    try {
       const embed = new EmbedBuilder()
          .setColor(color)
-         .setDescription(description);
+         .setDescription(description)
+         .setAuthor({
+            name: interaction.user.username,
+            iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+         })
+         .setTimestamp(); 
+
       await interaction.reply({ embeds: [embed], ephemeral });
    } catch (err) {
-      console.error(`Failed to send embed reply: ${err.message}`.red);
    }
 };
+
 
 const getCachedData = async (key, fetchFunction) => {
    const cachedItem = cache.get(key);
@@ -240,3 +246,12 @@ export default async (client, errorHandler, interaction) => {
       );
    }
 };
+
+// TODO List
+// 1. Implement a command to clear the cache.
+// 2. Implement more granular error handling and reporting.
+// 3. Optimize performance for large numbers of commands and interactions.
+// 4. Add support for command categories and subcommands.
+// 5. Implement localization support for embed messages.
+// 6. Enhance the cooldown system with user-specific messages and more configurable options.
+// 7. Add unit tests for critical functions to ensure robustness.

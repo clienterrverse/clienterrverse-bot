@@ -230,3 +230,9 @@ async function uploadTranscriptToGitHub(channelId, transcript) {
 
    await axios.put(url, data, { headers });
 }
+// TODO List
+// 1. **Add Error Handling for GitHub Upload**: Improve error handling for the `uploadTranscriptToGitHub` function to provide more descriptive error messages and handle edge cases (e.g., invalid GitHub token, repository issues).
+// 2. **Improve Logging for GitHub Upload**: Add detailed logging to monitor the GitHub upload process and handle potential issues with API requests or file management.
+// 3. **Optimize Transcript Generation**: Consider adding additional error handling or fallback mechanisms for the transcript generation process using `discord-html-transcripts`.
+// 4. **Enhance Permission Management**: Verify and handle scenarios where permissions might need to be adjusted more carefully, especially in edge cases with ticket members and staff roles.
+// 5. **Refactor Common Code**: Extract reusable code (e.g., embed creation) into separate functions to reduce duplication and improve readability.

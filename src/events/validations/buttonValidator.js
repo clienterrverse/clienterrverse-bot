@@ -37,13 +37,23 @@ const sendEmbedReply = async (
    interaction,
    color,
    description,
-   ephemeral = false
+   ephemeral = true
 ) => {
-   const embed = new EmbedBuilder()
-      .setColor('Yellow')
-      .setDescription(description);
-   await interaction.reply({ embeds: [embed], ephemeral });
+   try {
+      const embed = new EmbedBuilder()
+         .setColor(color)
+         .setDescription(description)
+         .setAuthor({
+            name: interaction.user.username,
+            iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+         })
+         .setTimestamp(); 
+
+      await interaction.reply({ embeds: [embed], ephemeral });
+   } catch (err) {
+   }
 };
+
 
 const checkPermissions = (member, permissions) =>
    permissions.every((permission) =>
@@ -187,3 +197,8 @@ export default async (client, errorHandler, interaction) => {
 
    await handleButton(client, errorHandler, interaction);
 };
+
+// TODO List
+// 1. Implement a command to clear the button cache to facilitate updates and debugging.
+// 4. Implement additional error handling and validation for cases where the button action might not be defined or is missing required parameters.
+// 6. Optimize the button loading process to handle large numbers of buttons more efficiently, possibly by paginating or batching loads.

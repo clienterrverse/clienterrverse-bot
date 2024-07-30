@@ -6,9 +6,7 @@ import mongoose from 'mongoose';
 export default {
    data: new SlashCommandBuilder()
       .setName('leaderboard')
-      .setDescription(
-         'Displays the leaderboard based on user balances and bank.'
-      ),
+      .setDescription('Displays the leaderboard based on user balances and bank.'),
    userPermissions: [],
    botPermissions: [],
    cooldown: 5,
@@ -35,9 +33,10 @@ export default {
             $sort: { totalBalance: -1 },
          },
          {
-            $limit: 100,
+            $limit: 50,
          },
       ]).exec();
+
 
       if (balances.length === 0) {
          return interaction.editReply('No users found in the leaderboard.');
@@ -53,6 +52,7 @@ export default {
          }
       };
 
+
       // Create an array to hold the leaderboard entries
       const leaderboardEntries = await Promise.all(
          balances.map(async (balance, index) => {
@@ -67,28 +67,30 @@ export default {
             };
          })
       );
+      console.log("leaderboardEntries")
+
 
       // Split leaderboard entries into pages of 10 entries each
-      const itemsPerPage = 10;
+      const itemsPerPage = 12;
       const pages = [];
       for (let i = 0; i < leaderboardEntries.length; i += itemsPerPage) {
-         const pageContent = leaderboardEntries
-            .slice(i, i + itemsPerPage)
-            .map(
-               (entry) =>
-                  `${entry.index === 1 ? '🥇' : entry.index === 2 ? '🥈' : entry.index === 3 ? '🥉' : '🏅'} **${entry.index}. ${entry.userTag}**\nTotal: ${entry.totalBalance.toLocaleString()} coins\nWallet: ${entry.wallet.toLocaleString()} | Bank: ${entry.bank.toLocaleString()}\n`
-            )
-            .join('\n');
+         const pageEntries = leaderboardEntries.slice(i, i + itemsPerPage);
+         const fields = pageEntries.map(entry => ({
+            name: `${entry.index === 1 ? '🥇' : entry.index === 2 ? '🥈' : entry.index === 3 ? '🥉' : '🏅'} **${entry.index}. ${entry.userTag}**`,
+            value: `Total: ${entry.totalBalance.toLocaleString()} coins\nWallet: ${entry.wallet.toLocaleString()} | Bank: ${entry.bank.toLocaleString()}`,
+            inline: true
+         }));
 
          const embed = new EmbedBuilder()
             .setTitle('🏆 Leaderboard')
-            .setDescription(pageContent)
+            .addFields(fields)
             .setColor(0xffd700) // Gold color
             .setFooter({
                text: `Page ${Math.floor(i / itemsPerPage) + 1} of ${Math.ceil(leaderboardEntries.length / itemsPerPage)}`,
             });
 
          pages.push(embed);
+         console.log(i)
       }
 
       // Use pagination to display the leaderboard

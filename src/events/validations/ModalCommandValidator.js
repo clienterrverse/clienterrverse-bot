@@ -161,3 +161,11 @@ export default async (client, errorHandler, interaction) => {
 
    await handleModal(client, errorHandler, interaction);
 };
+// TODO List
+// 1. **Implement Modal Cache Management**: Consider adding an LRU cache or similar mechanism to manage modal commands, similar to your button cache, to improve performance and memory usage.
+// 2. **Add Modal Validation**: Implement validation for modal inputs to ensure they meet the expected format or constraints before processing.
+// 3. **Add Unit Tests**: Write unit tests for `loadModals`, `handleModal`, and `sendEmbedReply` functions to ensure correctness and reliability.
+// 4. **Logging Enhancements**: Add more detailed logging, such as timestamps and user actions, to help with debugging and monitoring modal interactions.
+// 5. **Improve Error Messages**: Customize error messages based on the type of error encountered to provide more context to users and developers.
+// 6. **Optimize Retry Logic**: Refactor retry logic to include exponential backoff for handling intermittent issues more gracefully.
+// 7. **Add Documentation**: Update the documentation to include details about the new modal system, including usage examples and configuration options.
