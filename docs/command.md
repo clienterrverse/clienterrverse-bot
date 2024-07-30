@@ -1,8 +1,10 @@
 # Writing Commands for Your Discord Bot
 
+This guide provides detailed instructions on how to write commands for your Discord bot, ensuring they follow a consistent structure and style for ease of use and maintenance.
+
 ## Command Structure
 
-All commands should be placed in the appropriate category folder under `src/commands/`. For economy commands, use `src/commands/economy/`.
+All commands should be placed in the appropriate category folder under `src/commands/`. For example, place economy commands in `src/commands/economy/`.
 
 ## Command File Template
 
@@ -18,17 +20,21 @@ export default {
       .setName('commandname')
       .setDescription('Brief description of what the command does')
       .toJSON(),
-   nwfwMode: false,
+   nsfwMode: false,
    testMode: false,
    devOnly: false,
    cooldown: 5,
-   userPermissionsBitField: [],
-   bot: [],
+   userPermissions: [],
+   botPermissions: [],
    run: async (client, interaction) => {
       try {
          // Command logic goes here
       } catch (error) {
          console.error('Error in command: ', error);
+         await interaction.reply({
+            content: 'An error occurred while executing the command.',
+            ephemeral: true,
+         });
       }
    },
    // Optional: Include if command uses autocomplete
@@ -43,31 +49,27 @@ export default {
 1. **Name your file**: Use a descriptive name for your command file, e.g., `balance.js` for a balance checking command.
 
 2. **Set up the command data**:
-
-   -  Use `setName()` to define the command name users will type.
-   -  Use `setDescription()` to provide a brief explanation of the command.
-   -  If your command takes options, add them using methods like `addStringOption()`, `addIntegerOption()`, etc.
-   -  Always call `toJSON()` at the end of the SlashCommandBuilder chain.
+   - Use `setName()` to define the command name users will type.
+   - Use `setDescription()` to provide a brief explanation of the command.
+   - If your command takes options, add them using methods like `addStringOption()`, `addIntegerOption()`, etc.
+   - Always call `toJSON()` at the end of the `SlashCommandBuilder` chain.
 
 3. **Configure command properties**:
-
-   -  Set `nwfwMode`, `testMode`, `devOnly` as needed.
-   -  Set `cooldown` to limit how often the command can be used.
-   -  Define `userPermissionsBitField` for any required user permissions.
-   -  Specify any required `bot` permissions.
+   - Set `nsfwMode`, `testMode`, `devOnly` as needed.
+   - Set `cooldown` to limit how often the command can be used.
+   - Define `userPermissions` for any required user permissions.
+   - Specify any required `botPermissions`.
 
 4. **Implement the run function**:
-
-   -  This is where your command logic goes.
-   -  Use `interaction.reply()` to respond to the user.
+   - This is where your command logic goes.
+   - Use `interaction.reply()` to respond to the user.
 
 5. **Error Handling**:
-
-   -  Always include try/catch blocks to handle potential errors.
-   -  Provide user-friendly error messages and log errors for debugging.
+   - Always include try/catch blocks to handle potential errors.
+   - Provide user-friendly error messages and log errors for debugging.
 
 6. **Implement autocomplete (if needed)**:
-   -  If your command uses autocomplete, implement the `autocomplete` function.
+   - If your command uses autocomplete, implement the `autocomplete` function.
 
 ## Example Command
 
@@ -83,20 +85,20 @@ export default {
       .setName('test')
       .setDescription('A test command')
       .toJSON(),
-   nwfwMode: false,
+   nsfwMode: false,
    testMode: false,
    devOnly: false,
    cooldown: 5,
-   userPermissionsBitField: [],
-   bot: [],
+   userPermissions: [],
+   botPermissions: [],
    run: async (client, interaction) => {
       try {
-         const rembed = new EmbedBuilder()
+         const embed = new EmbedBuilder()
             .setColor(mconfig.embedColorSuccess)
             .setDescription('Test successful!')
             .setImage('https://example.com/test-image.png');
 
-         await interaction.reply({ embeds: [rembed] });
+         await interaction.reply({ embeds: [embed] });
       } catch (error) {
          console.error('Error in test command: ', error);
          await interaction.reply({
@@ -119,7 +121,7 @@ export default {
 7. Comment your code when necessary for complex logic.
 8. Use embeds for rich, formatted responses.
 9. Make use of the cooldown feature to prevent spam.
-10.   Properly set permissions to ensure commands are used appropriately.
+10. Properly set permissions to ensure commands are used appropriately.
 
 ## Testing Your Command
 
@@ -144,3 +146,5 @@ autocomplete: async (client, interaction) => {
    );
 };
 ```
+
+By following this guide, you can create well-structured, maintainable commands for your Discord bot.

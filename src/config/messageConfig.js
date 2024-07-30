@@ -19,7 +19,7 @@ const messageConfig = {
       '`❌` This person has a higher role than you have or has the same role as you have.',
    unableToInteractWithYourself: '`❌` You cannot do that to yourself.',
    cannotUseButton: '`❌` You cannot use this button.',
-   cannotUseSelect: '`❌` You cannot use this Select .',
+   cannotUseSelect: '`❌` You cannot use this Select.',
 };
 
 export default messageConfig;

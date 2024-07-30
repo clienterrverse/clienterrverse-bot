@@ -77,7 +77,7 @@ export default {
    category: 'Devloper',
 
    run: async (client, interaction) => {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply();
       const subcommand = interaction.options.getSubcommand();
 
       try {
@@ -167,7 +167,7 @@ function createServerListEmbeds(client, interaction, guilds, isDetailed) {
       const embed = new EmbedBuilder()
          .setTitle('Servers List')
          .setDescription(`The bot is in **${guilds.length}** servers.`)
-         .setColor(mconfig.embedColorDefault)
+         .setColor(mconfig.embedColorSuccess)
          .setThumbnail(client.user.displayAvatarURL())
          .setFooter({
             text: `Page ${Math.floor(i / MAX_FIELDS) + 1}/${Math.ceil(guilds.length / MAX_FIELDS)} • Requested by ${interaction.user.username}`,
@@ -288,7 +288,7 @@ async function handleUserSubcommand(client, interaction) {
       .setDescription(
          `User ${user.username} (ID: ${user.id}) owns **${serverCount}** server(s) that the bot is in.`
       )
-      .setColor(mconfig.embedColorDefault)
+      .setColor(mconfig.embedColorSuccess)
       .addFields({
          name: 'Server List',
          value: serverList || 'No servers found.',

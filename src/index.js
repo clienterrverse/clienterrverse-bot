@@ -61,6 +61,8 @@ const main = async () => {
 
    try {
       errorHandler.initialize(client);
+      client.errorHandler = errorHandler;
+
       await client.login(process.env.TOKEN);
    } catch (error) {
       console.error('ERROR: Logging into Discord failed:', error);
