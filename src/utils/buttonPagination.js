@@ -5,6 +5,24 @@ import {
    ComponentType,
 } from 'discord.js';
 
+// TODO List
+// Refactor Error Handling: Ensure that error messages are clear and specific. Consider separating error handling into its own function for better readability.
+
+// Enhance Button State Management: Make sure the updateButtons function properly updates all button states based on the current page index.
+
+// Optimize Embed Caching: Ensure that caching of embeds is efficient and doesn't cause unnecessary memory usage. Consider implementing cache invalidation if necessary.
+
+// Improve Documentation: Update comments and function descriptions for clarity. Ensure that parameters are well-documented, including their types and default values.
+
+// Add Type Checking: Implement type checking for function parameters to ensure they meet expected formats. This can be done using TypeScript or by adding manual checks.
+
+// Handle Edge Cases: Review edge cases such as empty pages, single page scenarios, and interactions from users other than the one who initiated the pagination.
+
+// Optimize Performance: Check if any performance bottlenecks exist, such as repeated calls to getEmbed. Optimize as needed.
+
+// Enhance User Experience: Consider adding features like disabling buttons when actions are not possible, or adding a loading indicator during interactions.
+
+
 // Helper function to create a button
 const createButton = (customId, emoji, style, disabled = false) => {
    if (typeof style !== 'string' && typeof style !== 'number') {
@@ -178,5 +196,9 @@ export default async (
             content: 'An error occurred while setting up pagination.',
          });
       }
+      await client.errorHandler.handleError(err, {
+         type: 'Pagination',
+      });
+
    }
 };

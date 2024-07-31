@@ -43,12 +43,18 @@ const sendEmbedReply = async (
    try {
       const embed = new EmbedBuilder()
          .setColor(color)
-         .setDescription(description);
+         .setDescription(description)
+         .setAuthor({
+            name: interaction.user.username,
+            iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+         })
+         .setTimestamp(); 
+
       await interaction.reply({ embeds: [embed], ephemeral });
    } catch (err) {
-      console.error(`Failed to send embed reply: ${err.message}`.red);
    }
 };
+
 
 const getCachedData = async (key, fetchFunction) => {
    const cachedItem = cache.get(key);

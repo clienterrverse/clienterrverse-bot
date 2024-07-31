@@ -44,20 +44,27 @@ const ACTIONS = [
    },
 ];
 
+const handleAction = async (message, action) => {
+   try {
+      await action(message);
+   } catch (error) {
+      console.error('Error executing action:', error);
+      await message.channel.send(
+         'Oops! Something went wrong while processing your request.'
+      );
+   }
+};
+
 export default async (client, errorHandler, message) => {
    try {
-      // Check message content against all defined regular expressions
       for (const { regex, action } of ACTIONS) {
          if (regex.test(message.content)) {
-            await action(message);
+            await handleAction(message, action);
             break; // Stop checking once a match is found
          }
       }
    } catch (error) {
-      console.error('Error processing message:', error);
-      // Optionally, send an error message to the channel
-      await message.channel.send(
-         'Oops! Something went wrong while processing your message.'
-      );
+      errorHandler.handleError(err, { type: 'chatrega' });
+
    }
 };

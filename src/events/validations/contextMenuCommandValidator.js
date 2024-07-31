@@ -38,9 +38,21 @@ const sendEmbedReply = async (
    description,
    ephemeral = true
 ) => {
-   const embed = new EmbedBuilder().setColor(color).setDescription(description);
-   await interaction.reply({ embeds: [embed], ephemeral });
+   try {
+      const embed = new EmbedBuilder()
+         .setColor(color)
+         .setDescription(description)
+         .setAuthor({
+            name: interaction.user.username,
+            iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+         })
+         .setTimestamp(); 
+
+      await interaction.reply({ embeds: [embed], ephemeral });
+   } catch (err) {
+   }
 };
+
 
 const checkPermissions = (interaction, permissions, type) => {
    const member =

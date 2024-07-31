@@ -1,3 +1,44 @@
+### Documentation
+
+**Overview**:
+This module provides functions to dynamically load, register, and handle event files for a Discord bot using the Discord.js library. It scans event folders, loads event files, registers event handlers, and attaches them to the Discord client, ensuring proper error handling.
+
+**Parameters**:
+- `eventRegistry` (Map): A map where event names are keys and their respective handlers are values.
+- `eventName` (string): The name of the event to register.
+- `eventInfo` (Object): Information about the event handler, including the function, file name, and priority.
+- `eventFile` (string): The path to the event file.
+- `errorHandler` (Function): The error handler function to call when errors occur.
+- `eventFolder` (string): The path to the folder containing event files.
+- `client` (Object): The Discord client instance.
+
+**Returns**:
+- The functions in this module do not return values; they perform operations such as registering event handlers and attaching them to the Discord client.
+
+**Examples**:
+```javascript
+import loadEventHandlers from './path/to/eventLoader';
+import { Client } from 'discord.js';
+import DiscordBotErrorHandler from './handlers/errorHandler';
+
+const client = new Client({ intents: [...] });
+const errorHandler = new DiscordBotErrorHandler({ webhookUrl: process.env.ERROR_WEBHOOK_URL });
+
+loadEventHandlers(client, errorHandler).then(() => {
+   console.log('Event handlers loaded successfully.');
+}).catch((error) => {
+   console.error('Failed to load event handlers:', error);
+});
+```
+
+**Notes**:
+- **Environment Setup**: Ensure that the necessary environment variables (e.g., `ERROR_WEBHOOK_URL`) are set before running the script.
+- **File Structure**: The event files should be organized in folders within the `events` directory. Each folder corresponds to an event name.
+- **Priority Handling**: Event handlers can specify a `priority` property, determining the order in which they are executed. Higher priority handlers are executed first.
+- **Error Handling**: The `errorHandler` function is used to handle and log errors that occur during the loading and execution of event handlers.
+- **Edge Cases**:
+  - If an event file fails to load, the error is caught, logged, and handled without crashing the application.
+  - If an event handler throws an error during execution, the error is caught, logged, and handled appropriately.
 Here's the documentation for the event handler system:
 
 # Discord.js Event Handler System
