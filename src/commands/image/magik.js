@@ -1,19 +1,19 @@
-/** @format */
-
 import {
    EmbedBuilder,
    SlashCommandBuilder,
-   ActionRowBuilder,
-   ButtonBuilder,
-   ButtonStyle,
+   ApplicationCommandType,
 } from 'discord.js';
 import axios from 'axios';
 import mconfig from '../../config/messageConfig.js';
+import pagination from '../../utils/buttonPagination.js';
+
+const TIMEOUT = 15000;
+const MAX_PAGES = 5;
 
 export default {
    data: new SlashCommandBuilder()
       .setName('magik')
-      .setDescription('Create a magik image')
+      .setDescription('Create multiple magik images')
       .addUserOption((option) =>
          option
             .setName('target')
@@ -28,6 +28,14 @@ export default {
             .setMinValue(1)
             .setMaxValue(10)
       )
+      .addIntegerOption((option) =>
+         option
+            .setName('count')
+            .setDescription('Number of images to generate (1-5)')
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(5)
+      )
       .toJSON(),
    cooldown: 10,
    nsfwMode: false,
@@ -38,25 +46,51 @@ export default {
    bot: [],
 
    run: async (client, interaction) => {
-      try {
+      await interaction.deferReply();
+
+      const targetUser =
+         interaction.options.getUser('target') || interaction.user;
+      const intensity = interaction.options.getInteger('intensity') || 5;
+      const count = interaction.options.getInteger('count') || 1;
+
+      if (typeof intensity !== 'number' || typeof count !== 'number') {
+         return interaction.editReply('Intensity and count must be numbers.');
+      }
+
+      await generateAndSendMagik(interaction, targetUser, intensity, count);
+   },
+
+   contextMenu: {
+      name: 'Magik User Avatar',
+      type: ApplicationCommandType.User,
+      run: async (client, interaction) => {
          await interaction.deferReply();
 
-         const targetUser =
-            interaction.options.getUser('target') || interaction.user;
-         const intensity = interaction.options.getInteger('intensity') || 5;
+         const targetUser = interaction.targetUser;
+         const intensity = 5; // Default intensity for context menu
+         const count = 1; // Default count for context menu
 
-         const avatarURL = targetUser.displayAvatarURL({
-            size: 512,
-            extension: 'png',
-            forceStatic: true,
-         });
+         await generateAndSendMagik(interaction, targetUser, intensity, count);
+      },
+   },
+};
 
-         // Fetch the magik image
+async function generateAndSendMagik(interaction, targetUser, intensity, count) {
+   try {
+      const avatarURL = targetUser.displayAvatarURL({
+         size: 512,
+         extension: 'png',
+         forceStatic: true,
+      });
+
+      const pages = [];
+
+      for (let i = 0; i < count; i++) {
          const response = await axios.get(
             `https://nekobot.xyz/api/imagegen?type=magik&image=${encodeURIComponent(
                avatarURL
             )}&intensity=${intensity}`,
-            { timeout: 15000 } // Set a timeout of 15 seconds
+            { timeout: TIMEOUT }
          );
 
          if (!response.data || !response.data.message) {
@@ -64,93 +98,71 @@ export default {
          }
 
          const magikImageURL = response.data.message;
-
-         const embed = new EmbedBuilder()
-            .setTitle('🎭 Magik')
-            .setColor(mconfig.embedColorDefault)
-            .setImage(magikImageURL)
-            .setURL(magikImageURL)
-            .setDescription(`Magik'd image of ${targetUser.username}`)
-            .addFields(
-               {
-                  name: '🧙‍♂️ Requested by',
-                  value: interaction.user.username,
-                  inline: true,
-               },
-               {
-                  name: '🔮 Intensity',
-                  value: `${intensity}/10`,
-                  inline: true,
-               },
-               {
-                  name: '🖼️ Generated Image',
-                  value: `[Open Image](${magikImageURL})`,
-                  inline: true,
-               }
-            )
-            .setFooter({ text: 'Powered by nekobot.xyz' })
-            .setTimestamp();
-
-         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-               .setCustomId('regenerate')
-               .setLabel('🔄 Regenerate')
-               .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-               .setURL(magikImageURL)
-               .setLabel('🔗 Open Image')
-               .setStyle(ButtonStyle.Link)
+         const embed = createEmbed(
+            targetUser,
+            intensity,
+            magikImageURL,
+            interaction.user.username,
+            i + 1,
+            count
          );
-
-         const reply = await interaction.editReply({
-            embeds: [embed],
-            components: [row],
-         });
-
-         const filter = (i) =>
-            i.customId === 'regenerate' && i.user.id === interaction.user.id;
-         const collector = reply.createMessageComponentCollector({
-            filter,
-            time: 60000,
-         });
-
-         collector.on('collect', async (i) => {
-            await i.deferUpdate();
-            const newResponse = await axios.get(
-               `https://nekobot.xyz/api/imagegen?type=magik&image=${encodeURIComponent(
-                  avatarURL
-               )}&intensity=${intensity}`,
-               { timeout: 15000 }
-            );
-            const newMagikImageURL = newResponse.data.message;
-            embed.setImage(newMagikImageURL).setURL(newMagikImageURL);
-            row.components[1].setURL(newMagikImageURL);
-            await i.editReply({ embeds: [embed], components: [row] });
-         });
-
-         collector.on('end', () => {
-            row.components[0].setDisabled(true);
-            interaction.editReply({ components: [row] });
-         });
-      } catch (error) {
-         console.error('Error generating magik image:', error);
-         const errorMessage =
-            error.response?.status === 524
-               ? 'The image generation service is currently overloaded. Please try again later.'
-               : 'Sorry, something went wrong while generating the magik image.';
-
-         if (interaction.deferred) {
-            await interaction.editReply({
-               content: errorMessage,
-               embeds: [],
-               components: [],
-            });
-         } else {
-            await interaction.reply({
-               content: errorMessage,
-               ephemeral: true,
-            });
-         }
+         pages.push(embed);
       }
-   },
-};
+
+      await pagination(interaction, pages, 60000); // Use 60 seconds for pagination timeout
+   } catch (error) {
+      handleError(interaction, error);
+   }
+}
+
+function createEmbed(
+   targetUser,
+   intensity,
+   magikImageURL,
+   requester,
+   currentPage,
+   totalPages
+) {
+   return new EmbedBuilder()
+      .setTitle('🎭 Magik')
+      .setColor(mconfig.embedColorDefault || 0x7289da)
+      .setImage(magikImageURL)
+      .setURL(magikImageURL)
+      .setDescription(`Magik'd image of ${targetUser.username}`)
+      .addFields(
+         {
+            name: '🧙‍♂️ Requested by',
+            value: requester,
+            inline: true,
+         },
+         {
+            name: '🔮 Intensity',
+            value: `${intensity}/10`,
+            inline: true,
+         },
+         {
+            name: '🖼️ Generated Image',
+            value: `[Open Image](${magikImageURL})`,
+            inline: true,
+         }
+      )
+      .setFooter({
+         text: `Powered by nekobot.xyz | Image ${currentPage}/${totalPages}`,
+      })
+      .setTimestamp();
+}
+
+function handleError(interaction, error) {
+   console.error('Error generating magik image:', error);
+   const errorMessage =
+      error.response?.status === 524
+         ? 'The image generation service is currently overloaded. Please try again later.'
+         : error.message ||
+           'Sorry, something went wrong while generating the magik image.';
+
+   interaction.editReply({
+      content: errorMessage,
+      embeds: [],
+      components: [],
+   });
+}

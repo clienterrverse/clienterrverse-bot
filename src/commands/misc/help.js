@@ -1,34 +1,30 @@
 import {
-   SlashCommandBuilder,
    EmbedBuilder,
    ActionRowBuilder,
    StringSelectMenuBuilder,
    ButtonBuilder,
    ButtonStyle,
    ComponentType,
+   SlashCommandBuilder,
 } from 'discord.js';
 import getLocalCommands from '../../utils/getLocalCommands.js';
 import mConfig from '../../config/messageConfig.js';
 
-const MAX_DESCRIPTION_LENGTH = 2048;
-const COMMANDS_PER_PAGE = 10;
-const MAX_FIELD_LENGTH = 1024;
+const COMMANDS_PER_PAGE = 8;
 const INTERACTION_TIMEOUT = 300000; // 5 minutes
 
-const splitText = (text, length) => {
-   return text.match(new RegExp(`.{1,${length}}`, 'g')) || [];
-};
-
 const categorizeCommands = (commands) => {
-   const categories = {};
-   commands.forEach((cmd) => {
+   const categorized = commands.reduce((acc, cmd) => {
       const category = cmd.category || 'Uncategorized';
-      if (!categories[category]) {
-         categories[category] = [];
-      }
-      categories[category].push(cmd);
-   });
-   return categories;
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(cmd);
+      return acc;
+   }, {});
+
+   // Add a separate category for prefix commands
+   categorized['Prefix Commands'] = commands.filter((cmd) => cmd.prefix);
+
+   return categorized;
 };
 
 export default {
@@ -48,79 +44,52 @@ export default {
             .setDescription('View commands by category')
             .setRequired(false)
             .setAutocomplete(true)
-      )
-      .toJSON(),
-
-   userPermissions: [],
-   botPermissions: [],
-   cooldown: 10,
-   nsfwMode: false,
-   testMode: false,
-   devOnly: false,
-   category: 'Misc',
-
-   async autocomplete(client, interaction) {
-      const focusedOption = interaction.options.getFocused(true);
-      const localCommands = await getLocalCommands();
-
-      if (focusedOption.name === 'command') {
-         const filtered = localCommands.filter((cmd) =>
-            cmd.data.name
-               .toLowerCase()
-               .startsWith(focusedOption.value.toLowerCase())
-         );
-         await interaction.respond(
-            filtered.map((cmd) => ({
-               name: cmd.data.name,
-               value: cmd.data.name,
-            }))
-         );
-      } else if (focusedOption.name === 'category') {
-         const categories = [
-            ...new Set(
-               localCommands.map((cmd) => cmd.category || 'Uncategorized')
-            ),
-         ];
-         const filtered = categories.filter((cat) =>
-            cat.toLowerCase().startsWith(focusedOption.value.toLowerCase())
-         );
-         await interaction.respond(
-            filtered.map((cat) => ({
-               name: cat,
-               value: cat,
-            }))
-         );
-      }
-   },
-
+      ),
    run: async (client, interaction) => {
       try {
          const localCommands = await getLocalCommands();
-         const commandName = interaction.options.getString('command');
-         const category = interaction.options.getString('category');
          const embedColor = mConfig.embedColorDefault || '#0099ff';
+         const prefix = '!';
 
-         if (commandName) {
-            return await showCommandDetails(
-               interaction,
-               localCommands,
-               commandName,
-               embedColor
+         const commandOption = interaction.options.getString('command');
+         const categoryOption = interaction.options.getString('category');
+
+         if (commandOption) {
+            const command = localCommands.find(
+               (cmd) => cmd.name.toLowerCase() === commandOption.toLowerCase()
             );
-         } else if (category) {
-            return await showCategoryCommands(
-               interaction,
-               localCommands,
-               category,
-               embedColor
-            );
-         } else {
-            return await showCommandOverview(
-               interaction,
-               localCommands,
-               embedColor
-            );
+            if (command) {
+               return await showCommandDetails(
+                  interaction,
+                  command,
+                  embedColor,
+                  prefix
+               );
+            }
          }
+
+         if (categoryOption) {
+            const categorizedCommands = categorizeCommands(localCommands);
+            const category = Object.keys(categorizedCommands).find(
+               (cat) => cat.toLowerCase() === categoryOption.toLowerCase()
+            );
+            if (category) {
+               return await showCategoryCommands(
+                  interaction,
+                  localCommands,
+                  category,
+                  embedColor,
+                  prefix
+               );
+            }
+         }
+
+         return await showCommandOverview(
+            interaction,
+            localCommands,
+            embedColor,
+            prefix
+         );
       } catch (error) {
          console.error('Error in help command:', error);
          return interaction.reply({
@@ -131,25 +100,10 @@ export default {
    },
 };
 
-async function showCommandDetails(
-   interaction,
-   localCommands,
-   commandName,
-   embedColor
-) {
-   const command = localCommands.find(
-      (cmd) => cmd.data.name.toLowerCase() === commandName.toLowerCase()
-   );
-   if (!command) {
-      return interaction.reply({
-         content: 'Command not found.',
-         ephemeral: true,
-      });
-   }
-
+async function showCommandDetails(interaction, command, embedColor, prefix) {
    const embed = new EmbedBuilder()
-      .setTitle(`📖 Command: ${command.data.name}`)
-      .setDescription(command.data.description || 'No description available.')
+      .setTitle(`📖 Command: ${command.name}`)
+      .setDescription(command.description || 'No description available.')
       .setColor(embedColor)
       .addFields(
          {
@@ -166,6 +120,11 @@ async function showCommandDetails(
             name: '🔒 Permissions',
             value: command.userPermissions?.join(', ') || 'None',
             inline: true,
+         },
+         {
+            name: '🔧 Prefix Command',
+            value: command.prefix ? 'Yes' : 'No',
+            inline: true,
          }
       );
 
@@ -180,23 +139,7 @@ async function showCommandDetails(
    if (command.usage) {
       embed.addFields({
          name: '💡 Usage',
-         value: `\`${command.usage}\``,
-         inline: false,
-      });
-   }
-
-   if (command.data.options?.length > 0) {
-      const optionsText = command.data.options
-         .map(
-            (opt) =>
-               `• **${opt.name}**: ${opt.description} ${
-                  opt.required ? '*(Required)*' : ''
-               }`
-         )
-         .join('\n');
-      embed.addFields({
-         name: '🔧 Options',
-         value: optionsText,
+         value: `\`${command.prefix ? prefix : '/'}${command.usage}\``,
          inline: false,
       });
    }
@@ -205,22 +148,43 @@ async function showCommandDetails(
       new ButtonBuilder()
          .setCustomId('return_to_overview')
          .setLabel('Return to Overview')
-         .setStyle(ButtonStyle.Secondary)
+         .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+         .setCustomId('show_examples')
+         .setLabel('Show Examples')
+         .setStyle(ButtonStyle.Primary)
    );
 
-   const message = await interaction.reply({
+   const response = await interaction.reply({
       embeds: [embed],
       components: [row],
+      ephemeral: true,
    });
 
-   const collector = message.createMessageComponentCollector({
+   const collector = response.createMessageComponentCollector({
       componentType: ComponentType.Button,
       time: INTERACTION_TIMEOUT,
    });
 
    collector.on('collect', async (i) => {
+      if (i.user.id !== interaction.user.id) {
+         return i.reply({
+            content: "You can't use this button.",
+            ephemeral: true,
+         });
+      }
+
       if (i.customId === 'return_to_overview') {
-         await showCommandOverview(i, localCommands, embedColor);
+         const localCommands = await getLocalCommands();
+         await showCommandOverview(i, localCommands, embedColor, prefix);
+      } else if (i.customId === 'show_examples') {
+         const examplesEmbed = new EmbedBuilder()
+            .setTitle(`📝 Examples for ${command.name}`)
+            .setColor(embedColor)
+            .setDescription(
+               command.examples?.join('\n') || 'No examples available.'
+            );
+         await i.reply({ embeds: [examplesEmbed], ephemeral: true });
       }
    });
 
@@ -234,12 +198,17 @@ async function showCategoryCommands(
    interaction,
    localCommands,
    category,
-   embedColor
+   embedColor,
+   prefix
 ) {
-   const categoryCommands = localCommands.filter(
-      (cmd) => (cmd.category || 'Uncategorized') === category
+   const categorizedCommands = categorizeCommands(localCommands);
+   const categoryCommands = categorizedCommands[category] || [];
+   const pages = createCommandPages(
+      categoryCommands,
+      category,
+      embedColor,
+      prefix
    );
-   const pages = createCommandPages(categoryCommands, category, embedColor);
 
    let currentPage = 0;
 
@@ -260,12 +229,13 @@ async function showCategoryCommands(
          .setStyle(ButtonStyle.Secondary)
    );
 
-   const message = await interaction.reply({
+   const response = await interaction.reply({
       embeds: [pages[currentPage]],
       components: [row],
+      ephemeral: true,
    });
 
-   const collector = message.createMessageComponentCollector({
+   const collector = response.createMessageComponentCollector({
       componentType: ComponentType.Button,
       time: INTERACTION_TIMEOUT,
    });
@@ -283,7 +253,7 @@ async function showCategoryCommands(
       } else if (i.customId === 'next_page') {
          currentPage = Math.min(pages.length - 1, currentPage + 1);
       } else if (i.customId === 'return_to_overview') {
-         await showCommandOverview(i, localCommands, embedColor);
+         await showCommandOverview(i, localCommands, embedColor, prefix);
          return;
       }
 
@@ -299,11 +269,20 @@ async function showCategoryCommands(
    });
 }
 
-async function showCommandOverview(interaction, localCommands, embedColor) {
+async function showCommandOverview(
+   interaction,
+   localCommands,
+   embedColor,
+   prefix
+) {
    const categorizedCommands = categorizeCommands(localCommands);
    const categories = Object.keys(categorizedCommands);
 
-   const overviewEmbed = createOverviewEmbed(categorizedCommands, embedColor);
+   const overviewEmbed = createOverviewEmbed(
+      categorizedCommands,
+      embedColor,
+      prefix
+   );
 
    const categorySelect = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
@@ -318,13 +297,13 @@ async function showCommandOverview(interaction, localCommands, embedColor) {
          )
    );
 
-   const message = await interaction.reply({
+   const response = await interaction.reply({
       embeds: [overviewEmbed],
       components: [categorySelect],
+      ephemeral: true,
    });
 
-   const collector = message.createMessageComponentCollector({
-      componentType: ComponentType.StringSelect,
+   const collector = response.createMessageComponentCollector({
       time: INTERACTION_TIMEOUT,
    });
 
@@ -342,7 +321,8 @@ async function showCommandOverview(interaction, localCommands, embedColor) {
             i,
             localCommands,
             selectedCategory,
-            embedColor
+            embedColor,
+            prefix
          );
       }
    });
@@ -353,18 +333,20 @@ async function showCommandOverview(interaction, localCommands, embedColor) {
    });
 }
 
-function createOverviewEmbed(categorizedCommands, embedColor) {
+function createOverviewEmbed(categorizedCommands, embedColor, prefix) {
    const embed = new EmbedBuilder()
       .setTitle('📚 Command Overview')
       .setColor(embedColor)
       .setDescription(
-         "Here's an overview of all command categories. Select a category from the dropdown menu to view detailed information."
+         `Here's an overview of all available categories. Select a category from the dropdown below to view the commands.\n\n**Prefix:** \`${prefix}\``
       );
 
-   Object.entries(categorizedCommands).forEach(([category, commands]) => {
+   Object.keys(categorizedCommands).forEach((category) => {
       embed.addFields({
-         name: `${getCategoryEmoji(category)} ${category}`,
-         value: `${commands.length} command${commands.length !== 1 ? 's' : ''}`,
+         name: getCategoryEmoji(category) + ' ' + category,
+         value: categorizedCommands[category]
+            .map((cmd) => `\`${cmd.name}\``)
+            .join(', '),
          inline: true,
       });
    });
@@ -372,33 +354,38 @@ function createOverviewEmbed(categorizedCommands, embedColor) {
    return embed;
 }
 
-function createCommandPages(commands, category, embedColor) {
+function createCommandPages(commands, category, embedColor, prefix) {
    const pages = [];
-   for (let i = 0; i < commands.length; i += COMMANDS_PER_PAGE) {
-      const pageCommands = commands.slice(i, i + COMMANDS_PER_PAGE);
+   const totalPages = Math.ceil(commands.length / COMMANDS_PER_PAGE);
+
+   for (let i = 0; i < totalPages; i++) {
+      const pageCommands = commands.slice(
+         i * COMMANDS_PER_PAGE,
+         i * COMMANDS_PER_PAGE + COMMANDS_PER_PAGE
+      );
+
       const embed = new EmbedBuilder()
-         .setTitle(`${getCategoryEmoji(category)} ${category} Commands`)
+         .setTitle(`📖 ${category} Commands`)
          .setColor(embedColor)
-         .setFooter({
-            text: `Page ${pages.length + 1}/${Math.ceil(commands.length / COMMANDS_PER_PAGE)}`,
-         });
+         .setDescription(`Page ${i + 1} of ${totalPages}`)
+         .addFields(
+            pageCommands.map((cmd) => ({
+               name: cmd.name,
+               value: cmd.description || 'No description available.',
+               inline: true,
+            }))
+         );
 
-      const description = pageCommands
-         .map((cmd) => {
-            const usage = cmd.usage ? ` - Usage: \`${cmd.usage}\`` : '';
-            return `• **${cmd.data.name}**: ${cmd.data.description}${usage}`;
-         })
-         .join('\n');
-
-      embed.setDescription(description.substring(0, MAX_FIELD_LENGTH));
       pages.push(embed);
    }
+
    return pages;
 }
 
 function getCategoryEmoji(category) {
-   const emojiMap = {
-      Uncategorized: '📁',
+   const emojis = {
+      Uncategorized: '❓',
+      'Prefix Commands': '🔧',
       ticket: '🎟️',
       Admin: '🛡️',
       Misc: '🎉',
@@ -411,6 +398,8 @@ function getCategoryEmoji(category) {
       Utility: '🛠️',
       Information: 'ℹ️',
       Configuration: '⚙️',
+
+      // Add more category-specific emojis if desired
    };
-   return emojiMap[category] || '📁';
+   return emojis[category] || '📁';
 }

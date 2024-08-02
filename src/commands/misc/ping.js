@@ -22,80 +22,55 @@ export default {
 
    run: async (client, interaction) => {
       try {
-         await interaction.deferReply();
-
          const start = Date.now();
-         const msg = await interaction.fetchReply();
+         await interaction.deferReply();
          const latency = Date.now() - start;
          const apiPing = Math.round(client.ws.ping);
 
-         const getPingColor = (ping) => {
-            if (ping < 150) return '#00ff00';
-            if (ping < 250) return '#ffff00';
-            return '#ff0000';
-         };
+         const getPingColor = (ping) =>
+            ping < 150 ? '#00ff00' : ping < 250 ? '#ffff00' : '#ff0000';
 
-         if (!client.commandStats) {
-            client.commandStats = { pingCount: 0, totalPing: 0 };
-         }
-         client.commandStats.pingCount += 1;
+         client.commandStats ??= { pingCount: 0, totalPing: 0 };
+         client.commandStats.pingCount++;
          client.commandStats.totalPing += apiPing;
 
-         const averagePing =
-            client.commandStats.pingCount > 0
-               ? (
-                    client.commandStats.totalPing /
-                    client.commandStats.pingCount
-                 ).toFixed(2)
-               : 0;
-
+         const averagePing = (
+            client.commandStats.totalPing / client.commandStats.pingCount
+         ).toFixed(2);
          const uptime = client.readyAt
-            ? formatDistanceToNow(client.readyAt, { includeSeconds: true })
+            ? formatDistanceToNow(client.readyAt, { addSuffix: true })
             : 'Bot not ready';
 
-         const memoryUsage = process.memoryUsage();
+         const { heapUsed, rss } = process.memoryUsage();
          const systemUptime = os.uptime();
+
+         const stats = [
+            { name: '📡 Bot Latency', value: `${latency}ms` },
+            { name: '🌐 API Latency', value: `${apiPing}ms` },
+            { name: '📊 Average Ping', value: `${averagePing}ms` },
+            { name: '⏱️ Uptime', value: uptime },
+            {
+               name: '🖥️ Memory Usage',
+               value: `${(heapUsed / 1024 / 1024).toFixed(2)} MB / ${(rss / 1024 / 1024).toFixed(2)} MB`,
+            },
+            { name: '📚 Discord.js Version', value: discordJsVersion },
+            { name: '🛠️ Node.js Version', value: process.version },
+            {
+               name: '⚙️ System Uptime',
+               value: formatDistanceToNow(Date.now() - systemUptime * 1000, {
+                  addSuffix: true,
+               }),
+            },
+            {
+               name: '🔢 Command Usage',
+               value: `${client.commandStats.pingCount}`,
+            },
+         ];
 
          const pongEmbed = new EmbedBuilder()
             .setColor(getPingColor(apiPing))
             .setTitle('🏓 Pong!')
-            .addFields(
-               { name: '📡 Bot Latency', value: `${latency}ms`, inline: true },
-               { name: '🌐 API Latency', value: `${apiPing}ms`, inline: true },
-               {
-                  name: '📊 Average Ping',
-                  value: `${averagePing}ms`,
-                  inline: true,
-               },
-               { name: '⏱️ Uptime', value: uptime, inline: true },
-               {
-                  name: '🖥️ Memory Usage',
-                  value: `${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
-                  inline: true,
-               },
-               {
-                  name: '📚 Discord.js Version',
-                  value: discordJsVersion,
-                  inline: true,
-               },
-               {
-                  name: '🛠️ Node.js Version',
-                  value: process.version,
-                  inline: true,
-               },
-               {
-                  name: '⚙️ System Uptime',
-                  value: formatDistanceToNow(Date.now() - systemUptime * 1000, {
-                     includeSeconds: true,
-                  }),
-                  inline: true,
-               },
-               {
-                  name: '🔢 Command Usage',
-                  value: `${client.commandStats.pingCount}`,
-                  inline: true,
-               }
-            )
+            .addFields(stats.map((stat) => ({ ...stat, inline: true })))
             .setFooter({
                text: `Requested by ${interaction.user.username}`,
                iconURL: interaction.user.displayAvatarURL({ dynamic: true }),
@@ -104,10 +79,10 @@ export default {
 
          await interaction.editReply({ embeds: [pongEmbed] });
       } catch (error) {
+         console.error('Error in ping command:', error);
          await interaction.editReply(
             'An error occurred while processing the command. Please try again later.'
          );
-         throw error;
       }
    },
 };
