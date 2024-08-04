@@ -46,15 +46,13 @@ const sendEmbedReply = async (
          .setDescription(description)
          .setAuthor({
             name: interaction.user.username,
-            iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+            iconURL: interaction.user.displayAvatarURL({ dynamic: true }),
          })
-         .setTimestamp(); 
+         .setTimestamp();
 
       await interaction.reply({ embeds: [embed], ephemeral });
-   } catch (err) {
-   }
+   } catch (err) {}
 };
-
 
 const getCachedData = async (key, fetchFunction) => {
    const cachedItem = cache.get(key);

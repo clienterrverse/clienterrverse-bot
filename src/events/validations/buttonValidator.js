@@ -45,15 +45,13 @@ const sendEmbedReply = async (
          .setDescription(description)
          .setAuthor({
             name: interaction.user.username,
-            iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+            iconURL: interaction.user.displayAvatarURL({ dynamic: true }),
          })
-         .setTimestamp(); 
+         .setTimestamp();
 
       await interaction.reply({ embeds: [embed], ephemeral });
-   } catch (err) {
-   }
+   } catch (err) {}
 };
-
 
 const checkPermissions = (member, permissions) =>
    permissions.every((permission) =>
@@ -197,4 +195,3 @@ export default async (client, errorHandler, interaction) => {
 
    await handleButton(client, errorHandler, interaction);
 };
-

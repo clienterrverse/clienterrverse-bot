@@ -4,10 +4,11 @@ import JoinToSystemChannel from '../../schemas/joinToSystemSchema.js';
 
 // Constants for messages
 const MESSAGES = {
-  NOT_IN_VOICE: 'You need to be in a voice channel to use this command.',
-  NOT_MANAGED: 'This voice channel is not managed by the join-to-create system.',
-  NOT_OWNER: "You don't have ownership of this channel.",
-  CHECK_ERROR: 'An error occurred while checking channel ownership.',
+   NOT_IN_VOICE: 'You need to be in a voice channel to use this command.',
+   NOT_MANAGED:
+      'This voice channel is not managed by the join-to-create system.',
+   NOT_OWNER: "You don't have ownership of this channel.",
+   CHECK_ERROR: 'An error occurred while checking channel ownership.',
 };
 
 /**
@@ -17,51 +18,51 @@ const MESSAGES = {
  * @returns {Promise<Object>} - Returns an object with check results and channel info
  */
 export async function comprehensiveVoiceCheck(userId, member) {
-  if (!member.voice.channel) {
-    return {
-      inVoice: false,
-      isManaged: false,
-      isOwner: false,
-      channel: null,
-      message: MESSAGES.NOT_IN_VOICE,
-    };
-  }
-
-  const channelId = member.voice.channel.id;
-
-  try {
-    const managedChannel = await JoinToSystemChannel.findOne({ channelId });
-
-    if (!managedChannel) {
+   if (!member.voice.channel) {
       return {
-        inVoice: true,
-        isManaged: false,
-        isOwner: false,
-        channel: member.voice.channel,
-        message: MESSAGES.NOT_MANAGED,
+         inVoice: false,
+         isManaged: false,
+         isOwner: false,
+         channel: null,
+         message: MESSAGES.NOT_IN_VOICE,
       };
-    }
+   }
 
-    const isOwner = managedChannel.ownerId === userId;
+   const channelId = member.voice.channel.id;
 
-    return {
-      inVoice: true,
-      isManaged: true,
-      isOwner,
-      channel: member.voice.channel,
-      managedChannel,
-      message: isOwner ? null : MESSAGES.NOT_OWNER,
-    };
-  } catch (error) {
-    client.errorHandler.handleError(error, { type: 'modalLoad' });
-    return {
-      inVoice: true,
-      isManaged: false,
-      isOwner: false,
-      channel: member.voice.channel,
-      message: MESSAGES.CHECK_ERROR,
-    };
-  }
+   try {
+      const managedChannel = await JoinToSystemChannel.findOne({ channelId });
+
+      if (!managedChannel) {
+         return {
+            inVoice: true,
+            isManaged: false,
+            isOwner: false,
+            channel: member.voice.channel,
+            message: MESSAGES.NOT_MANAGED,
+         };
+      }
+
+      const isOwner = managedChannel.ownerId === userId;
+
+      return {
+         inVoice: true,
+         isManaged: true,
+         isOwner,
+         channel: member.voice.channel,
+         managedChannel,
+         message: isOwner ? null : MESSAGES.NOT_OWNER,
+      };
+   } catch (error) {
+      client.errorHandler.handleError(error, { type: 'modalLoad' });
+      return {
+         inVoice: true,
+         isManaged: false,
+         isOwner: false,
+         channel: member.voice.channel,
+         message: MESSAGES.CHECK_ERROR,
+      };
+   }
 }
 
 /**
@@ -72,35 +73,35 @@ export async function comprehensiveVoiceCheck(userId, member) {
  * @returns {function} - Returns a middleware function
  */
 export function requireVoiceChecks(
-  commandFunction,
-  { requireOwnership = true } = {}
+   commandFunction,
+   { requireOwnership = true } = {}
 ) {
-  return async (client, interaction) => {
-    try {
-      const checkResult = await comprehensiveVoiceCheck(
-        interaction.user.id,
-        interaction.member
-      );
+   return async (client, interaction) => {
+      try {
+         const checkResult = await comprehensiveVoiceCheck(
+            interaction.user.id,
+            interaction.member
+         );
 
-      if (
-        !checkResult.inVoice ||
-        !checkResult.isManaged ||
-        (requireOwnership && !checkResult.isOwner)
-      ) {
-        return interaction.reply({
-          content: checkResult.message,
-          ephemeral: true,
-        });
+         if (
+            !checkResult.inVoice ||
+            !checkResult.isManaged ||
+            (requireOwnership && !checkResult.isOwner)
+         ) {
+            return interaction.reply({
+               content: checkResult.message,
+               ephemeral: true,
+            });
+         }
+
+         // All checks passed, execute the command
+         return commandFunction(client, interaction, checkResult);
+      } catch (error) {
+         client.errorHandler.handleError(error, { type: 'modalLoad' });
+         return interaction.reply({
+            content: MESSAGES.CHECK_ERROR,
+            ephemeral: true,
+         });
       }
-
-      // All checks passed, execute the command
-      return commandFunction(client, interaction, checkResult);
-    } catch (error) {
-      client.errorHandler.handleError(error, { type: 'modalLoad' });
-      return interaction.reply({
-        content: MESSAGES.CHECK_ERROR,
-        ephemeral: true,
-      });
-    }
-  };
+   };
 }

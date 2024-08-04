@@ -55,41 +55,46 @@ export default function getRecoverySuggestions(error) {
             return "Review the Discord API documentation for this error code and ensure your bot is compliant with Discord's terms of service.";
       }
    }
-      if (error instanceof Error) {
-         if (error.name === 'ReferenceError') {
-            return 'Reference error: Ensure that all variables and functions are defined before use.';
-         }
-         if (error.name === 'TypeError') {
-            return 'Type error: Verify the data types of variables and function parameters.';
-         }
-         if (error.name === 'SyntaxError') {
-            return 'Syntax error: Check for syntax errors in your code. Ensure all parentheses, brackets, and braces are properly closed.';
-         }
-         if (error.name === 'RangeError') {
-            return 'Range error: Ensure values are within the permissible range. Check for infinite loops or excessive recursion.';
-         }
-         if (error.name === 'EvalError') {
-            return 'Eval error: Avoid using `eval()` and ensure code being evaluated is correct.';
-         }
-         if (error.name === 'URIError') {
-            return 'URI error: Check the encoding of URIs and ensure they are correctly formatted.';
-         }
-         if (error.name === 'ValidationError') {
-            return 'Validation error: Check the input data for correctness and completeness.';
-         }
-         if (error.name === 'DatabaseError') {
-            return 'Database error: Check your database connection and queries for issues.';
-         }
-         if (error.name === 'AuthError') {
-            return 'Authorization error: Verify user permissions and authentication methods.';
-         }
-         if (error.name === 'MongoNetworkError') {
-            return 'MongoDB network error: Check your MongoDB connection string and network settings.';
-         }
+   if (error instanceof Error) {
+      if (error.name === 'ReferenceError') {
+         return 'Reference error: Ensure that all variables and functions are defined before use.';
       }
+      if (error.name === 'TypeError') {
+         return 'Type error: Verify the data types of variables and function parameters.';
+      }
+      if (error.name === 'SyntaxError') {
+         return 'Syntax error: Check for syntax errors in your code. Ensure all parentheses, brackets, and braces are properly closed.';
+      }
+      if (error.name === 'RangeError') {
+         return 'Range error: Ensure values are within the permissible range. Check for infinite loops or excessive recursion.';
+      }
+      if (error.name === 'EvalError') {
+         return 'Eval error: Avoid using `eval()` and ensure code being evaluated is correct.';
+      }
+      if (error.name === 'URIError') {
+         return 'URI error: Check the encoding of URIs and ensure they are correctly formatted.';
+      }
+      if (error.name === 'ValidationError') {
+         return 'Validation error: Check the input data for correctness and completeness.';
+      }
+      if (error.name === 'DatabaseError') {
+         return 'Database error: Check your database connection and queries for issues.';
+      }
+      if (error.name === 'AuthError') {
+         return 'Authorization error: Verify user permissions and authentication methods.';
+      }
+      if (error.name === 'MongoNetworkError') {
+         return 'MongoDB network error: Check your MongoDB connection string and network settings.';
+      }
+   }
 
-   if (error.response && error.response.headers && error.response.headers['x-ratelimit-reset']) {
-      const retryAfter = parseInt(error.response.headers['x-ratelimit-reset'], 10) * 1000;
+   if (
+      error.response &&
+      error.response.headers &&
+      error.response.headers['x-ratelimit-reset']
+   ) {
+      const retryAfter =
+         parseInt(error.response.headers['x-ratelimit-reset'], 10) * 1000;
       return `Rate limit exceeded. Retry after ${retryAfter} milliseconds.`;
    }
 
@@ -100,48 +105,48 @@ export default function getRecoverySuggestions(error) {
       return 'Invalid file type: Ensure the file type is allowed.';
    }
 
-if (error.response && error.response.status) {
-   switch (error.response.status) {
-      case 400:
-         return 'Bad Request: The request was invalid or cannot be served. Check the request parameters and ensure they are correctly formatted.';
-      case 401:
-         return 'Unauthorized: The request requires authentication. Verify your bot token or user credentials.';
-      case 403:
-         return 'Forbidden: The server understood the request but refuses to authorize it. Ensure your bot has the necessary permissions for this action.';
-      case 404:
-         return 'Not Found: The requested resource could not be found. Double-check the URL, resource ID, or endpoint you are trying to access.';
-      case 405:
-         return 'Method Not Allowed: The method specified in the request is not allowed for the resource. Verify you are using the correct HTTP method (GET, POST, PUT, DELETE, etc.).';
-      case 408:
-         return 'Request Timeout: The server timed out waiting for the request. Try again and consider increasing your timeout settings if the issue persists.';
-      case 413:
-         return 'Payload Too Large: The request is larger than the server is willing or able to process. Check the size of your request body or any files you are uploading.';
-      case 414:
-         return 'URI Too Long: The URI provided was too long for the server to process. Try to reduce the length of your query parameters or use POST instead of GET for complex queries.';
-      case 415:
-         return 'Unsupported Media Type: The server refuses to accept the request because the payload format is unsupported. Check your Content-Type header and request body format.';
-      case 429:
-         return 'Too Many Requests: You have sent too many requests in a given amount of time. Implement rate limiting and honor the rate limit headers in the response.';
-      case 431:
-         return 'Request Header Fields Too Large: The server is unwilling to process the request because its header fields are too large. Try to reduce the size of your request headers.';
-      case 500:
-         return "Internal Server Error: The server encountered an unexpected condition that prevented it from fulfilling the request. This is a generic error message, usually generated by the server. Check Discord's status page or try again later.";
-      case 501:
-         return 'Not Implemented: The server does not support the functionality required to fulfill the request. Ensure you are using a supported API endpoint and method.';
-      case 502:
-         return "Bad Gateway: The server received an invalid response from an upstream server. This could be a temporary issue with Discord's servers. Try again later.";
-      case 503:
-         return "Service Unavailable: The server is currently unable to handle the request due to temporary overloading or maintenance. Check Discord's status page and try again later.";
-      case 504:
-         return "Gateway Timeout: The server did not receive a timely response from an upstream server. This could be due to network issues or problems with Discord's servers. Try again later.";
-      case 507:
-         return "Insufficient Storage: The server is unable to store the representation needed to complete the request. Check if you're trying to upload or store data that exceeds Discord's limits.";
-      case 508:
-         return "Loop Detected: The server detected an infinite loop while processing the request. Check your bot's logic to ensure it's not caught in a redirect loop or similar issue.";
-      default:
-         return `Unexpected HTTP status code: ${error.response.status}. Check the Discord API documentation for more information on this status code.`;
+   if (error.response && error.response.status) {
+      switch (error.response.status) {
+         case 400:
+            return 'Bad Request: The request was invalid or cannot be served. Check the request parameters and ensure they are correctly formatted.';
+         case 401:
+            return 'Unauthorized: The request requires authentication. Verify your bot token or user credentials.';
+         case 403:
+            return 'Forbidden: The server understood the request but refuses to authorize it. Ensure your bot has the necessary permissions for this action.';
+         case 404:
+            return 'Not Found: The requested resource could not be found. Double-check the URL, resource ID, or endpoint you are trying to access.';
+         case 405:
+            return 'Method Not Allowed: The method specified in the request is not allowed for the resource. Verify you are using the correct HTTP method (GET, POST, PUT, DELETE, etc.).';
+         case 408:
+            return 'Request Timeout: The server timed out waiting for the request. Try again and consider increasing your timeout settings if the issue persists.';
+         case 413:
+            return 'Payload Too Large: The request is larger than the server is willing or able to process. Check the size of your request body or any files you are uploading.';
+         case 414:
+            return 'URI Too Long: The URI provided was too long for the server to process. Try to reduce the length of your query parameters or use POST instead of GET for complex queries.';
+         case 415:
+            return 'Unsupported Media Type: The server refuses to accept the request because the payload format is unsupported. Check your Content-Type header and request body format.';
+         case 429:
+            return 'Too Many Requests: You have sent too many requests in a given amount of time. Implement rate limiting and honor the rate limit headers in the response.';
+         case 431:
+            return 'Request Header Fields Too Large: The server is unwilling to process the request because its header fields are too large. Try to reduce the size of your request headers.';
+         case 500:
+            return "Internal Server Error: The server encountered an unexpected condition that prevented it from fulfilling the request. This is a generic error message, usually generated by the server. Check Discord's status page or try again later.";
+         case 501:
+            return 'Not Implemented: The server does not support the functionality required to fulfill the request. Ensure you are using a supported API endpoint and method.';
+         case 502:
+            return "Bad Gateway: The server received an invalid response from an upstream server. This could be a temporary issue with Discord's servers. Try again later.";
+         case 503:
+            return "Service Unavailable: The server is currently unable to handle the request due to temporary overloading or maintenance. Check Discord's status page and try again later.";
+         case 504:
+            return "Gateway Timeout: The server did not receive a timely response from an upstream server. This could be due to network issues or problems with Discord's servers. Try again later.";
+         case 507:
+            return "Insufficient Storage: The server is unable to store the representation needed to complete the request. Check if you're trying to upload or store data that exceeds Discord's limits.";
+         case 508:
+            return "Loop Detected: The server detected an infinite loop while processing the request. Check your bot's logic to ensure it's not caught in a redirect loop or similar issue.";
+         default:
+            return `Unexpected HTTP status code: ${error.response.status}. Check the Discord API documentation for more information on this status code.`;
+      }
    }
-}
 
    if (typeof error.message === 'string') {
       if (error.message.includes('rate limit')) {
@@ -181,5 +186,4 @@ if (error.response && error.response.status) {
 
    //  fallback message
    return 'An unexpected error occurred. Review your code for potential issues. Consider adding more error handling and logging to identify the root cause.';
-
 }

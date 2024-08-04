@@ -198,8 +198,6 @@ export default {
                .setStyle(ButtonStyle.Success)
          );
 
-
-
          const response = await interaction.editReply({
             embeds: [embed],
             components: [row1, row2],

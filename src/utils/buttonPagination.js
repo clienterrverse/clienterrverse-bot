@@ -22,7 +22,6 @@ import {
 
 // Enhance User Experience: Consider adding features like disabling buttons when actions are not possible, or adding a loading indicator during interactions.
 
-
 // Helper function to create a button
 const createButton = (customId, emoji, style, disabled = false) => {
    if (typeof style !== 'string' && typeof style !== 'number') {
@@ -199,6 +198,5 @@ export default async (
       await client.errorHandler.handleError(err, {
          type: 'Pagination',
       });
-
    }
 };

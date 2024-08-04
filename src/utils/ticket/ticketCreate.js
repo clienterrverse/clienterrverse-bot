@@ -179,4 +179,3 @@ export async function createTicket(
 // Refactor Permission Overwrites: Extract permission overwrites logic into a separate function for better readability and maintainability.
 
 // Review Ticket Count Logic: Ensure that the ticket count logic correctly reflects the number of tickets and doesn't conflict with existing naming conventions.
-

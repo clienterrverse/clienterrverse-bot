@@ -4,3 +4,5 @@ dist
 *.min.js
 .vscode
 my
+docs
+.github
