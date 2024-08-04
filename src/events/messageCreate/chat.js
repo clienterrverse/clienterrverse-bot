@@ -65,6 +65,5 @@ export default async (client, errorHandler, message) => {
       }
    } catch (error) {
       errorHandler.handleError(err, { type: 'chatrega' });
-
    }
 };

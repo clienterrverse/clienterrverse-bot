@@ -1,91 +1,133 @@
 /** @format */
 
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
+
+const maxBet = 250000;
+const slots = [
+   '🍆', // eggplant
+   '❤️', // heart
+   '🍒', // cherry
+   '💰', // money bag
+   '🔒', // lock
+];
+const spinningAnimation = '<a:slot_gif:1269381855468191854>';
 
 export default {
    data: new SlashCommandBuilder()
       .setName('slots')
-      .setDescription('Play the slot machine.')
-      .addNumberOption((option) =>
+      .setDescription(
+         'Bet your money in the slot machine! Earn up to 10x your money!'
+      )
+      .addStringOption((option) =>
          option
             .setName('bet')
-            .setDescription('Amount to bet (max 10)')
+            .setDescription('Amount to bet (or "all")')
             .setRequired(true)
-            .setMaxValue(10)
       )
       .toJSON(),
    userPermissions: [],
-   botPermissions: [],
-   cooldown: 10, // 10 seconds cooldown
-   nsfwMode: false,
-   testMode: false,
-   devOnly: false,
+   botPermissions: ['SendMessages'],
+   cooldown: 15,
    category: 'economy',
-   prefix: true,
 
    run: async (client, interaction) => {
       const userId = interaction.user.id;
-      const betAmount = interaction.options.getNumber('bet');
-      const slotCooldown = 5 * 60 * 1000; // 5 minutes in milliseconds
+      let betInput = interaction.options.getString('bet');
+      let amount = 0;
+      let all = false;
 
-      // Validate bet amount
-      if (betAmount <= 0) {
-         const embed = new EmbedBuilder().setDescription(
-            'The bet amount cannot be negative.'
-         );
-         return interaction.reply({ embeds: [embed], ephemeral: true });
-      }
-      if (betAmount > 10) {
-         const embed = new EmbedBuilder().setDescription(
-            'The maximum bet amount is 10 coins.'
-         );
-         return interaction.reply({ embeds: [embed], ephemeral: true });
+      // Parse bet amount
+      if (betInput.toLowerCase() === 'all') {
+         all = true;
+      } else {
+         amount = parseInt(betInput);
+         if (isNaN(amount) || amount <= 0) {
+            return interaction.reply({
+               content: 'Invalid bet amount!',
+               ephemeral: true,
+            });
+         }
       }
 
       // Check user's balance
       const userBalance = await Balance.findOne({ userId });
-      if (!userBalance || userBalance.balance < betAmount) {
-         const embed = new EmbedBuilder().setDescription(
-            'You do not have enough coins to place this bet.'
-         );
-         return interaction.reply({ embeds: [embed], ephemeral: true });
+      if (!userBalance) {
+         return interaction.reply({
+            content: "You don't have any money to bet!",
+            ephemeral: true,
+         });
       }
 
-      // Check slot cooldown
-      const now = Date.now();
-      if (
-         userBalance.lastSlots &&
-         now - userBalance.lastSlots.getTime() < slotCooldown
-      ) {
-         const timeLeft =
-            slotCooldown - (now - userBalance.lastSlots.getTime());
-         const minutes = Math.floor(timeLeft / (1000 * 60));
-         const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-         const embed = new EmbedBuilder().setDescription(
-            `You need to wait ${minutes} minutes and ${seconds} seconds before using this command again.`
-         );
-         return interaction.reply({ embeds: [embed], ephemeral: true });
+      if (all) {
+         amount = userBalance.balance;
       }
 
-      // Play the slots
-      const slots = ['🍒', '🍋', '🍉', '🍇', '🍓'];
-      const result = [
-         slots[Math.floor(Math.random() * slots.length)],
-         slots[Math.floor(Math.random() * slots.length)],
-         slots[Math.floor(Math.random() * slots.length)],
-      ];
-      const win = result[0] === result[1] && result[1] === result[2];
+      if (amount > maxBet) {
+         amount = maxBet;
+      }
 
-      // Update user's balance and last slots claim time
-      userBalance.balance += win ? betAmount * 5 : -betAmount; // 5x payout on win
-      userBalance.lastSlots = new Date();
+      if (userBalance.balance < amount) {
+         return interaction.reply({
+            content: "You don't have enough money to place this bet!",
+            ephemeral: true,
+         });
+      }
+
+      // Decide results
+      const rand = Math.random() * 100;
+      let win = 0;
+      let rslots = [];
+
+      if (rand <= 20) {
+         win = amount;
+         rslots = [slots[0], slots[0], slots[0]];
+      } else if (rand <= 40) {
+         win = amount * 2;
+         rslots = [slots[1], slots[1], slots[1]];
+      } else if (rand <= 45) {
+         win = amount * 3;
+         rslots = [slots[2], slots[2], slots[2]];
+      } else if (rand <= 47.5) {
+         win = amount * 4;
+         rslots = [slots[3], slots[3], slots[3]];
+      } else if (rand <= 48.5) {
+         win = amount * 10;
+         rslots = [slots[4], slots[4], slots[4]];
+      } else {
+         rslots = [
+            slots[Math.floor(Math.random() * slots.length)],
+            slots[Math.floor(Math.random() * slots.length)],
+            slots[Math.floor(Math.random() * slots.length)],
+         ];
+      }
+
+      // Update user's balance
+      userBalance.balance += win - amount;
       await userBalance.save();
 
-      // Send the result
-      const responseEmbed = new EmbedBuilder().setDescription(
-         `🎰 | ${result.join(' ')} | You ${win ? 'won' : 'lost'} ${win ? betAmount * 5 : betAmount} coins! Your new balance is ${userBalance.balance} coins.`
-      );
-      await interaction.reply({ embeds: [responseEmbed] });
+      // Display slots with animation
+      let machine = `**  \`___SLOTS___\`**\n\` \` ${spinningAnimation} ${spinningAnimation} ${spinningAnimation} \` \` ${interaction.user.username} bet 💰 ${amount}\n  \`|         |\`\n  \`|         |\``;
+
+      const message = await interaction.reply({
+         content: machine,
+         fetchReply: true,
+      });
+
+      // Simulate spinning animation
+      for (let i = 0; i < 3; i++) {
+         await new Promise((resolve) => setTimeout(resolve, 1000));
+         const updatedSlots =
+            spinningAnimation.repeat(2 - i) +
+            ' ' +
+            rslots.slice(0, i + 1).join(' ');
+         machine = `**  \`___SLOTS___\`**\n\` \` ${updatedSlots} \` \` ${interaction.user.username} bet 💰 ${amount}\n  \`|         |\`\n  \`|         |\``;
+         await message.edit({ content: machine });
+      }
+
+      // Display final result
+      const winmsg = win === 0 ? 'nothing... :c' : `💰 ${win}`;
+      machine = `**  \`___SLOTS___\`**\n\` \` ${rslots.join(' ')} \` \` ${interaction.user.username} bet 💰 ${amount}\n  \`|         |\`   and won ${winmsg}\n  \`|         |\``;
+      await message.edit({ content: machine });
    },
 };

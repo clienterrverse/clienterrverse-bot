@@ -30,5 +30,4 @@ export default async (client, errorHandler, message) => {
          console.error('Error processing message:', error);
       }
    }
-
 };

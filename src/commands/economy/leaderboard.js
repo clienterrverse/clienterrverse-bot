@@ -6,7 +6,9 @@ import mongoose from 'mongoose';
 export default {
    data: new SlashCommandBuilder()
       .setName('leaderboard')
-      .setDescription('Displays the leaderboard based on user balances and bank.'),
+      .setDescription(
+         'Displays the leaderboard based on user balances and bank.'
+      ),
    userPermissions: [],
    botPermissions: [],
    cooldown: 5,
@@ -37,7 +39,6 @@ export default {
          },
       ]).exec();
 
-
       if (balances.length === 0) {
          return interaction.editReply('No users found in the leaderboard.');
       }
@@ -51,7 +52,6 @@ export default {
             return 'Unknown User';
          }
       };
-
 
       // Create an array to hold the leaderboard entries
       const leaderboardEntries = await Promise.all(
@@ -67,18 +67,17 @@ export default {
             };
          })
       );
-      console.log("leaderboardEntries")
-
+      console.log('leaderboardEntries');
 
       // Split leaderboard entries into pages of 10 entries each
       const itemsPerPage = 12;
       const pages = [];
       for (let i = 0; i < leaderboardEntries.length; i += itemsPerPage) {
          const pageEntries = leaderboardEntries.slice(i, i + itemsPerPage);
-         const fields = pageEntries.map(entry => ({
+         const fields = pageEntries.map((entry) => ({
             name: `${entry.index === 1 ? '🥇' : entry.index === 2 ? '🥈' : entry.index === 3 ? '🥉' : '🏅'} **${entry.index}. ${entry.userTag}**`,
             value: `Total: ${entry.totalBalance.toLocaleString()} coins\nWallet: ${entry.wallet.toLocaleString()} | Bank: ${entry.bank.toLocaleString()}`,
-            inline: true
+            inline: true,
          }));
 
          const embed = new EmbedBuilder()
@@ -90,7 +89,7 @@ export default {
             });
 
          pages.push(embed);
-         console.log(i)
+         console.log(i);
       }
 
       // Use pagination to display the leaderboard

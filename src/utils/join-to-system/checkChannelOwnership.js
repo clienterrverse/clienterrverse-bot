@@ -2,6 +2,15 @@
 
 import JoinToSystemChannel from '../../schemas/joinToSystemSchema.js';
 
+// Constants for messages
+const MESSAGES = {
+   NOT_IN_VOICE: 'You need to be in a voice channel to use this command.',
+   NOT_MANAGED:
+      'This voice channel is not managed by the join-to-create system.',
+   NOT_OWNER: "You don't have ownership of this channel.",
+   CHECK_ERROR: 'An error occurred while checking channel ownership.',
+};
+
 /**
  * Comprehensive check for voice channel ownership and presence
  * @param {string} userId - The ID of the user to check
@@ -15,16 +24,14 @@ export async function comprehensiveVoiceCheck(userId, member) {
          isManaged: false,
          isOwner: false,
          channel: null,
-         message: 'You need to be in a voice channel to use this command.',
+         message: MESSAGES.NOT_IN_VOICE,
       };
    }
 
    const channelId = member.voice.channel.id;
 
    try {
-      const managedChannel = await JoinToSystemChannel.findOne({
-         channelId: channelId,
-      });
+      const managedChannel = await JoinToSystemChannel.findOne({ channelId });
 
       if (!managedChannel) {
          return {
@@ -32,8 +39,7 @@ export async function comprehensiveVoiceCheck(userId, member) {
             isManaged: false,
             isOwner: false,
             channel: member.voice.channel,
-            message:
-               'This voice channel is not managed by the join-to-create system.',
+            message: MESSAGES.NOT_MANAGED,
          };
       }
 
@@ -42,19 +48,19 @@ export async function comprehensiveVoiceCheck(userId, member) {
       return {
          inVoice: true,
          isManaged: true,
-         isOwner: isOwner,
+         isOwner,
          channel: member.voice.channel,
-         managedChannel: managedChannel,
-         message: isOwner ? null : "You don't have ownership of this channel.",
+         managedChannel,
+         message: isOwner ? null : MESSAGES.NOT_OWNER,
       };
    } catch (error) {
-      console.error('Error during voice channel checks:', error);
+      client.errorHandler.handleError(error, { type: 'modalLoad' });
       return {
          inVoice: true,
          isManaged: false,
          isOwner: false,
          channel: member.voice.channel,
-         message: 'An error occurred while checking channel ownership.',
+         message: MESSAGES.CHECK_ERROR,
       };
    }
 }
@@ -63,31 +69,39 @@ export async function comprehensiveVoiceCheck(userId, member) {
  * Middleware to perform comprehensive voice channel checks before executing a command
  * @param {function} commandFunction - The command function to execute if all checks pass
  * @param {Object} options - Options for the middleware
- * @param {boolean} options.requireOwnership - Whether to require channel ownership
+ * @param {boolean} [options.requireOwnership=true] - Whether to require channel ownership
  * @returns {function} - Returns a middleware function
  */
 export function requireVoiceChecks(
    commandFunction,
-   options = { requireOwnership: true }
+   { requireOwnership = true } = {}
 ) {
    return async (client, interaction) => {
-      const checkResult = await comprehensiveVoiceCheck(
-         interaction.user.id,
-         interaction.member
-      );
+      try {
+         const checkResult = await comprehensiveVoiceCheck(
+            interaction.user.id,
+            interaction.member
+         );
 
-      if (
-         !checkResult.inVoice ||
-         !checkResult.isManaged ||
-         (options.requireOwnership && !checkResult.isOwner)
-      ) {
+         if (
+            !checkResult.inVoice ||
+            !checkResult.isManaged ||
+            (requireOwnership && !checkResult.isOwner)
+         ) {
+            return interaction.reply({
+               content: checkResult.message,
+               ephemeral: true,
+            });
+         }
+
+         // All checks passed, execute the command
+         return commandFunction(client, interaction, checkResult);
+      } catch (error) {
+         client.errorHandler.handleError(error, { type: 'modalLoad' });
          return interaction.reply({
-            content: checkResult.message,
+            content: MESSAGES.CHECK_ERROR,
             ephemeral: true,
          });
       }
-
-      // All checks passed, execute the command
-      return commandFunction(client, interaction, checkResult);
    };
 }
