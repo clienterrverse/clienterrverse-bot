@@ -3,212 +3,242 @@ import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { createCanvas, loadImage } from 'canvas';
 
 const data = new SlashCommandBuilder()
-   .setName('emoji-app')
-   .setDescription('Manage app emojis')
-   .addSubcommand((command) =>
-      command
-         .setName('create')
-         .setDescription('Create app emojis')
-         .addStringOption((option) =>
-            option
-               .setName('emojis')
-               .setDescription('The emojis to add (space-separated)')
-               .setRequired(true)
-         )
-         .addStringOption((option) =>
-            option
-               .setName('names')
-               .setDescription('The names of the emojis (comma-separated)')
-               .setRequired(true)
-         )
-   )
-   .addSubcommand((command) =>
-      command
-         .setName('remove')
-         .setDescription('Remove an app emoji')
-         .addStringOption((option) =>
-            option
-               .setName('emoji-id')
-               .setDescription('The ID of the emoji to remove')
-               .setRequired(true)
-         )
-   )
-   .addSubcommand((command) =>
-      command.setName('list').setDescription('List all app emojis')
-   )
-   .toJSON();
+    .setName('emoji-app')
+    .setDescription('Manage application emojis')
+    .addSubcommand(command =>
+        command.setName('create')
+            .setDescription('Create app emojis')
+            .addStringOption(option =>
+                option.setName('emojis')
+                    .setDescription('The emojis to add (space-separated)')
+                    .setRequired(true))
+            .addStringOption(option =>
+                option.setName('names')
+                    .setDescription('The names of the emojis (comma-separated)')
+                    .setRequired(true)))
+    .addSubcommand(command =>
+        command.setName('remove')
+            .setDescription('Remove an app emoji')
+            .addStringOption(option =>
+                option.setName('emoji-id')
+                    .setDescription('The ID of the emoji to remove')
+                    .setRequired(true)))
+    .addSubcommand(command =>
+        command.setName('edit')
+            .setDescription('Edit an app emoji name')
+            .addStringOption(option =>
+                option.setName('emoji-id')
+                    .setDescription('The ID of the emoji to edit')
+                    .setRequired(true))
+            .addStringOption(option =>
+                option.setName('new-name')
+                    .setDescription('The new name for the emoji')
+                    .setRequired(true)))
+    .addSubcommand(command =>
+        command.setName('list')
+            .setDescription('List all app emojis'))
+    .toJSON();
 
 export default {
-   data,
-   userPermissions: [],
-   botPermissions: [],
-   category: 'Misc',
-   cooldown: 5,
-   nsfwMode: false,
-   testMode: false,
-   devOnly: false,
-   prefix: false,
+    data,
+    userPermissions: [],
+    botPermissions: [],
+    category: 'Misc',
+    cooldown: 5,
+    nsfwMode: false,
+    testMode: false,
+    devOnly: false,
+    prefix: false,
 
-   run: async (client, interaction) => {
-      try {
-         const { options } = interaction;
-         const subCommand = options.getSubcommand();
-         const applicationId = process.env.APPLICATION_ID;
-         const token = process.env.TOKEN;
-         await interaction.deferReply();
+    run: async (client, interaction) => {
+        await interaction.deferReply();
+        const { options } = interaction;
+        const subCommand = options.getSubcommand();
 
-         const sendMessage = async (message) => {
-            const embed = new EmbedBuilder()
-               .setColor('Random')
-               .setDescription(message);
-            await interaction.editReply({ embeds: [embed] });
-         };
+        const emojiManager = new EmojiManager(process.env.APPLICATION_ID, process.env.TOKEN);
 
-         const convertEmojiToImage = async (emoji) => {
-            const canvas = createCanvas(128, 128);
-            const ctx = canvas.getContext('2d');
-            const image = await loadImage(
-               `https://github.com/twitter/twemoji/raw/master/assets/72x72/${emoji.codePointAt(0).toString(16)}.png`
-            );
-            ctx.drawImage(image, 0, 0, 128, 128);
-            return canvas.toBuffer();
-         };
+        try {
+            switch (subCommand) {
+                case 'create':
+                    await handleCreateCommand(emojiManager, options, interaction);
+                    break;
+                case 'remove':
+                    await handleRemoveCommand(emojiManager, options, interaction);
+                    break;
+                case 'edit':
+                    await handleEditCommand(emojiManager, options, interaction);
+                    break;
+                case 'list':
+                    await handleListCommand(emojiManager, interaction);
+                    break;
+                default:
+                    throw new Error('Invalid subcommand');
+            }
+        } catch (error) {
+            console.error('Command execution error:', error);
+            await sendErrorMessage(interaction, 'An error occurred while processing the command. Please try again later.');
+        }
+    },
+};
 
-         const convertCustomEmojiToImage = async (emojiId) => {
-            const canvas = createCanvas(128, 128);
-            const ctx = canvas.getContext('2d');
-            const image = await loadImage(
-               `https://cdn.discordapp.com/emojis/${emojiId}.png`
-            );
-            ctx.drawImage(image, 0, 0, 128, 128);
-            return canvas.toBuffer();
-         };
+class EmojiManager {
+    constructor(applicationId, token) {
+        this.applicationId = applicationId;
+        this.token = token;
+        this.baseUrl = `https://discord.com/api/v10/applications/${this.applicationId}/emojis`;
+    }
 
-         const apiCall = async (type, data) => {
-            let output;
-            const config = {
-               headers: {
-                  Authorization: `Bot ${token}`,
-               },
+    async apiCall(method, endpoint = '', data = null) {
+        const config = {
+            method,
+            url: `${this.baseUrl}${endpoint}`,
+            headers: { Authorization: `Bot ${this.token}` },
+            data,
+        };
+
+        try {
+            const response = await axios(config);
+            return response.data;
+        } catch (error) {
+            console.error(`API Call Error - ${method} ${endpoint}:`, error.response?.data || error.message);
+            throw error;
+        }
+    }
+
+    async createEmoji(name, image) {
+        return this.apiCall('POST', '', { name, image });
+    }
+
+    async removeEmoji(emojiId) {
+        return this.apiCall('DELETE', `/${emojiId}`);
+    }
+
+    async editEmoji(emojiId, name) {
+        return this.apiCall('PATCH', `/${emojiId}`, { name });
+    }
+
+    async listEmojis() {
+        return this.apiCall('GET');
+    }
+}
+
+async function handleCreateCommand(emojiManager, options, interaction) {
+    const emojis = options.getString('emojis').split(' ');
+    const names = options.getString('names').split(',').map(name => name.trim());
+
+    if (emojis.length !== names.length) {
+        await sendErrorMessage(interaction, 'The number of emojis and names must match.');
+        return;
+    }
+
+    const createdEmojis = [];
+
+    for (let i = 0; i < emojis.length; i++) {
+        try {
+            const { imageBuffer, isAnimated } = await getEmojiImage(emojis[i]);
+            const base64Image = imageBuffer.toString('base64');
+            const createData = {
+                name: names[i],
+                image: `data:image/${isAnimated ? 'gif' : 'png'};base64,${base64Image}`,
             };
 
-            switch (type) {
-               case 'create':
-                  output = await axios.post(
-                     `https://discord.com/api/v10/applications/${applicationId}/emojis`,
-                     data,
-                     config
-                  );
-                  break;
-               case 'remove':
-                  await axios.delete(
-                     `https://discord.com/api/v10/applications/${applicationId}/emojis/${data['emoji-id']}`,
-                     config
-                  );
-                  output = `Removed emoji with ID: ${data['emoji-id']}`;
-                  break;
-               case 'list':
-                  const listResponse = await axios.get(
-                     `https://discord.com/api/v10/applications/${applicationId}/emojis`,
-                     config
-                  );
-                  output = listResponse.data;
-                  break;
-               default:
-                  throw new Error('Unknown command type');
-            }
-            return output;
-         };
+            const createdEmoji = await emojiManager.createEmoji(createData.name, createData.image);
+            createdEmojis.push(`<${isAnimated ? 'a' : ''}:${createdEmoji.name}:${createdEmoji.id}>`);
+        } catch (error) {
+            console.error(`Error creating emoji ${emojis[i]}:`, error);
+            await sendErrorMessage(interaction, `Failed to create emoji ${emojis[i]}: ${error.message}`);
+        }
+    }
 
-         let responseMessage;
-         switch (subCommand) {
-            case 'create':
-               const emojis = options.getString('emojis').split(' ');
-               const names = options
-                  .getString('names')
-                  .split(',')
-                  .map((name) => name.trim());
+    if (createdEmojis.length > 0) {
+        await sendSuccessMessage(interaction, `Created emojis: ${createdEmojis.join(' ')}`);
+    } else {
+        await sendErrorMessage(interaction, 'No emojis were created. Please check the provided data and try again.');
+    }
+}
 
-               if (emojis.length !== names.length) {
-                  await sendMessage(
-                     'The number of emojis and names must match.'
-                  );
-                  return;
-               }
+async function handleRemoveCommand(emojiManager, options, interaction) {
+    const emojiId = options.getString('emoji-id');
+    try {
+        await emojiManager.removeEmoji(emojiId);
+        await sendSuccessMessage(interaction, `Removed emoji with ID: ${emojiId}`);
+    } catch (error) {
+        await sendErrorMessage(interaction, `Failed to remove emoji: ${error.message}`);
+    }
+}
 
-               const createdEmojis = [];
+async function handleEditCommand(emojiManager, options, interaction) {
+    const emojiId = options.getString('emoji-id');
+    const newName = options.getString('new-name');
+    try {
+        const editedEmoji = await emojiManager.editEmoji(emojiId, newName);
+        await sendSuccessMessage(interaction, `Emoji name updated successfully to: ${editedEmoji.name}`);
+    } catch (error) {
+        await sendErrorMessage(interaction, `Failed to edit emoji: ${error.message}`);
+    }
+}
 
-               for (let i = 0; i < emojis.length; i++) {
-                  const emoji = emojis[i];
-                  const name = names[i];
+async function handleListCommand(emojiManager, interaction) {
+   try {
+       const { items: emojisList } = await emojiManager.listEmojis();
+       
+       if (Array.isArray(emojisList) && emojisList.length > 0) {
+           // Format the emoji list message
+           const emojiListMessage = emojisList.map(emoji => 
+               `<${emoji.animated ? 'a' : ''}:${emoji.name}:${emoji.id}> \`${emoji.name}\` (ID: ${emoji.id})`
+           ).join('\n');
+           
+           await sendSuccessMessage(interaction, `List of all emojis:\n${emojiListMessage}`);
+       } else {
+           await sendInfoMessage(interaction, 'No emojis found for this application.');
+       }
+   } catch (error) {
+       // Send an error message if the emoji list retrieval fails
+       await sendErrorMessage(interaction, `Failed to retrieve emoji list: ${error.message}`);
+   }
+}
 
-                  try {
-                     let imageBuffer;
-                     if (emoji.startsWith('<:') && emoji.endsWith('>')) {
-                        const emojiId = emoji.split(':')[2].slice(0, -1);
-                        imageBuffer = await convertCustomEmojiToImage(emojiId);
-                     } else {
-                        imageBuffer = await convertEmojiToImage(emoji);
-                     }
-                     const base64Image = imageBuffer.toString('base64');
+async function getEmojiImage(emoji) {
+    let imageBuffer;
+    let isAnimated = false;
 
-                     const createData = {
-                        name,
-                        image: `data:image/png;base64,${base64Image}`,
-                     };
+    if (emoji.startsWith('<:') || emoji.startsWith('<a:')) {
+        isAnimated = emoji.startsWith('<a:');
+        const emojiId = emoji.split(':')[2].slice(0, -1);
+        const extension = isAnimated ? 'gif' : 'png';
+        const url = `https://cdn.discordapp.com/emojis/${emojiId}.${extension}`;
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        imageBuffer = Buffer.from(response.data, 'binary');
+    } else {
+        const codePoint = emoji.codePointAt(0).toString(16);
+        const url = `https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/${codePoint}.png`;
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        imageBuffer = Buffer.from(response.data, 'binary');
+    }
 
-                     const createOutput = await apiCall('create', createData);
-                     if (createOutput) {
-                        createdEmojis.push(
-                           `<:${createOutput.data.name}:${createOutput.data.id}>`
-                        );
-                     }
-                  } catch (error) {
-                     console.error(`Error creating emoji ${emoji}:`, error);
-                  }
-               }
+    return { imageBuffer, isAnimated };
+}
 
-               if (createdEmojis.length > 0) {
-                  await sendMessage(
-                     `I have created the following emojis: ${createdEmojis.join(' ')}`
-                  );
-               } else {
-                  await sendMessage(
-                     'There was an issue creating the emojis. Please check the provided data.'
-                  );
-               }
-               break;
+async function sendErrorMessage(interaction, message) {
+    const embed = new EmbedBuilder()
+        .setTitle('Error')
+        .setDescription(message)
+        .setColor('Red');
+    await interaction.editReply({ embeds: [embed] });
+}
 
-            case 'remove':
-               responseMessage = await apiCall('remove', {
-                  'emoji-id': options.getString('emoji-id'),
-               });
-               await sendMessage(responseMessage);
-               break;
+async function sendSuccessMessage(interaction, message) {
+    const embed = new EmbedBuilder()
+        .setTitle('Success')
+        .setDescription(message)
+        .setColor('Green');
+    await interaction.editReply({ embeds: [embed] });
+}
 
-            case 'list':
-               const emojisList = await apiCall('list');
-               console.log('Emojis List Response:', emojisList);
-
-               // Ensure emojisList.items is an array
-               if (Array.isArray(emojisList.items)) {
-                  let responseMessage = 'List of all emojis:\n';
-                  emojisList.items.forEach((emoji) => {
-                     responseMessage += `<:${emoji.name}:${emoji.id}> \`${emoji.name}\` (ID: ${emoji.id})\n`;
-                  });
-                  await sendMessage(responseMessage);
-               } else {
-                  await sendMessage('Failed to retrieve emoji list.');
-               }
-               break;
-            default:
-               throw new Error('Invalid subcommand');
-         }
-      } catch (error) {
-         console.error(error);
-         await interaction.editReply(
-            'An error occurred while processing the command. Please try again later.'
-         );
-      }
-   },
-};
+async function sendInfoMessage(interaction, message) {
+    const embed = new EmbedBuilder()
+        .setTitle('Info')
+        .setDescription(message)
+        .setColor('Red');
+    await interaction.editReply({ embeds: [embed] });
+}
