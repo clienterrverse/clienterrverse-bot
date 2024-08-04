@@ -5,7 +5,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 export default {
    data: new SlashCommandBuilder()
       .setName('social')
-      .setDescription('Test if everything works.')
+      .setDescription('All the links to my socials.')
       .toJSON(),
    userPermissions: [],
    botPermissions: [],
@@ -30,6 +30,11 @@ export default {
                inline: true,
             },
             {
+               name: 'Website',
+               value: '[Check out my website](https://clienterr.com/)',
+               inline: true,
+            },
+            {
                name: 'YouTube',
                value: '[Subscribe to my YouTube Channel](https://clienterr.com/youtube)',
                inline: true,
@@ -41,7 +46,7 @@ export default {
             },
             {
                name: 'Telegram',
-               value: '[Join my Telegram](https://clienterr.com/telegram)',
+               value: '[Contact me on Telegram](https://clienterr.com/telegram)',
                inline: true,
             },
             {
