@@ -9,33 +9,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * @param {string} commandFile - Path to the command file.
  * @param {string[]} exceptions - List of command names to exclude.
  * @returns {Object|null} The command object or null if invalid.
+ * @throws {Error} If there's an error importing or processing the file.
  */
 async function importCommandFile(commandFile, exceptions) {
-   try {
-      const commandFileURL = pathToFileURL(commandFile).href;
-      const commandModule = await import(commandFileURL);
+    const commandFileURL = pathToFileURL(commandFile).href;
+    const commandModule = await import(commandFileURL);
+    const commandObject = commandModule.default;
 
-      if (!commandModule?.default?.data?.name) {
-         console.warn(`Command file ${commandFile} is invalid.`);
-         return null;
-      }
+    if (!commandObject?.data?.name) {
+        throw new Error(`Command file ${commandFile} is invalid.`);
+    }
 
-      const commandObject = commandModule.default;
+    if (exceptions.includes(commandObject.data.name)) {
+        throw new Error(`Command ${commandObject.data.name} is in the exception list.`);
+    }
 
-      if (exceptions.includes(commandObject.data.name)) {
-         console.warn(
-            `Command ${commandObject.data.name} is in the exception list.`
-         );
-         return null;
-      }
-
-      return commandObject;
-   } catch (error) {
-      console.error(
-         `Error importing command file ${commandFile}: ${error.message}`
-      );
-      return null;
-   }
+    return commandObject;
 }
 
 /**
@@ -44,15 +33,18 @@ async function importCommandFile(commandFile, exceptions) {
  * @returns {Promise<Object[]>} Array of valid command objects.
  */
 export default async function loadCommands(exceptions = []) {
-   const commandsDir = path.join(__dirname, '..', 'commands');
-   const allCommandFiles = getAllFiles(commandsDir).filter((file) =>
-      file.endsWith('.js')
-   );
+    const commandsDir = path.resolve(__dirname, '..', 'commands');
+    const allCommandFiles = getAllFiles(commandsDir).filter(file => file.endsWith('.js'));
 
-   const commandPromises = allCommandFiles.map((file) =>
-      importCommandFile(file, exceptions)
-   );
-   const commands = await Promise.all(commandPromises);
+    const commands = [];
+    for (const file of allCommandFiles) {
+        try {
+            const command = await importCommandFile(file, exceptions);
+            commands.push(command);
+        } catch (error) {
+            console.error(`Error processing command file ${file}: ${error.message}`);
+        }
+    }
 
-   return commands.filter(Boolean);
+    return commands;
 }

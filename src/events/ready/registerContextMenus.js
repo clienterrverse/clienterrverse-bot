@@ -10,13 +10,11 @@ import getLocalContextMenus from '../../utils/getLocalContextMenus.js';
  */
 export default async (client, errorHandler) => {
    try {
-      const { testServerId } = config;
 
       // Fetch local and application context menus
       const localContextMenus = await getLocalContextMenus();
       const applicationContextMenus = await getApplicationContextMenus(
          client,
-         testServerId
       );
 
       // Create a set of local context menu names for quick lookup
