@@ -12,13 +12,14 @@ const EMOJIS = {
    NEW: '➡️',
    EMBED: '🖼️',
    ERROR: '❌',
+   ATTACHMENT: '📎',
 };
 
 const createMessageEmbed = (oldMessage, newMessage, author, time) => {
    const oldContent = oldMessage.content || '*Message content not available*';
    const newContent = newMessage.content || '*Message content not available*';
 
-   return new EmbedBuilder()
+   const embed = new EmbedBuilder()
       .setColor('#FFA500')
       .setTitle(`${EMOJIS.EDIT} Message Edited`)
       .setThumbnail(author.displayAvatarURL())
@@ -52,6 +53,8 @@ const createMessageEmbed = (oldMessage, newMessage, author, time) => {
          iconURL: newMessage.client.user.displayAvatarURL(),
       })
       .setTimestamp();
+
+   return embed;
 };
 
 const addEmbedFields = (embed, oldMessage, newMessage) => {
@@ -76,6 +79,22 @@ const addEmbedFields = (embed, oldMessage, newMessage) => {
          value: JSON.stringify(newEmbeds, null, 2).slice(0, 1024),
       });
    }
+};
+
+const addAttachmentFields = (embed, oldMessage, newMessage) => {
+   const oldAttachments =
+      oldMessage.attachments.size > 0
+         ? oldMessage.attachments.map((a) => a.url).join('\n')
+         : 'None';
+   const newAttachments =
+      newMessage.attachments.size > 0
+         ? newMessage.attachments.map((a) => a.url).join('\n')
+         : 'None';
+
+   embed.addFields(
+      { name: `${EMOJIS.ATTACHMENT} Old Attachments`, value: oldAttachments },
+      { name: `${EMOJIS.ATTACHMENT} New Attachments`, value: newAttachments }
+   );
 };
 
 const createErrorEmbed = (error, client) => {
@@ -119,10 +138,15 @@ export default async (client, errorHandler, oldMessage, newMessage) => {
          time
       );
       addEmbedFields(embed, oldMessage, newMessage);
+      addAttachmentFields(embed, oldMessage, newMessage);
 
       await logChannel.send({ embeds: [embed] });
    } catch (error) {
       console.error('Error logging edited message:', error);
+      errorHandler.handleError(error, {
+         type: 'messageEditLogging',
+         messageId: newMessage.id,
+      });
 
       try {
          const errorEmbed = createErrorEmbed(error, client);

@@ -6,8 +6,16 @@ const ticketSetupSchema = new Schema(
       ticketChannelID: String,
       staffRoleID: String,
       ticketType: String,
-      categoryID: String, // New field for the category ID
-      logChannelID: String, // New field for the log channel ID
+      categoryID: String,
+      logChannelID: String,
+      messageID: String,
+      customOptions: [
+         {
+            label: String,
+            value: String,
+            description: String,
+         },
+      ],
    },
    {
       strict: false,

@@ -20,35 +20,35 @@ const GIFS = {
 const ACTIONS = [
    {
       regex: /how\s*to\s*tame\s*(koban|ChronoUK|regasky|darkgladiator)/i,
-      action: async (message) => message.reply(EMOJIS.whip),
+      response: EMOJIS.whip,
    },
    {
       regex: /smash\s*clienterr/i,
-      action: async (message) => message.reply(GIFS.smashClienterr),
+      response: GIFS.smashClienterr,
    },
    {
       regex: /promote\s*clienterr/i,
-      action: async (message) => message.reply(GIFS.promoteClienterr),
+      response: GIFS.promoteClienterr,
    },
    {
       regex: /clienterrverse\s*on\s*top/i,
-      action: async (message) => message.reply(GIFS.clienterrverseOnTop),
+      response: GIFS.clienterrverseOnTop,
    },
    {
       regex: /how\s*to\s*tame\s*(nory|norysight)/i,
-      action: async (message) => message.reply(GIFS.tameNory),
+      response: GIFS.tameNory,
    },
    {
       regex: /demote\s*clienterr/i,
-      action: async (message) => message.reply(GIFS.demoteclienterr),
+      response: GIFS.demoteclienterr,
    },
 ];
 
-const handleAction = async (message, action) => {
+const handleAction = async (message, response) => {
    try {
-      await action(message);
+      await message.reply(response);
    } catch (error) {
-      console.error('Error executing action:', error);
+      console.error('Error sending message:', error);
       await message.channel.send(
          'Oops! Something went wrong while processing your request.'
       );
@@ -57,13 +57,11 @@ const handleAction = async (message, action) => {
 
 export default async (client, errorHandler, message) => {
    try {
-      for (const { regex, action } of ACTIONS) {
-         if (regex.test(message.content)) {
-            await handleAction(message, action);
-            break; // Stop checking once a match is found
-         }
+      const action = ACTIONS.find(({ regex }) => regex.test(message.content));
+      if (action) {
+         await handleAction(message, action.response);
       }
    } catch (error) {
-      errorHandler.handleError(err, { type: 'chatrega' });
+      errorHandler.handleError(error, { type: 'chatrega' });
    }
 };

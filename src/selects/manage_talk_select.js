@@ -88,8 +88,9 @@ export default {
          await selectedMember.voice.setMute(newMuteStatus);
 
          const embedConfig = newMuteStatus
-            ? mconfig.embeds?.userMuted ?? defaultMessages.embeds.userMuted
-            : mconfig.embeds?.userUnmuted ?? defaultMessages.embeds.userUnmuted;
+            ? (mconfig.embeds?.userMuted ?? defaultMessages.embeds.userMuted)
+            : (mconfig.embeds?.userUnmuted ??
+              defaultMessages.embeds.userUnmuted);
 
          const embed = new EmbedBuilder()
             .setTitle(embedConfig.title)
@@ -105,9 +106,10 @@ export default {
 
          await interaction.update({
             content: newMuteStatus
-               ? mconfig.success?.userMuted ?? defaultMessages.success.userMuted
-               : mconfig.success?.userUnmuted ??
-                 defaultMessages.success.userUnmuted,
+               ? (mconfig.success?.userMuted ??
+                 defaultMessages.success.userMuted)
+               : (mconfig.success?.userUnmuted ??
+                 defaultMessages.success.userUnmuted),
             embeds: [embed],
             components: [],
          });

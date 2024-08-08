@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import { createCanvas, loadImage } from 'canvas';
 
 const data = new SlashCommandBuilder()
    .setName('emoji-app')
