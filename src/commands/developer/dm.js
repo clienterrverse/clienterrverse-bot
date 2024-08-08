@@ -67,7 +67,6 @@ export default {
    category: 'Devloper',
    prefix: true,
 
-
    run: async (client, interaction) => {
       const subcommand = interaction.options.getSubcommand();
       let message = interaction.options.getString('message').trim();

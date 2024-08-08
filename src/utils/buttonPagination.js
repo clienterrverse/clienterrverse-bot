@@ -3,30 +3,11 @@ import {
    ButtonBuilder,
    ButtonStyle,
    ComponentType,
+   EmbedBuilder,
 } from 'discord.js';
 
-// TODO List
-// Refactor Error Handling: Ensure that error messages are clear and specific. Consider separating error handling into its own function for better readability.
-
-// Enhance Button State Management: Make sure the updateButtons function properly updates all button states based on the current page index.
-
-// Optimize Embed Caching: Ensure that caching of embeds is efficient and doesn't cause unnecessary memory usage. Consider implementing cache invalidation if necessary.
-
-// Improve Documentation: Update comments and function descriptions for clarity. Ensure that parameters are well-documented, including their types and default values.
-
-// Add Type Checking: Implement type checking for function parameters to ensure they meet expected formats. This can be done using TypeScript or by adding manual checks.
-
-// Handle Edge Cases: Review edge cases such as empty pages, single page scenarios, and interactions from users other than the one who initiated the pagination.
-
-// Optimize Performance: Check if any performance bottlenecks exist, such as repeated calls to getEmbed. Optimize as needed.
-
-// Enhance User Experience: Consider adding features like disabling buttons when actions are not possible, or adding a loading indicator during interactions.
-
-// Helper function to create a button
+// Utility function to create a button
 const createButton = (customId, emoji, style, disabled = false) => {
-   if (typeof style !== 'string' && typeof style !== 'number') {
-      throw new Error('Expected the value to be a string or number');
-   }
    return new ButtonBuilder()
       .setCustomId(customId)
       .setEmoji(emoji)
@@ -34,169 +15,244 @@ const createButton = (customId, emoji, style, disabled = false) => {
       .setDisabled(disabled);
 };
 
-// Helper function to update button states
+// Enhanced button state management
 const updateButtons = (buttons, index, pagesLength) => {
-   buttons[0].setDisabled(index === 0); // First button
-   buttons[1].setDisabled(index === 0); // Previous button
-   buttons[2].setDisabled(index === 0); // Home button
-   buttons[3].setDisabled(index === pagesLength - 1); // Next button
-   buttons[4].setDisabled(index === pagesLength - 1); // Last button
+   buttons.forEach((button) => {
+      switch (button.data.custom_id) {
+         case 'first':
+         case 'prev':
+         case 'home':
+            button.setDisabled(index === 0);
+            break;
+         case 'next':
+         case 'last':
+            button.setDisabled(index === pagesLength - 1);
+            break;
+      }
+   });
 };
 
+// Animated transition helper
+const animateTransition = async (msg, newEmbed) => {
+   const loadingEmbed = new EmbedBuilder()
+      .setDescription('Loading...')
+      .setColor('#FFA500');
+
+   await msg.edit({ embeds: [loadingEmbed] });
+   await new Promise((resolve) => setTimeout(resolve, 300));
+   await msg.edit({ embeds: [newEmbed] });
+};
+
+// LRU Cache implementation for efficient embed caching
+class LRUCache {
+   constructor(capacity) {
+      this.capacity = capacity;
+      this.cache = new Map();
+   }
+
+   get(key) {
+      if (!this.cache.has(key)) return undefined;
+      const value = this.cache.get(key);
+      this.cache.delete(key);
+      this.cache.set(key, value);
+      return value;
+   }
+
+   put(key, value) {
+      if (this.cache.size >= this.capacity) {
+         const oldestKey = this.cache.keys().next().value;
+         this.cache.delete(oldestKey);
+      }
+      this.cache.set(key, value);
+   }
+}
+
 /**
- * Creates a pagination system using buttons.
+ * Creates an advanced pagination system using buttons.
  * @param {Interaction} interaction The interaction that triggered the pagination.
  * @param {Array<EmbedBuilder>} pages An array of embeds to paginate.
- * @param {Number} [time=30000] The time for the pagination in milliseconds.
- * @param {Object} [buttonEmojis={ first: '⏮️', prev: '⬅️', home: '🏠', next: '➡️', last: '⏭️' }] Emojis for the buttons.
- * @param {Object} [buttonStyles={ first: ButtonStyle.Primary, prev: ButtonStyle.Primary, home: ButtonStyle.Secondary, next: ButtonStyle.Primary, last: ButtonStyle.Primary }] Styles for the buttons.
+ * @param {Object} options Customization options
  */
-export default async (
-   interaction,
-   pages,
-   time = 30000,
-   buttonEmojis = {
-      first: '⏮️',
-      prev: '⬅️',
-      home: '🏠',
-      next: '➡️',
-      last: '⏭️',
-   },
-   buttonStyles = {
-      first: ButtonStyle.Primary,
-      prev: ButtonStyle.Primary,
-      home: ButtonStyle.Secondary,
-      next: ButtonStyle.Primary,
-      last: ButtonStyle.Primary,
-   }
-) => {
+export default async (interaction, pages, options = {}) => {
    try {
       if (!interaction) throw new Error('Invalid interaction');
       if (!pages || !Array.isArray(pages) || pages.length === 0)
          throw new Error('Invalid pages array');
 
-      if (!interaction.deferred) {
-         await interaction.deferReply();
+      const defaultOptions = {
+         time: 5 * 60 * 1000, // 5 minutes
+         buttonEmojis: {
+            first: '⏮️',
+            prev: '⬅️',
+            home: '🏠',
+            next: '➡️',
+            last: '⏭️',
+         },
+         buttonStyles: {
+            first: ButtonStyle.Primary,
+            prev: ButtonStyle.Primary,
+            home: ButtonStyle.Secondary,
+            next: ButtonStyle.Primary,
+            last: ButtonStyle.Primary,
+         },
+         animateTransitions: true,
+         cacheSize: 10,
+      };
+
+      const mergedOptions = { ...defaultOptions, ...options };
+
+      if (!interaction.deferred) await interaction.deferReply();
+
+      // Handle edge cases
+      if (pages.length === 0) {
+         return await interaction.editReply({
+            content: 'No pages to display.',
+            components: [],
+         });
       }
 
       if (pages.length === 1) {
          return await interaction.editReply({
             embeds: pages,
             components: [],
-            fetchReply: true,
          });
       }
 
-      const first = createButton(
-         'first',
-         buttonEmojis.first,
-         buttonStyles.first,
-         true
-      );
-      const prev = createButton(
-         'prev',
-         buttonEmojis.prev,
-         buttonStyles.prev,
-         true
-      );
-      const home = createButton(
-         'home',
-         buttonEmojis.home,
-         buttonStyles.home,
-         true
-      );
-      const next = createButton('next', buttonEmojis.next, buttonStyles.next);
-      const last = createButton('last', buttonEmojis.last, buttonStyles.last);
+      const buttons = [
+         createButton(
+            'first',
+            mergedOptions.buttonEmojis.first,
+            mergedOptions.buttonStyles.first,
+            true
+         ),
+         createButton(
+            'prev',
+            mergedOptions.buttonEmojis.prev,
+            mergedOptions.buttonStyles.prev,
+            true
+         ),
+         createButton(
+            'home',
+            mergedOptions.buttonEmojis.home,
+            mergedOptions.buttonStyles.home,
+            true
+         ),
+         createButton(
+            'next',
+            mergedOptions.buttonEmojis.next,
+            mergedOptions.buttonStyles.next
+         ),
+         createButton(
+            'last',
+            mergedOptions.buttonEmojis.last,
+            mergedOptions.buttonStyles.last
+         ),
+      ];
 
-      const buttons = new ActionRowBuilder().addComponents(
-         first,
-         prev,
-         home,
-         next,
-         last
-      );
+      const row = new ActionRowBuilder().addComponents(buttons);
       let index = 0;
 
-      const pageCache = new Map();
+      // Implement LRU Cache for embed caching
+      const embedCache = new LRUCache(mergedOptions.cacheSize);
 
       const getEmbed = (index) => {
-         if (!pageCache.has(index)) {
-            const embed = pages[index];
-            embed.setFooter({
+         let embed = embedCache.get(index);
+         if (!embed) {
+            embed = pages[index].setFooter({
                text: `Page ${index + 1} of ${pages.length} | Total Items: ${pages.length}`,
             });
-            pageCache.set(index, embed);
+            embedCache.put(index, embed);
          }
-         return pageCache.get(index);
+         return embed;
       };
 
       const msg = await interaction.editReply({
          embeds: [getEmbed(index)],
-         components: [buttons],
+         components: [row],
          fetchReply: true,
       });
 
       const collector = msg.createMessageComponentCollector({
          componentType: ComponentType.Button,
-         time,
+         time: mergedOptions.time,
       });
 
+      let usageCount = 0;
+
       collector.on('collect', async (i) => {
-         if (i.user.id !== interaction.user.id)
+         if (i.user.id !== interaction.user.id) {
             return i.reply({
-               content: 'You are not allowed to do this!',
+               content: 'You are not allowed to interact with this pagination.',
                ephemeral: true,
             });
-
-         await i.deferUpdate();
-
-         if (i.customId === 'first' && index > 0) {
-            index = 0;
-         } else if (i.customId === 'prev' && index > 0) {
-            index--;
-         } else if (i.customId === 'home') {
-            index = 0;
-         } else if (i.customId === 'next' && index < pages.length - 1) {
-            index++;
-         } else if (i.customId === 'last' && index < pages.length - 1) {
-            index = pages.length - 1;
          }
 
-         updateButtons([first, prev, home, next, last], index, pages.length);
+         await i.deferUpdate();
+         usageCount++;
 
-         await msg.edit({
-            embeds: [getEmbed(index)],
-            components: [buttons],
-         });
+         const oldIndex = index;
+
+         switch (i.customId) {
+            case 'first':
+               index = 0;
+               break;
+            case 'prev':
+               index = Math.max(0, index - 1);
+               break;
+            case 'home':
+               index = 0;
+               break;
+            case 'next':
+               index = Math.min(pages.length - 1, index + 1);
+               break;
+            case 'last':
+               index = pages.length - 1;
+               break;
+         }
+
+         updateButtons(buttons, index, pages.length);
+
+         if (mergedOptions.animateTransitions && oldIndex !== index) {
+            await animateTransition(msg, getEmbed(index));
+         } else {
+            await msg.edit({
+               embeds: [getEmbed(index)],
+               components: [row],
+            });
+         }
 
          collector.resetTimer();
       });
 
       collector.on('end', async () => {
+         buttons.forEach((button) => button.setDisabled(true));
          await msg
             .edit({
                embeds: [getEmbed(index)],
-               components: [],
+               components: [row],
             })
             .catch(() => null);
+
+         // Log usage statistics
+         console.log(`Pagination ended. Total interactions: ${usageCount}`);
       });
 
       return msg;
    } catch (err) {
-      console.error('Pagination error:', err.message);
-      console.error(err.stack);
-      if (interaction && !interaction.replied) {
+      console.error('Pagination error:', err);
+      if (!interaction.replied && !interaction.deferred) {
          await interaction.reply({
             content: 'An error occurred while setting up pagination.',
             ephemeral: true,
          });
-      } else if (interaction.deferred) {
+      } else {
          await interaction.editReply({
             content: 'An error occurred while setting up pagination.',
          });
       }
-      await client.errorHandler.handleError(err, {
-         type: 'Pagination',
-      });
+      // Assuming you have an error handling system
+      if (typeof client !== 'undefined' && client.errorHandler) {
+         await client.errorHandler.handleError(err, { type: 'Pagination' });
+      }
    }
 };

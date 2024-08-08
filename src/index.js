@@ -3,6 +3,7 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits } from 'discord.js';
 import DiscordBotErrorHandler from './handlers/errorHandler.js';
+// @ts-check
 
 const checkEnvVariables = () => {
    if (!process.env.TOKEN) {

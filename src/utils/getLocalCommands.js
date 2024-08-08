@@ -12,19 +12,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * @throws {Error} If there's an error importing or processing the file.
  */
 async function importCommandFile(commandFile, exceptions) {
-    const commandFileURL = pathToFileURL(commandFile).href;
-    const commandModule = await import(commandFileURL);
-    const commandObject = commandModule.default;
+   const commandFileURL = pathToFileURL(commandFile).href;
+   const commandModule = await import(commandFileURL);
+   const commandObject = commandModule.default;
 
-    if (!commandObject?.data?.name) {
-        throw new Error(`Command file ${commandFile} is invalid.`);
-    }
+   if (!commandObject?.data?.name) {
+      throw new Error(`Command file ${commandFile} is invalid.`);
+   }
 
-    if (exceptions.includes(commandObject.data.name)) {
-        throw new Error(`Command ${commandObject.data.name} is in the exception list.`);
-    }
+   if (exceptions.includes(commandObject.data.name)) {
+      throw new Error(
+         `Command ${commandObject.data.name} is in the exception list.`
+      );
+   }
 
-    return commandObject;
+   return commandObject;
 }
 
 /**
@@ -33,18 +35,22 @@ async function importCommandFile(commandFile, exceptions) {
  * @returns {Promise<Object[]>} Array of valid command objects.
  */
 export default async function loadCommands(exceptions = []) {
-    const commandsDir = path.resolve(__dirname, '..', 'commands');
-    const allCommandFiles = getAllFiles(commandsDir).filter(file => file.endsWith('.js'));
+   const commandsDir = path.resolve(__dirname, '..', 'commands');
+   const allCommandFiles = getAllFiles(commandsDir).filter((file) =>
+      file.endsWith('.js')
+   );
 
-    const commands = [];
-    for (const file of allCommandFiles) {
-        try {
-            const command = await importCommandFile(file, exceptions);
-            commands.push(command);
-        } catch (error) {
-            console.error(`Error processing command file ${file}: ${error.message}`);
-        }
-    }
+   const commands = [];
+   for (const file of allCommandFiles) {
+      try {
+         const command = await importCommandFile(file, exceptions);
+         commands.push(command);
+      } catch (error) {
+         console.error(
+            `Error processing command file ${file}: ${error.message}`
+         );
+      }
+   }
 
-    return commands;
+   return commands;
 }
