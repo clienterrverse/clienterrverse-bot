@@ -10,8 +10,6 @@ import {
 } from 'discord.js';
 import ticketSetupSchema from '../../schemas/ticketSetupSchema.js';
 
-const TICKET_TYPES = ['button', 'select'];
-
 export default {
    data: new SlashCommandBuilder()
       .setName('ticket')
@@ -52,14 +50,13 @@ export default {
                   .setName('ticket-type')
                   .setDescription('How tickets will be created')
                   .addChoices(
-                     ...TICKET_TYPES.map((type) => ({
-                        name: type.charAt(0).toUpperCase() + type.slice(1),
-                        value: type,
-                     }))
+                     { name: 'Modal', value: 'modal' },
+                     { name: 'Button', value: 'button' }
                   )
                   .setRequired(true)
             )
-      )
+            
+            )
       .addSubcommand((subcommand) =>
          subcommand
             .setName('update')
