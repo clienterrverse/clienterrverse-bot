@@ -32,6 +32,12 @@ export default {
                   .setRequired(true)
                   .addChannelTypes(ChannelType.GuildCategory)
             )
+            .addRoleOption((option) =>
+               option
+                  .setName('staff-role')
+                  .setDescription('The role that will be able to see tickets.')
+                  .setRequired(true)
+            )
             .addChannelOption((option) =>
                option
                   .setName('log-channel')
@@ -39,19 +45,13 @@ export default {
                   .setRequired(true)
                   .addChannelTypes(ChannelType.GuildText)
             )
-            .addRoleOption((option) =>
-               option
-                  .setName('staff-role')
-                  .setDescription('The role that will be able to see tickets.')
-                  .setRequired(true)
-            )
             .addStringOption((option) =>
                option
                   .setName('ticket-type')
                   .setDescription('How tickets will be created')
                   .addChoices(
                      { name: 'Modal', value: 'modal' },
-                     { name: 'Button', value: 'button' }
+                     { name: 'Select', value: 'select' }
                   )
                   .setRequired(true)
             )
@@ -232,7 +232,7 @@ async function handleSetup(interaction) {
 
       let component;
 
-      if (ticketType === 'button') {
+      if (ticketType === 'modal') {
          component = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                .setCustomId('createTicket')
@@ -240,7 +240,8 @@ async function handleSetup(interaction) {
                .setStyle(ButtonStyle.Primary)
                .setEmoji('🎫')
          );
-      } else {
+      } 
+      else if(ticketType === 'select')      {
          component = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
                .setCustomId('createTicket')
@@ -253,6 +254,9 @@ async function handleSetup(interaction) {
                   }))
                )
          );
+      }
+      else{
+         return interaction.reply("Please select the correct")
       }
 
       const message = await ticketChannel.send({
@@ -338,7 +342,7 @@ async function handleUpdate(interaction) {
 
       let component;
 
-      if (setupTicket.ticketType === 'button') {
+      if (ticketType === 'modal') {
          component = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                .setCustomId('createTicket')
@@ -346,7 +350,8 @@ async function handleUpdate(interaction) {
                .setStyle(ButtonStyle.Primary)
                .setEmoji('🎫')
          );
-      } else {
+      } 
+      else if(ticketType === 'select')      {
          component = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
                .setCustomId('createTicket')
@@ -360,6 +365,10 @@ async function handleUpdate(interaction) {
                )
          );
       }
+      else{
+         return interaction.reply("Please select the correct")
+      }
+
 
       await ticketMessage.edit({
          embeds: [ticketCreateEmbed],
