@@ -11,7 +11,7 @@ import getLocalCommands from '../../utils/getLocalCommands.js';
 import mConfig from '../../config/messageConfig.js';
 
 const COMMANDS_PER_PAGE = 8;
-const INTERACTION_TIMEOUT = 300000; // 5 minutes
+const INTERACTION_TIMEOUT = 300000;
 
 const categorizeCommands = (commands) => {
    const categorized = commands.reduce((acc, cmd) => {
@@ -48,7 +48,7 @@ export default {
    run: async (client, interaction) => {
       try {
          const localCommands = await getLocalCommands();
-         const embedColor = mConfig.embedColorDefault || '#0099ff';
+         const embedColor = mConfig.embedColorDefault ?? '#0099ff';
          const prefix = '!';
 
          const commandOption = interaction.options.getString('command');
@@ -65,6 +65,11 @@ export default {
                   embedColor,
                   prefix
                );
+            } else {
+               return await interaction.reply({
+                  content: `Command "${commandOption}" not found.`,
+                  ephemeral: true,
+               });
             }
          }
 
@@ -81,6 +86,11 @@ export default {
                   embedColor,
                   prefix
                );
+            } else {
+               return await interaction.reply({
+                  content: `Category "${categoryOption}" not found.`,
+                  ephemeral: true,
+               });
             }
          }
 
@@ -103,22 +113,22 @@ export default {
 async function showCommandDetails(interaction, command, embedColor, prefix) {
    const embed = new EmbedBuilder()
       .setTitle(`📖 Command: ${command.name}`)
-      .setDescription(command.description || 'No description available.')
+      .setDescription(command.description ?? 'No description available.')
       .setColor(embedColor)
       .addFields(
          {
             name: '🏷️ Category',
-            value: command.category || 'Uncategorized',
+            value: command.category ?? 'Uncategorized',
             inline: true,
          },
          {
             name: '⏳ Cooldown',
-            value: `${command.cooldown || 0}s`,
+            value: `${command.cooldown ?? 0}s`,
             inline: true,
          },
          {
             name: '🔒 Permissions',
-            value: command.userPermissions?.join(', ') || 'None',
+            value: command.userPermissions?.join(', ') ?? 'None',
             inline: true,
          },
          {
@@ -182,7 +192,7 @@ async function showCommandDetails(interaction, command, embedColor, prefix) {
             .setTitle(`📝 Examples for ${command.name}`)
             .setColor(embedColor)
             .setDescription(
-               command.examples?.join('\n') || 'No examples available.'
+               command.examples?.join('\n') ?? 'No examples available.'
             );
          await i.reply({ embeds: [examplesEmbed], ephemeral: true });
       }
@@ -193,7 +203,6 @@ async function showCommandDetails(interaction, command, embedColor, prefix) {
       interaction.editReply({ components: [row] });
    });
 }
-
 async function showCategoryCommands(
    interaction,
    localCommands,
@@ -202,7 +211,15 @@ async function showCategoryCommands(
    prefix
 ) {
    const categorizedCommands = categorizeCommands(localCommands);
-   const categoryCommands = categorizedCommands[category] || [];
+   const categoryCommands = categorizedCommands[category] ?? [];
+
+   if (categoryCommands.length === 0) {
+      return interaction.reply({
+         content: `No commands found in the "${category}" category.`,
+         ephemeral: true,
+      });
+   }
+
    const pages = createCommandPages(
       categoryCommands,
       category,
@@ -268,7 +285,6 @@ async function showCategoryCommands(
       interaction.editReply({ components: [row] });
    });
 }
-
 async function showCommandOverview(
    interaction,
    localCommands,

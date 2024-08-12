@@ -1,7 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import getAllFiles from '../utils/getAllFiles.js';
-import 'colors';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,7 +32,12 @@ const loadEventFile = async (
    eventRegistry
 ) => {
    try {
-      const { default: eventFunction } = await import(`file://${eventFile}`);
+      const { default: eventFunction } = await import(
+         encodeURI(`file://${eventFile}`)
+      );
+      if (typeof eventFunction !== 'function') {
+         throw new Error(`Invalid or missing event function in ${eventFile}`);
+      }
       const eventInfo = {
          function: eventFunction,
          fileName: path.basename(eventFile),
@@ -56,20 +60,27 @@ const loadEventFile = async (
  * @param {Map} eventRegistry - The event registry.
  */
 const processEventFolder = async (eventFolder, errorHandler, eventRegistry) => {
-   const eventFiles = getAllFiles(eventFolder);
-   let eventName = path.basename(eventFolder);
+   try {
+      const eventFiles = getAllFiles(eventFolder);
+      let eventName = path.basename(eventFolder);
 
-   if (eventName === 'validations') {
-      eventName = 'interactionCreate';
+      if (eventName === 'validations') {
+         eventName = 'interactionCreate';
+      }
+
+      const loadPromises = eventFiles
+         .filter((eventFile) => fs.lstatSync(eventFile).isFile())
+         .map((eventFile) =>
+            loadEventFile(eventFile, eventName, errorHandler, eventRegistry)
+         );
+
+      await Promise.all(loadPromises);
+   } catch (error) {
+      errorHandler.handleError(error, {
+         type: 'processingEventFolder',
+         eventFolder,
+      });
    }
-
-   const loadPromises = eventFiles
-      .filter((eventFile) => fs.lstatSync(eventFile).isFile())
-      .map((eventFile) =>
-         loadEventFile(eventFile, eventName, errorHandler, eventRegistry)
-      );
-
-   await Promise.all(loadPromises);
 };
 
 /**
@@ -107,11 +118,6 @@ const loadEventHandlers = async (client, errorHandler) => {
                         handler: handler.fileName,
                         eventName,
                      });
-                     console.error(
-                        `Error executing event handler ${handler.fileName} for event ${eventName}:`
-                           .red,
-                        error
-                     );
                   }
                }
             });
