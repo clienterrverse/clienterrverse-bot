@@ -51,8 +51,10 @@ const sendEmbedReply = async (
          .setTimestamp();
 
       await interaction.reply({ embeds: [embed], ephemeral });
-   } catch (err) {}
+   } catch (err) {
+   }
 };
+
 
 const getCachedData = async (key, fetchFunction) => {
    const cachedItem = cache.get(key);
@@ -77,11 +79,13 @@ const initializeCommandMap = async () => {
 };
 
 const applyCooldown = (interaction, commandName, cooldownAmount) => {
+   if (isNaN(cooldownAmount) || cooldownAmount <= 0) {
+      throw new Error('Invalid cooldown amount');
+   }
+
    const userCooldowns = cooldowns.get(commandName) || new Collection();
    const now = Date.now();
-   const userId = `${interaction.user.id}-${
-      interaction.guild ? interaction.guild.id : 'DM'
-   }`;
+   const userId = `${interaction.user.id}-${interaction.guild ? interaction.guild.id : 'DM'}`;
 
    if (userCooldowns.has(userId)) {
       const expirationTime = userCooldowns.get(userId) + cooldownAmount;
@@ -118,13 +122,14 @@ export default async (client, errorHandler, interaction) => {
    try {
       const commandObject = commandMap.get(interaction.commandName);
 
-      if (!commandObject) {
-         return sendEmbedReply(
-            interaction,
-            mConfig.embedColorError,
-            'Command not found.'
-         );
-      }
+if (!commandObject) {
+   return sendEmbedReply(
+      interaction,
+      mConfig.embedColorError,
+      'Command not found.'
+   );
+}
+
 
       if (interaction.isAutocomplete()) {
          return await commandObject.autocomplete(client, interaction);

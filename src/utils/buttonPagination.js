@@ -21,7 +21,6 @@ const updateButtons = (buttons, index, pagesLength) => {
       switch (button.data.custom_id) {
          case 'first':
          case 'prev':
-         case 'home':
             button.setDisabled(index === 0);
             break;
          case 'next':
@@ -44,7 +43,7 @@ const animateTransition = async (msg, newEmbed) => {
 };
 
 // LRU Cache implementation for efficient embed caching
-class LRUCache {
+class EnhancedLRUCache {
    constructor(capacity) {
       this.capacity = capacity;
       this.cache = new Map();
@@ -65,6 +64,17 @@ class LRUCache {
       }
       this.cache.set(key, value);
    }
+
+   prefetch(key, getValue) {
+      if (!this.cache.has(key)) {
+         const value = getValue(key);
+         this.put(key, value);
+      }
+   }
+
+   clear() {
+      this.cache.clear();
+   }
 }
 
 /**
@@ -80,18 +90,16 @@ export default async (interaction, pages, options = {}) => {
          throw new Error('Invalid pages array');
 
       const defaultOptions = {
-         time: 5 * 60 * 1000, // 5 minutes
+         time: 5 * 60 * 1000,
          buttonEmojis: {
             first: '⏮️',
             prev: '⬅️',
-            home: '🏠',
             next: '➡️',
             last: '⏭️',
          },
          buttonStyles: {
             first: ButtonStyle.Primary,
             prev: ButtonStyle.Primary,
-            home: ButtonStyle.Secondary,
             next: ButtonStyle.Primary,
             last: ButtonStyle.Primary,
          },
@@ -122,20 +130,12 @@ export default async (interaction, pages, options = {}) => {
          createButton(
             'first',
             mergedOptions.buttonEmojis.first,
-            mergedOptions.buttonStyles.first,
-            true
+            mergedOptions.buttonStyles.first
          ),
          createButton(
             'prev',
             mergedOptions.buttonEmojis.prev,
-            mergedOptions.buttonStyles.prev,
-            true
-         ),
-         createButton(
-            'home',
-            mergedOptions.buttonEmojis.home,
-            mergedOptions.buttonStyles.home,
-            true
+            mergedOptions.buttonStyles.prev
          ),
          createButton(
             'next',
@@ -152,20 +152,29 @@ export default async (interaction, pages, options = {}) => {
       const row = new ActionRowBuilder().addComponents(buttons);
       let index = 0;
 
-      // Implement LRU Cache for embed caching
-      const embedCache = new LRUCache(mergedOptions.cacheSize);
+      const embedCache = new EnhancedLRUCache(mergedOptions.cacheSize);
 
       const getEmbed = (index) => {
          let embed = embedCache.get(index);
          if (!embed) {
             embed = pages[index].setFooter({
-               text: `Page ${index + 1} of ${pages.length} | Total Items: ${pages.length}`,
+               text: `Page ${index + 1} of ${pages.length}`,
             });
             embedCache.put(index, embed);
          }
          return embed;
       };
 
+      const prefetchAdjacentPages = (currentIndex) => {
+         const prefetchIndexes = [currentIndex - 1, currentIndex + 1];
+         prefetchIndexes.forEach((idx) => {
+            if (idx >= 0 && idx < pages.length) {
+               embedCache.prefetch(idx, getEmbed);
+            }
+         });
+      };
+
+      updateButtons(buttons, index, pages.length);
       const msg = await interaction.editReply({
          embeds: [getEmbed(index)],
          components: [row],
@@ -199,9 +208,6 @@ export default async (interaction, pages, options = {}) => {
             case 'prev':
                index = Math.max(0, index - 1);
                break;
-            case 'home':
-               index = 0;
-               break;
             case 'next':
                index = Math.min(pages.length - 1, index + 1);
                break;
@@ -220,6 +226,7 @@ export default async (interaction, pages, options = {}) => {
                components: [row],
             });
          }
+         prefetchAdjacentPages(index);
 
          collector.resetTimer();
       });
@@ -233,8 +240,8 @@ export default async (interaction, pages, options = {}) => {
             })
             .catch(() => null);
 
-         // Log usage statistics
          console.log(`Pagination ended. Total interactions: ${usageCount}`);
+         embedCache.clear();
       });
 
       return msg;
@@ -249,10 +256,6 @@ export default async (interaction, pages, options = {}) => {
          await interaction.editReply({
             content: 'An error occurred while setting up pagination.',
          });
-      }
-      // Assuming you have an error handling system
-      if (typeof client !== 'undefined' && client.errorHandler) {
-         await client.errorHandler.handleError(err, { type: 'Pagination' });
       }
    }
 };

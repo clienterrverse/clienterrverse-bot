@@ -56,7 +56,9 @@ async function deleteUnusedCommands(
    );
 
    await Promise.all(
-      commandsToDelete.map(deleteCommand(applicationCommands, errorHandler))
+      commandsToDelete.map((cmd) =>
+         deleteCommand(applicationCommands, errorHandler)(cmd)
+      )
    );
 }
 
@@ -99,6 +101,7 @@ const deleteCommand = (applicationCommands, errorHandler) => async (cmd) => {
       );
    }
 };
+
 
 /**
  * Processes a local command, updating or creating it as needed.
