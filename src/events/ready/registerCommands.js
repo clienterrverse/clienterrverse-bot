@@ -102,7 +102,6 @@ const deleteCommand = (applicationCommands, errorHandler) => async (cmd) => {
    }
 };
 
-
 /**
  * Processes a local command, updating or creating it as needed.
  * @param {Collection} applicationCommands - The current application commands.

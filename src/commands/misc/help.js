@@ -110,7 +110,7 @@ export default {
 };
 
 async function showCommandDetails(interaction, command, embedColor, prefix) {
-   console.log(command)
+   console.log(command);
    const embed = new EmbedBuilder()
       .setTitle(`📖 Command: ${command.name}`)
       .setDescription(command.description ?? 'No description available.')
@@ -383,7 +383,7 @@ function createCommandPages(categoryCommands, category, embedColor, prefix) {
                value: cmd.data.description ?? 'No description available.',
                inline: true,
             }))
-      );
+         );
 
       pages.push(embed);
    }

@@ -55,8 +55,7 @@ export default {
                   )
                   .setRequired(true)
             )
-            
-            )
+      )
       .addSubcommand((subcommand) =>
          subcommand
             .setName('update')
