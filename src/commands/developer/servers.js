@@ -29,7 +29,19 @@ export default {
                   .setDescription('Show detailed server information')
                   .setRequired(false)
             )
+            .addStringOption((option) =>
+               option
+                  .setName('sort')
+                  .setDescription('Sort servers by a specific criteria')
+                  .setRequired(false)
+                  .addChoices(
+                     { name: 'Name', value: 'name' },
+                     { name: 'Member Count', value: 'memberCount' },
+                     { name: 'Creation Date', value: 'createdAt' }
+                  )
+            )
       )
+
       .addSubcommand((subcommand) =>
          subcommand
             .setName('leave')
@@ -110,7 +122,9 @@ export default {
 
 async function handleListSubcommand(client, interaction) {
    const isDetailed = interaction.options.getBoolean('detailed') ?? false;
-   const guilds = await Promise.all(
+   const sortOption = interaction.options.getString('sort') ?? 'name';
+
+   let guilds = await Promise.all(
       client.guilds.cache.map(async (guild) => {
          let inviteLink = 'No invite link available';
          try {
@@ -144,6 +158,15 @@ async function handleListSubcommand(client, interaction) {
          };
       })
    );
+   guilds.sort((a, b) => {
+      if (sortOption === 'memberCount') {
+         return b.memberCount - a.memberCount;
+      } else if (sortOption === 'createdAt') {
+         return b.createdAt - a.createdAt;
+      } else {
+         return a.name.localeCompare(b.name);
+      }
+   });
 
    if (guilds.length === 0) {
       return await interaction.editReply('The bot is not in any servers.');
@@ -153,12 +176,19 @@ async function handleListSubcommand(client, interaction) {
       client,
       interaction,
       guilds,
-      isDetailed
+      isDetailed,
+      sortOption
    );
    await paginateEmbeds(interaction, embeds);
 }
 
-function createServerListEmbeds(client, interaction, guilds, isDetailed) {
+function createServerListEmbeds(
+   client,
+   interaction,
+   guilds,
+   isDetailed,
+   sortOption
+) {
    const MAX_FIELDS = isDetailed ? 4 : 8;
    const embeds = [];
 
@@ -166,7 +196,9 @@ function createServerListEmbeds(client, interaction, guilds, isDetailed) {
       const currentGuilds = guilds.slice(i, i + MAX_FIELDS);
       const embed = new EmbedBuilder()
          .setTitle('Servers List')
-         .setDescription(`The bot is in **${guilds.length}** servers.`)
+         .setDescription(
+            `The bot is in **${guilds.length}** servers. Sorted by: ${sortOption}`
+         )
          .setColor(mconfig.embedColorSuccess)
          .setThumbnail(client.user.displayAvatarURL())
          .setFooter({
@@ -221,7 +253,6 @@ async function handleLeaveSubcommand(client, interaction) {
       content: `Are you sure you want me to leave the server **${guild.name}** (ID: ${serverId})?`,
       components: [row],
    });
-
    try {
       const confirmation = await response.awaitMessageComponent({
          filter: (i) => i.user.id === interaction.user.id,
@@ -242,7 +273,8 @@ async function handleLeaveSubcommand(client, interaction) {
       }
    } catch (error) {
       await interaction.editReply({
-         content: 'No response received, cancelling server leave.',
+         content:
+            'No response received within 30 seconds, cancelling server leave.',
          components: [],
       });
       throw error;
@@ -254,19 +286,52 @@ async function handleCheckSubcommand(client, interaction) {
       .getString('server-ids')
       .split(',')
       .map((id) => id.trim());
+   if (serverIds.length > 10) {
+      return await interaction.editReply(
+         'Please provide 10 or fewer server IDs to check.'
+      );
+   }
+
    const results = await Promise.all(
       serverIds.map(async (serverId) => {
          const guild = client.guilds.cache.get(serverId);
          if (guild) {
             const owner = await guild.fetchOwner();
-            return `The bot is in the server **${guild.name}** (ID: ${serverId}).\nOwner: ${owner.user.tag}\nMembers: ${guild.memberCount}`;
+            return new EmbedBuilder()
+               .setTitle(`Server Information: ${guild.name}`)
+               .setDescription(`The bot is in this server.`)
+               .addFields(
+                  { name: 'Server ID', value: serverId, inline: true },
+                  { name: 'Owner', value: owner.user.tag, inline: true },
+                  {
+                     name: 'Members',
+                     value: guild.memberCount.toString(),
+                     inline: true,
+                  },
+                  {
+                     name: 'Created At',
+                     value: guild.createdAt.toDateString(),
+                     inline: true,
+                  },
+                  {
+                     name: 'Boost Level',
+                     value: guild.premiumTier.toString(),
+                     inline: true,
+                  }
+               )
+               .setColor(mconfig.embedColorSuccess);
          } else {
-            return `The bot is not in a server with the ID ${serverId}.`;
+            return new EmbedBuilder()
+               .setTitle(`Server Not Found`)
+               .setDescription(
+                  `The bot is not in a server with the ID ${serverId}.`
+               )
+               .setColor(mconfig.embedColorError);
          }
       })
    );
 
-   await interaction.editReply(results.join('\n\n'));
+   await interaction.editReply({ embeds: results });
 }
 
 async function handleUserSubcommand(client, interaction) {
