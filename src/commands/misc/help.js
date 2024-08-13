@@ -89,7 +89,6 @@ export default {
             } else {
                return await interaction.reply({
                   content: `Category "${categoryOption}" not found.`,
-                  ephemeral: true,
                });
             }
          }
@@ -111,6 +110,7 @@ export default {
 };
 
 async function showCommandDetails(interaction, command, embedColor, prefix) {
+   console.log(command)
    const embed = new EmbedBuilder()
       .setTitle(`📖 Command: ${command.name}`)
       .setDescription(command.description ?? 'No description available.')
@@ -168,7 +168,6 @@ async function showCommandDetails(interaction, command, embedColor, prefix) {
    const response = await interaction.reply({
       embeds: [embed],
       components: [row],
-      ephemeral: true,
    });
 
    const collector = response.createMessageComponentCollector({
@@ -203,6 +202,7 @@ async function showCommandDetails(interaction, command, embedColor, prefix) {
       interaction.editReply({ components: [row] });
    });
 }
+
 async function showCategoryCommands(
    interaction,
    localCommands,
@@ -249,7 +249,6 @@ async function showCategoryCommands(
    const response = await interaction.reply({
       embeds: [pages[currentPage]],
       components: [row],
-      ephemeral: true,
    });
 
    const collector = response.createMessageComponentCollector({
@@ -285,6 +284,7 @@ async function showCategoryCommands(
       interaction.editReply({ components: [row] });
    });
 }
+
 async function showCommandOverview(
    interaction,
    localCommands,
@@ -316,7 +316,6 @@ async function showCommandOverview(
    const response = await interaction.reply({
       embeds: [overviewEmbed],
       components: [categorySelect],
-      ephemeral: true,
    });
 
    const collector = response.createMessageComponentCollector({
@@ -332,11 +331,10 @@ async function showCommandOverview(
       }
 
       if (i.customId === 'category_select') {
-         const selectedCategory = i.values[0];
          await showCategoryCommands(
             i,
             localCommands,
-            selectedCategory,
+            i.values[0],
             embedColor,
             prefix
          );
@@ -344,53 +342,48 @@ async function showCommandOverview(
    });
 
    collector.on('end', () => {
-      categorySelect.components[0].setDisabled(true);
+      categorySelect.components.forEach((component) =>
+         component.setDisabled(true)
+      );
       interaction.editReply({ components: [categorySelect] });
    });
 }
 
 function createOverviewEmbed(categorizedCommands, embedColor, prefix) {
-   const embed = new EmbedBuilder()
-      .setTitle('📚 Command Overview')
-      .setColor(embedColor)
+   const overviewEmbed = new EmbedBuilder()
+      .setTitle('📜 Command Categories')
       .setDescription(
-         `Here's an overview of all available categories. Select a category from the dropdown below to view the commands.\n\n**Prefix:** \`${prefix}\``
-      );
+         'Use the menu below to select a category or use `/help <command>` for specific command details.'
+      )
+      .setColor(embedColor)
+      .addFields(
+         Object.keys(categorizedCommands).map((category) => ({
+            name: `${getCategoryEmoji(category)} ${category}`,
+            value: `${categorizedCommands[category].length} commands`,
+            inline: true,
+         }))
+      )
+      .setFooter({ text: `Prefix: ${prefix}` });
 
-   Object.keys(categorizedCommands).forEach((category) => {
-      embed.addFields({
-         name: getCategoryEmoji(category) + ' ' + category,
-         value: categorizedCommands[category]
-            .map((cmd) => `\`${cmd.name}\``)
-            .join(', '),
-         inline: true,
-      });
-   });
-
-   return embed;
+   return overviewEmbed;
 }
 
-function createCommandPages(commands, category, embedColor, prefix) {
+function createCommandPages(categoryCommands, category, embedColor, prefix) {
    const pages = [];
-   const totalPages = Math.ceil(commands.length / COMMANDS_PER_PAGE);
 
-   for (let i = 0; i < totalPages; i++) {
-      const pageCommands = commands.slice(
-         i * COMMANDS_PER_PAGE,
-         i * COMMANDS_PER_PAGE + COMMANDS_PER_PAGE
-      );
-
+   for (let i = 0; i < categoryCommands.length; i += COMMANDS_PER_PAGE) {
+      const commandsSlice = categoryCommands.slice(i, i + COMMANDS_PER_PAGE);
       const embed = new EmbedBuilder()
-         .setTitle(`📖 ${category} Commands`)
+         .setTitle(`📜 ${category} Commands`)
          .setColor(embedColor)
-         .setDescription(`Page ${i + 1} of ${totalPages}`)
+         .setDescription('Here are the available commands:')
          .addFields(
-            pageCommands.map((cmd) => ({
-               name: cmd.name,
-               value: cmd.description || 'No description available.',
+            commandsSlice.map((cmd) => ({
+               name: `\`${cmd.prefix ? prefix : '/'}${cmd.data.name}\``,
+               value: cmd.data.description ?? 'No description available.',
                inline: true,
             }))
-         );
+      );
 
       pages.push(embed);
    }
@@ -400,22 +393,14 @@ function createCommandPages(commands, category, embedColor, prefix) {
 
 function getCategoryEmoji(category) {
    const emojis = {
-      Uncategorized: '❓',
-      'Prefix Commands': '🔧',
-      ticket: '🎟️',
-      Admin: '🛡️',
-      Misc: '🎉',
-      image: '🔧',
-      economy: '💰',
+      General: '🌐',
+      Moderation: '🔨',
+      Fun: '🎉',
+      Utility: '⚙️',
       Music: '🎵',
-      Developer: '👩🏾‍💻',
-      Moderation: '🚨',
-      Fun: '🎮',
-      Utility: '🛠️',
-      Information: 'ℹ️',
-      Configuration: '⚙️',
-
-      // Add more category-specific emojis if desired
+      'Prefix Commands': '🔧',
+      Uncategorized: '❓',
    };
+
    return emojis[category] || '📁';
 }
