@@ -8,39 +8,48 @@ export default {
    botPermissions: [PermissionFlagsBits.ManageChannels],
 
    run: async (client, interaction) => {
-      await interaction.deferReply({ ephemeral: true });
-
       try {
+         await interaction.deferReply({ ephemeral: true });
+
          const { member, channel, guild } = interaction;
 
-         const ticketSetup = await ticketSetupSchema.findOne({
-            guildID: guild.id,
-         });
+         const ticketSetup = await ticketSetupSchema
+            .findOne({ guildID: guild.id })
+            .catch(() => null);
          if (!ticketSetup) {
-            return await interaction.editReply('Ticket setup not found.');
+            return await interaction.editReply(
+               'Ticket setup not found. Please configure the ticket system.'
+            );
          }
 
          const staffRoleId = ticketSetup.staffRoleID;
-         if (!member.roles.cache.has(staffRoleId)) {
+         if (!staffRoleId || !member.roles.cache.has(staffRoleId)) {
             return await interaction.editReply(
                'You do not have the necessary permissions to claim this ticket.'
             );
          }
 
-         const ticket = await ticketSchema.findOne({
-            ticketChannelID: channel.id,
-         });
+         const ticket = await ticketSchema
+            .findOne({ ticketChannelID: channel.id })
+            .catch(() => null);
          if (!ticket) {
-            return await interaction.editReply('Ticket not found.');
-         }
-
-         if (ticket.claimedBy) {
             return await interaction.editReply(
-               `This ticket has already been claimed by <@${ticket.claimedBy}>.`
+               'This channel is not associated with a valid ticket.'
             );
          }
 
-         // Update channel permissions
+         if (ticket.claimedBy) {
+            const claimedMember = await guild.members
+               .fetch(ticket.claimedBy)
+               .catch(() => null);
+            const claimedByText = claimedMember
+               ? claimedMember.toString()
+               : 'a staff member';
+            return await interaction.editReply(
+               `This ticket has already been claimed by ${claimedByText}.`
+            );
+         }
+
          const permissionUpdates = [
             {
                id: member.id,
@@ -57,25 +66,37 @@ export default {
             {
                id: ticket.ticketMemberID,
                allow: [
-                  PermissionFlagsBits.ViewChannel,
+                  PermissionFlagBits.ViewChannel,
                   PermissionFlagsBits.SendMessages,
                ],
             },
-            { id: staffRoleId, deny: [PermissionFlagsBits.ViewChannel] },
+            {
+               id: staffRoleId,
+               deny: [PermissionFlagBits.ViewChannel],
+            },
          ];
 
          await Promise.all(
-            permissionUpdates.map((update) =>
-               channel.permissionOverwrites.edit(
-                  update.id,
-                  update.allow || update.deny
-               )
-            )
+            permissionUpdates.map(async (update) => {
+               try {
+                  await channel.permissionOverwrites.edit(
+                     update.id,
+                     update.allow || update.deny
+                  );
+               } catch (error) {
+                  console.error(
+                     `Failed to update permissions for ${update.id}:`,
+                     error
+                  );
+               }
+            })
          );
 
-         // Update ticket status in the database
          ticket.claimedBy = member.id;
-         await ticket.save();
+         await ticket.save().catch((error) => {
+            console.error('Failed to save ticket:', error);
+            throw new Error('Failed to update ticket information.');
+         });
 
          const claimEmbed = new EmbedBuilder()
             .setColor('#00FF00')
@@ -83,20 +104,26 @@ export default {
             .setTimestamp();
 
          await interaction.deleteReply();
-         return await channel.send({ embeds: [claimEmbed] });
+         await channel.send({ embeds: [claimEmbed] }).catch((error) => {
+            console.error('Failed to send claim message:', error);
+            throw new Error('Failed to send claim notification.');
+         });
       } catch (error) {
          console.error('Error claiming ticket:', error);
 
          if (error.code === 10062) {
-            return await interaction.followUp({
-               content: 'This interaction has expired. Please try again.',
-               ephemeral: true,
-            });
+            return await interaction
+               .followUp({
+                  content: 'This interaction has expired. Please try again.',
+                  ephemeral: true,
+               })
+               .catch(console.error);
          }
 
-         return await interaction.editReply(
-            'There was an error claiming the ticket. Please try again later.'
-         );
+         const errorMessage =
+            error.message ||
+            'There was an error claiming the ticket. Please try again later.';
+         return await interaction.editReply(errorMessage).catch(console.error);
       }
    },
 };

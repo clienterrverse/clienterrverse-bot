@@ -14,6 +14,7 @@ const BACKGROUND_PATH = path.join(
    'assets',
    'welcome.png'
 );
+const DEFAULT_WELCOME_MESSAGE = 'Welcome to our server, {user}!';
 
 export default async (client, errorHandler, member) => {
    try {
@@ -24,19 +25,29 @@ export default async (client, errorHandler, member) => {
          member.guild,
          welcomeSettings
       );
+      if (!welcomeChannel) return;
 
       const welcomeImage = await generateWelcomeImage(member);
       const embed = createWelcomeEmbed(member, welcomeSettings, welcomeImage);
 
       await sendWelcomeMessage(welcomeChannel, member, embed, welcomeImage);
-      await assignAutoRole(member, autoRole);
+      if (autoRole) await assignAutoRole(member, autoRole);
    } catch (error) {
-      errorHandler.handleError(error, { type: 'Welcome Event' });
+      errorHandler.handleError(error, {
+         type: 'Welcome Event',
+         memberId: member.id,
+         guildId: member.guild.id,
+      });
    }
 };
 
 async function getWelcomeSettings(guildId) {
-   return await Welcome.findOne({ guildId });
+   try {
+      return await Welcome.findOne({ guildId });
+   } catch (error) {
+      console.error('Error fetching welcome settings:', error);
+      return null;
+   }
 }
 
 async function getGuildResources(guild, welcomeSettings) {
@@ -44,53 +55,74 @@ async function getGuildResources(guild, welcomeSettings) {
    const autoRole = guild.roles.cache.get(welcomeSettings.roleId);
 
    if (!welcomeChannel) {
-      throw new Error(
-         `Welcome channel with ID ${welcomeSettings.channelId} not found.`
+      console.warn(
+         `Welcome channel with ID ${welcomeSettings.channelId} not found in guild ${guild.id}.`
       );
    }
 
    if (!autoRole) {
-      throw new Error(`Auto role with ID ${welcomeSettings.roleId} not found.`);
+      console.warn(
+         `Auto role with ID ${welcomeSettings.roleId} not found in guild ${guild.id}.`
+      );
    }
 
    return { welcomeChannel, autoRole };
 }
 
 async function generateWelcomeImage(member) {
-   return await profileImage(member.user.id, {
-      customTag: `Member #${member.guild.memberCount}`,
-      customBackground: BACKGROUND_PATH,
-   });
+   try {
+      return await profileImage(member.user.id, {
+         customTag: `Member #${member.guild.memberCount}`,
+         customBackground: BACKGROUND_PATH,
+      });
+   } catch (error) {
+      console.error('Error generating welcome image:', error);
+      return null;
+   }
 }
 
 function createWelcomeEmbed(member, welcomeSettings, welcomeImage) {
-   const attachment = new AttachmentBuilder(welcomeImage, {
-      name: 'welcome-image.png',
-   });
-
-   return new EmbedBuilder()
+   const embed = new EmbedBuilder()
       .setColor('#0099ff')
       .setTitle(`Welcome to ${member.guild.name}!`)
       .setDescription(
-         welcomeSettings.message.replace('{user}', `<@${member.id}>`)
+         welcomeSettings.message?.replace('{user}', `<@${member.id}>`) ||
+            DEFAULT_WELCOME_MESSAGE.replace('{user}', `<@${member.id}>`)
       )
-      .setImage('attachment://welcome-image.png')
       .setTimestamp()
       .setFooter({ text: `Joined: ${member.joinedAt.toUTCString()}` });
+
+   if (welcomeImage) {
+      embed.setImage('attachment://welcome-image.png');
+   }
+
+   return embed;
 }
 
 async function sendWelcomeMessage(channel, member, embed, welcomeImage) {
-   const attachment = new AttachmentBuilder(welcomeImage, {
-      name: 'welcome-image.png',
-   });
-
-   await channel.send({
+   const messageOptions = {
       content: `Hey everyone, please welcome <@${member.id}>!`,
       embeds: [embed],
-      files: [attachment],
-   });
+   };
+
+   if (welcomeImage) {
+      const attachment = new AttachmentBuilder(welcomeImage, {
+         name: 'welcome-image.png',
+      });
+      messageOptions.files = [attachment];
+   }
+
+   try {
+      await channel.send(messageOptions);
+   } catch (error) {
+      console.error('Error sending welcome message:', error);
+   }
 }
 
 async function assignAutoRole(member, role) {
-   await member.roles.add(role);
+   try {
+      await member.roles.add(role);
+   } catch (error) {
+      console.error(`Error assigning auto role to member ${member.id}:`, error);
+   }
 }
