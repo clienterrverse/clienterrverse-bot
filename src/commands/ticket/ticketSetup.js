@@ -239,8 +239,7 @@ async function handleSetup(interaction) {
                .setStyle(ButtonStyle.Primary)
                .setEmoji('🎫')
          );
-      } 
-      else if(ticketType === 'select')      {
+      } else if (ticketType === 'select') {
          component = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
                .setCustomId('createTicket')
@@ -253,9 +252,8 @@ async function handleSetup(interaction) {
                   }))
                )
          );
-      }
-      else{
-         return interaction.reply("Please select the correct")
+      } else {
+         return interaction.reply('Please select the correct');
       }
 
       const message = await ticketChannel.send({
@@ -349,8 +347,7 @@ async function handleUpdate(interaction) {
                .setStyle(ButtonStyle.Primary)
                .setEmoji('🎫')
          );
-      } 
-      else if(ticketType === 'select')      {
+      } else if (ticketType === 'select') {
          component = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
                .setCustomId('createTicket')
@@ -363,11 +360,9 @@ async function handleUpdate(interaction) {
                   }))
                )
          );
+      } else {
+         return interaction.reply('Please select the correct');
       }
-      else{
-         return interaction.reply("Please select the correct")
-      }
-
 
       await ticketMessage.edit({
          embeds: [ticketCreateEmbed],

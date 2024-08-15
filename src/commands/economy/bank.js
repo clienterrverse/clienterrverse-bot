@@ -1,6 +1,7 @@
 /** @format */
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
+import emoji from '../../config/emoji.js';
 
 export default {
    data: new SlashCommandBuilder()
@@ -18,6 +19,7 @@ export default {
 
    run: async (client, interaction) => {
       try {
+         const coin = emoji.coin;
          const userId = interaction.user.id;
 
          let userBalance = await Balance.findOne({ userId });
@@ -32,7 +34,7 @@ export default {
             .setTitle('Bank Balance Information')
             .setDescription(`Here is your current bank balance:`)
             .addFields({
-               name: 'Bank Balance',
+               name: `Bank Balance ${coin}`,
                value: `${userBalance.bank} coins`,
                inline: true,
             })
