@@ -2,6 +2,7 @@
 
 import { SlashCommandBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
+import emoji from '../../config/emoji.js';
 
 const maxBet = 250000;
 const slots = [
@@ -35,6 +36,7 @@ export default {
       const userId = interaction.user.id;
       let betInput = interaction.options.getString('bet');
       let amount = 0;
+      const coin = emoji.coin;
       let all = false;
 
       // Parse bet amount
@@ -107,7 +109,7 @@ export default {
       await userBalance.save();
 
       // Display slots with animation
-      let machine = `**  \`___SLOTS___\`**\n\` \` ${spinningAnimation} ${spinningAnimation} ${spinningAnimation} \` \` ${interaction.user.username} bet 💰 ${amount}\n  \`|         |\`\n  \`|         |\``;
+      let machine = `**  \`___SLOTS___\`**\n\` \` ${spinningAnimation} ${spinningAnimation} ${spinningAnimation} \` \` ${interaction.user.username} bet ${coin} ${amount}\n  \`|         |\`\n  \`|         |\``;
 
       const message = await interaction.reply({
          content: machine,
@@ -121,12 +123,12 @@ export default {
             spinningAnimation.repeat(2 - i) +
             ' ' +
             rslots.slice(0, i + 1).join(' ');
-         machine = `**  \`___SLOTS___\`**\n\` \` ${updatedSlots} \` \` ${interaction.user.username} bet 💰 ${amount}\n  \`|         |\`\n  \`|         |\``;
+         machine = `**  \`___SLOTS___\`**\n\` \` ${updatedSlots} \` \` ${interaction.user.username} bet ${coin} ${amount}\n  \`|         |\`\n  \`|         |\``;
          await message.edit({ content: machine });
       }
 
       // Display final result
-      const winmsg = win === 0 ? 'nothing... :c' : `💰 ${win}`;
+      const winmsg = win === 0 ? 'nothing... :c' : `${coin} ${win}`;
       machine = `**  \`___SLOTS___\`**\n\` \` ${rslots.join(' ')} \` \` ${interaction.user.username} bet 💰 ${amount}\n  \`|         |\`   and won ${winmsg}\n  \`|         |\``;
       await message.edit({ content: machine });
    },

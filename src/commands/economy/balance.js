@@ -2,6 +2,7 @@
 
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { Balance } from '../../schemas/economy.js';
+import emoji from '../../config/emoji.js';
 
 export default {
    data: new SlashCommandBuilder()
@@ -19,6 +20,7 @@ export default {
    prefix: true,
 
    run: async (client, interaction) => {
+      const coin = emoji.coin;
       const userId = interaction.user.id;
 
       // Fetch the user's balance from the database
@@ -33,17 +35,17 @@ export default {
       // Create an embed to display the user's balance
       const balanceEmbed = new EmbedBuilder()
          .setColor('#00FF00') // Green color for positive information
-         .setTitle('Balance Information')
+         .setTitle(`Balance Information`)
          .setDescription(`Here is your current balance information:`)
          .addFields(
             {
                name: 'Wallet Balance',
-               value: `${userBalance.balance} clienterr coins`,
+               value: `${userBalance.balance}  ${coin} clienterr coins`,
                inline: true,
             },
             {
                name: 'Bank Balance',
-               value: `${userBalance.bank} clienterr coins`,
+               value: `${userBalance.bank} ${coin} clienterr coins`,
                inline: true,
             }
          )
