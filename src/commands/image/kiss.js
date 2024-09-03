@@ -18,12 +18,16 @@ export default {
             .setName('user2')
             .setDescription('Second user whose avatar you want to use')
             .setRequired(true)
-      ),
+      )
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
+      .toJSON(),
    category: 'Image',
    nwfwMode: false,
    testMode: false,
    devOnly: false,
    prefix: true,
+   dmAllowed: true,
 
    userPermissionsBitField: [],
    bot: [],

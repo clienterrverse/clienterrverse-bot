@@ -28,7 +28,7 @@
       "discord-arts": "^0.6.1",
       "discord-html-transcripts": "^3.2.0",
       "discord-image-generation": "^1.4.25",
-      "discord.js": "^14.15.3",
+      "discord.js": "^14.16.1",
       "mathjs": "^13.0.3",
       "mongoose": "^8.5.2",
       "ms": "^2.1.3",
