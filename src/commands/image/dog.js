@@ -10,6 +10,8 @@ export default {
    data: new SlashCommandBuilder()
       .setName('dog')
       .setDescription('send random dog image')
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
       .toJSON(),
    category: 'Image',
    nwfwMode: false,

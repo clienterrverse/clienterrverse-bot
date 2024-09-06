@@ -140,14 +140,6 @@ export default async (client, errorHandler, interaction) => {
          );
       }
 
-      if (!interaction.guild && !commandObject.dmAllowed) {
-         return sendEmbedReply(
-            interaction,
-            mConfig.embedColorError,
-            'This command can only be used within a server.'
-         );
-      }
-
       const cooldown = applyCooldown(
          interaction,
          commandObject.data.name,

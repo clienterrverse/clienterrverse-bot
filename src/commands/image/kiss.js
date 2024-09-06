@@ -27,7 +27,6 @@ export default {
    testMode: false,
    devOnly: false,
    prefix: true,
-   dmAllowed: true,
 
    userPermissionsBitField: [],
    bot: [],

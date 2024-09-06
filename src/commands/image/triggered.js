@@ -14,13 +14,15 @@ export default {
                'user whose avatar you want to apply the filter to:'
             )
             .setRequired(false)
-      ),
+      )
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
+      .toJSON(),
    category: 'Image',
    nwfwMode: false,
    testMode: false,
    devOnly: false,
    prefix: true,
-
    userPermissionsBitField: [],
    bot: [],
 
