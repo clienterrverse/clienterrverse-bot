@@ -20,7 +20,10 @@ export default {
                'Currency symbol to use for the reward (e.g., $, €, ¥)'
             )
             .setRequired(false)
-      ),
+      )
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
+      .toJSON(),
    category: 'Image',
    nwfwMode: false,
    testMode: false,

@@ -12,7 +12,10 @@ export default {
             .setName('user')
             .setDescription('User whose avatar you want on the tombstone')
             .setRequired(false)
-      ),
+      )
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
+      .toJSON(),
    category: 'Image',
    nwfwMode: false,
    testMode: false,

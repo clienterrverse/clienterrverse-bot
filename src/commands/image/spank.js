@@ -18,7 +18,10 @@ export default {
             .setName('initiator')
             .setDescription('User who initiates the spanking (defaults to you)')
             .setRequired(false)
-      ),
+      )
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
+      .toJSON(),
    category: 'Image',
    nwfwMode: false,
    testMode: false,

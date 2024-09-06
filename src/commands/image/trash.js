@@ -14,7 +14,10 @@ export default {
                "User whose avatar you want to apply the 'Trash' effect to"
             )
             .setRequired(false)
-      ),
+      )
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
+      .toJSON(),
    category: 'Image',
    nwfwMode: false,
    testMode: false,

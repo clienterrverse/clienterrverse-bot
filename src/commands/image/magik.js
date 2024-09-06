@@ -36,6 +36,8 @@ export default {
             .setMinValue(1)
             .setMaxValue(5)
       )
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
       .toJSON(),
    cooldown: 10,
    nsfwMode: false,

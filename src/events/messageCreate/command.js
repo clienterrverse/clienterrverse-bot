@@ -113,15 +113,6 @@ function checkCommandPrerequisites(message, command) {
       return false;
    }
 
-   if (!message.guild && !command.dmAllowed) {
-      sendEmbedReply(
-         message,
-         mConfig.embedColorError,
-         'This command can only be used within a server.'
-      );
-      return false;
-   }
-
    if (command.devOnly && !developersId.includes(message.author.id)) {
       sendEmbedReply(message, mConfig.embedColorError, mConfig.commandDevOnly);
       return false;

@@ -15,7 +15,6 @@ export default {
    nwfwMode: false,
    testMode: false,
    devOnly: false,
-   dmAllowed: true,
    category: 'economy',
    prefix: true,
 

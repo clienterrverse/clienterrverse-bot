@@ -11,6 +11,8 @@ export default {
       .setName('cat')
       .setDescription('send random cat img')
 
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
       .toJSON(),
    category: 'Image',
    nwfwMode: false,

@@ -12,7 +12,10 @@ export default {
             .setName('text')
             .setDescription('The text you want Lisa to present')
             .setRequired(true)
-      ),
+      )
+      .setContexts([0, 1, 2])
+      .setIntegrationTypes([0, 1])
+      .toJSON(),
    category: 'Image',
    nwfwMode: false,
    testMode: false,
