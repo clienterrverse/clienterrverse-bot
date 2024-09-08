@@ -7,13 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const BACKGROUND_PATH = path.join(
-   __dirname,
-   '..',
-   '..',
-   'assets',
-   'welcome.png'
-);
+const BACKGROUND_PATH = path.join(__dirname, '..', '..', 'assets', 'welcome.png');
 const DEFAULT_WELCOME_MESSAGE = 'Welcome to our server, {user}!';
 
 export default async (client, errorHandler, member) => {
@@ -21,10 +15,7 @@ export default async (client, errorHandler, member) => {
       const welcomeSettings = await getWelcomeSettings(member.guild.id);
       if (!welcomeSettings?.enabled) return;
 
-      const { welcomeChannel, autoRole } = await getGuildResources(
-         member.guild,
-         welcomeSettings
-      );
+      const { welcomeChannel, autoRole } = await getGuildResources(member.guild, welcomeSettings);
       if (!welcomeChannel) return;
 
       const welcomeImage = await generateWelcomeImage(member);
@@ -33,14 +24,11 @@ export default async (client, errorHandler, member) => {
       await sendWelcomeMessage(welcomeChannel, member, embed, welcomeImage);
       if (autoRole) await assignAutoRole(member, autoRole);
    } catch (error) {
-      errorHandler.handleError(error, {
-         type: 'Welcome Event',
-         memberId: member.id,
-         guildId: member.guild.id,
-      });
+      handleError(errorHandler, error, 'Welcome Event', member);
    }
 };
 
+// Fetch welcome settings from the database
 async function getWelcomeSettings(guildId) {
    try {
       return await Welcome.findOne({ guildId });
@@ -50,25 +38,23 @@ async function getWelcomeSettings(guildId) {
    }
 }
 
+// Get the welcome channel and auto-role based on settings
 async function getGuildResources(guild, welcomeSettings) {
    const welcomeChannel = guild.channels.cache.get(welcomeSettings.channelId);
    const autoRole = guild.roles.cache.get(welcomeSettings.roleId);
 
    if (!welcomeChannel) {
-      console.warn(
-         `Welcome channel with ID ${welcomeSettings.channelId} not found in guild ${guild.id}.`
-      );
+      console.warn(`Welcome channel with ID ${welcomeSettings.channelId} not found in guild ${guild.id}.`);
    }
 
    if (!autoRole) {
-      console.warn(
-         `Auto role with ID ${welcomeSettings.roleId} not found in guild ${guild.id}.`
-      );
+      console.warn(`Auto role with ID ${welcomeSettings.roleId} not found in guild ${guild.id}.`);
    }
 
    return { welcomeChannel, autoRole };
 }
 
+// Generate the welcome image using the profileImage function
 async function generateWelcomeImage(member) {
    try {
       return await profileImage(member.user.id, {
@@ -81,14 +67,15 @@ async function generateWelcomeImage(member) {
    }
 }
 
+// Create the welcome embed with the specified settings
 function createWelcomeEmbed(member, welcomeSettings, welcomeImage) {
+   const welcomeMessage = (welcomeSettings.message || DEFAULT_WELCOME_MESSAGE)
+      .replace('{user}', `<@${member.id}>`);
+
    const embed = new EmbedBuilder()
       .setColor('#0099ff')
       .setTitle(`Welcome to ${member.guild.name}!`)
-      .setDescription(
-         welcomeSettings.message?.replace('{user}', `<@${member.id}>`) ||
-            DEFAULT_WELCOME_MESSAGE.replace('{user}', `<@${member.id}>`)
-      )
+      .setDescription(welcomeMessage)
       .setTimestamp()
       .setFooter({ text: `Joined: ${member.joinedAt.toUTCString()}` });
 
@@ -99,6 +86,7 @@ function createWelcomeEmbed(member, welcomeSettings, welcomeImage) {
    return embed;
 }
 
+// Send the welcome message to the specified channel
 async function sendWelcomeMessage(channel, member, embed, welcomeImage) {
    const messageOptions = {
       content: `Hey everyone, please welcome <@${member.id}>!`,
@@ -106,9 +94,7 @@ async function sendWelcomeMessage(channel, member, embed, welcomeImage) {
    };
 
    if (welcomeImage) {
-      const attachment = new AttachmentBuilder(welcomeImage, {
-         name: 'welcome-image.png',
-      });
+      const attachment = new AttachmentBuilder(welcomeImage, { name: 'welcome-image.png' });
       messageOptions.files = [attachment];
    }
 
@@ -119,10 +105,21 @@ async function sendWelcomeMessage(channel, member, embed, welcomeImage) {
    }
 }
 
+// Assign the auto-role to the new member
 async function assignAutoRole(member, role) {
    try {
       await member.roles.add(role);
    } catch (error) {
       console.error(`Error assigning auto role to member ${member.id}:`, error);
    }
+}
+
+// Handle errors and log them appropriately
+function handleError(errorHandler, error, eventType, member) {
+   console.error(`Error in ${eventType} for member ${member.id}:`, error);
+   errorHandler.handleError(error, {
+      type: eventType,
+      memberId: member.id,
+      guildId: member.guild.id,
+   });
 }
