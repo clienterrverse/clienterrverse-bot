@@ -2,6 +2,19 @@
 
 Clienterrverse Bot is a versatile and feature-rich Discord bot designed to enhance your server experience with advanced functionalities such as a paging system, prefix support for Slash Commands, button support, context menu support, modal support, event handling, ticket system, and more.
 
+##### Star ⭐ the repository, it would mean alot to us! 💖
+
+
+## Badges
+
+Languages used to develop the project
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+[![GPLv3 License](https://img.shields.io/badge/License-GPL%20v3-yellow.svg)](https://opensource.org/licenses/)
+[![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
+
+
+
 ## Directory Structure
 
 ```bash
@@ -36,6 +49,10 @@ package-lock.json
 package.json
 SECURITY.md
 ```
+## Authors
+
+- [@GrishMahat](https://github.com/GrishMahat)
+- [@clienterr](https://github.com/cli3nterr)
 
 ## Contributing
 
@@ -60,4 +77,7 @@ git push origin feature/your-feature-name
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. ![MIT License](https://img.shields.io/badge/License-MIT-green.svg)
+
+
+
