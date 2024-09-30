@@ -133,6 +133,6 @@ dist
 src/config/config.json
 my/
 .vscode/
-
+.idea
 src/config/config.js
 package-lock.json

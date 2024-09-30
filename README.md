@@ -38,6 +38,7 @@ package-lock.json
 package.json
 SECURITY.md
 ```
+
 ## Authors
 
 - [@GrishMahat](https://github.com/GrishMahat)
@@ -46,11 +47,13 @@ SECURITY.md
 ## Contributing
 
 #### 1. Fork the repository.
+
 #### 2. Create a New Branch
 
 ```bash
 git checkout -b feature/your-feature-name
 ```
+
 #### 3. Commit Your Changes
 
 ## Usage
@@ -58,15 +61,15 @@ git checkout -b feature/your-feature-name
 ```bash
 git commit -m "Add some feature"
 ```
+
 #### 4. Push to the Branch
+
 ```bash
 git push origin feature/your-feature-name
 ```
+
 #### 5. Open a Pull Request.
 
 ## License
 
 This project is licensed under the MIT License. ![MIT License](https://img.shields.io/badge/License-MIT-green.svg)
-
-
-

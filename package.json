@@ -1,42 +1,62 @@
 {
-   "name": "clienterrverse_economy",
-   "version": "2.0.0",
-   "main": "src/index.js",
-   "type": "module",
-   "scripts": {
-      "start": "node --no-warnings src/index.js",
-      "dev": "nodemon src/index.js",
-      "pre": "npx prettier --write ."
-   },
-   "repository": {
-      "type": "git",
-      "url": "git+https://github.com/clienterrverse/clienterrverse_economy.git"
-   },
-   "author": ".clienterr",
-   "license": "ISC",
-   "bugs": {
-      "url": "https://github.com/clienterrverse/clienterrverse_economy/issues"
-   },
-   "homepage": "https://github.com/clienterrverse/clienterrverse_economy#readme",
-   "description": "",
-   "dependencies": {
-      "@napi-rs/canvas": "^0.1.53",
-      "axios": "^1.7.2",
-      "bottleneck": "^2.19.5",
-      "colors": "^1.4.0",
-      "date-fns": "^3.6.0",
-      "discord-arts": "^0.6.1",
-      "discord-html-transcripts": "^3.2.0",
-      "discord-image-generation": "^1.4.25",
-      "discord.js": "^14.16.1",
-      "mathjs": "^13.0.3",
-      "mongoose": "^8.5.2",
-      "ms": "^2.1.3",
-      "os": "^0.1.2"
-   },
-   "devDependencies": {
-      "dotenv": "^16.4.5",
-      "nodemon": "^3.1.1",
-      "prettier": "3.3.3"
-   }
+  "name": "clienterrverse_economy",
+  "version": "2.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --no-warnings src/index.js",
+    "dev": "nodemon src/index.js",
+    "pre": "npx prettier --write .",
+    "lint": "npx eslint . --fix",
+    "precommit": "lint-staged",
+    "prettify": "npx prettier --write .",
+    "check-deps": "npm-check-updates",
+    "update-deps": "npm-check-updates -u && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clienterrverse/clienterrverse_economy.git"
+  },
+  "author": ".clienterr",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/clienterrverse/clienterrverse_economy/issues"
+  },
+  "homepage": "https://github.com/clienterrverse/clienterrverse_economy#readme",
+  "description": "",
+  "dependencies": {
+    "@eslint/eslintrc": "^3.1.0",
+    "@napi-rs/canvas": "^0.1.56",
+    "anime-wallpaper": "^3.2.1",
+    "axios": "^1.7.7",
+    "bottleneck": "^2.19.5",
+    "canvas": "^2.11.2",
+    "colors": "^1.4.0",
+    "crypto": "^1.0.1",
+    "date-fns": "^4.1.0",
+    "discord-arts": "^0.6.1",
+    "discord-html-transcripts": "^3.2.0",
+    "discord-image-generation": "^1.4.25",
+    "discord.js": "^14.16.2",
+    "dotenv": "^16.4.5",
+    "file-type": "^19.5.0",
+    "mathjs": "^13.1.1",
+    "mongoose": "^8.6.3",
+    "ms": "^2.1.3",
+    "os": "^0.1.2",
+    "perf_hooks": "^0.0.1",
+    "random-anime": "^1.0.6",
+    "undici": ">=6.19.8",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.10.0",
+    "eslint": "^8.50.0",
+    "eslint-plugin-import": "^2.30.0",
+    "globals": "^15.9.0",
+    "lint-staged": "^15.2.10",
+    "nodemon": "^3.1.7",
+    "npm-check-updates": "^17.1.3",
+    "prettier": "^3.3.3"
+  }
 }
