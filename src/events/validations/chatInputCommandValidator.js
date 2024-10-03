@@ -50,6 +50,7 @@ class LRUCache {
 
 const cache = new LRUCache(100); // Adjust capacity as needed
 const cooldowns = new Collection();
+const permissionLevels = new Collection();
 const commandMap = new Map();
 
 /**
@@ -183,7 +184,14 @@ export default async (client, errorHandler, interaction) => {
 
   try {
     const commandObject = commandMap.get(interaction.commandName);
-
+    if (!commandObject) {
+      for (const [name, cmd] of commandMap.entries()) {
+        if (cmd.aliases && cmd.aliases.includes(interaction.commandName)) {
+          commandObject = cmd;
+          break;
+        }
+      }
+    }
     if (!commandObject) {
       return sendEmbedReply(
         interaction,

@@ -64,7 +64,7 @@ export default {
   nwfwMode: false,
   testMode: false,
   devOnly: true,
-  category: 'Devloper',
+  category: 'Developer',
   prefix: false,
 
   run: async (client, interaction) => {

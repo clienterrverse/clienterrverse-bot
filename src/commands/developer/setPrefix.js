@@ -39,7 +39,7 @@ export default {
   nsfwMode: false,
   testMode: false,
   devOnly: true,
-  category: 'Devloper',
+  category: 'Developer',
 
   run: async (client, interaction) => {
     try {

@@ -3,6 +3,7 @@ import {
   ChannelType,
   PermissionFlagsBits,
 } from 'discord.js';
+import config from '../../config/config.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -10,27 +11,21 @@ export default {
     .setDescription(
       'Creates a bot-testing channel under a bot-development category for developers only'
     ),
+  botPermissions: [PermissionFlagsBits.ManageChannels],
+  cooldown: 5,
+  nsfwMode: false,
+  testMode: false,
+  devOnly: true,
+  category: 'Developer',
   run: async (client, interaction) => {
     const { guild, member } = interaction;
-    const developerUserIDs = ['DEVELOPER_ID']; // Replace with actual developer user IDs
-
-    // Log the member's ID for debugging
-    console.log('Member ID:', member.id);
-
-    // Check if the member's ID is in the list of developer user IDs
-    if (!developerUserIDs.includes(member.id)) {
-      return interaction.reply({
-        content: 'You do not have permission to use this command.',
-        ephemeral: true,
-      });
-    }
 
     try {
-      // Create the bot-development category if it doesn't already exist
-      let category = guild.channels.cache.find(
+      let category = await guild.channels.cache.find(
         (c) =>
           c.name === 'bot-development' && c.type === ChannelType.GuildCategory
       );
+
       if (!category) {
         category = await guild.channels.create({
           name: 'bot-development',
@@ -48,6 +43,15 @@ export default {
               ],
             },
           ],
+        });
+      }
+      const existingChannel = guild.channels.find(
+        (c) => c.name === 'bot-testing' && c.parentId === category.id
+      );
+      if (existingChannel) {
+        return await interaction.reply({
+          content: `A testing channe alredy alredy exis ${existingChannel}`,
+          ephemeral: true,
         });
       }
 

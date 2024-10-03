@@ -10,7 +10,7 @@ import {
 import getLocalCommands from '../../utils/getLocalCommands.js';
 import mConfig from '../../config/messageConfig.js';
 
-const COMMANDS_PER_PAGE = 8;
+const COMMANDS_PER_PAGE = 6;
 const INTERACTION_TIMEOUT = 300000;
 
 const categorizeCommands = (commands) => {
@@ -21,9 +21,7 @@ const categorizeCommands = (commands) => {
     return acc;
   }, {});
 
-  // Add a separate category for prefix commands
   categorized['Prefix Commands'] = commands.filter((cmd) => cmd.prefix);
-
   return categorized;
 };
 
@@ -55,42 +53,23 @@ export default {
       const categoryOption = interaction.options.getString('category');
 
       if (commandOption) {
-        const command = localCommands.find(
-          (cmd) => cmd.name.toLowerCase() === commandOption.toLowerCase()
+        return await showCommandDetails(
+          interaction,
+          localCommands,
+          commandOption,
+          embedColor,
+          prefix
         );
-        if (command) {
-          return await showCommandDetails(
-            interaction,
-            command,
-            embedColor,
-            prefix
-          );
-        } else {
-          return await interaction.reply({
-            content: `Command "${commandOption}" not found.`,
-            ephemeral: true,
-          });
-        }
       }
 
       if (categoryOption) {
-        const categorizedCommands = categorizeCommands(localCommands);
-        const category = Object.keys(categorizedCommands).find(
-          (cat) => cat.toLowerCase() === categoryOption.toLowerCase()
+        return await showCategoryCommands(
+          interaction,
+          localCommands,
+          categoryOption,
+          embedColor,
+          prefix
         );
-        if (category) {
-          return await showCategoryCommands(
-            interaction,
-            localCommands,
-            category,
-            embedColor,
-            prefix
-          );
-        } else {
-          return await interaction.reply({
-            content: `Category "${categoryOption}" not found.`,
-          });
-        }
       }
 
       return await showCommandOverview(
@@ -109,8 +88,24 @@ export default {
   },
 };
 
-async function showCommandDetails(interaction, command, embedColor, prefix) {
-  console.log(command);
+async function showCommandDetails(
+  interaction,
+  localCommands,
+  commandName,
+  embedColor,
+  prefix
+) {
+  const command = localCommands.find(
+    (cmd) => cmd.name.toLowerCase() === commandName.toLowerCase()
+  );
+
+  if (!command) {
+    return interaction.reply({
+      content: `Command "${commandName}" not found.`,
+      ephemeral: true,
+    });
+  }
+
   const embed = new EmbedBuilder()
     .setTitle(`📖 Command: ${command.name}`)
     .setDescription(command.description ?? 'No description available.')
@@ -121,11 +116,7 @@ async function showCommandDetails(interaction, command, embedColor, prefix) {
         value: command.category ?? 'Uncategorized',
         inline: true,
       },
-      {
-        name: '⏳ Cooldown',
-        value: `${command.cooldown ?? 0}s`,
-        inline: true,
-      },
+      { name: '⏳ Cooldown', value: `${command.cooldown ?? 0}s`, inline: true },
       {
         name: '🔒 Permissions',
         value: command.userPermissions?.join(', ') ?? 'None',
@@ -184,7 +175,6 @@ async function showCommandDetails(interaction, command, embedColor, prefix) {
     }
 
     if (i.customId === 'return_to_overview') {
-      const localCommands = await getLocalCommands();
       await showCommandOverview(i, localCommands, embedColor, prefix);
     } else if (i.customId === 'show_examples') {
       const examplesEmbed = new EmbedBuilder()
@@ -211,40 +201,35 @@ async function showCategoryCommands(
   prefix
 ) {
   const categorizedCommands = categorizeCommands(localCommands);
-  const categoryCommands = categorizedCommands[category] ?? [];
+  const matchedCategory = Object.keys(categorizedCommands).find(
+    (cat) => cat.toLowerCase() === category.toLowerCase()
+  );
+
+  if (!matchedCategory) {
+    return interaction.reply({
+      content: `Category "${category}" not found.`,
+      ephemeral: true,
+    });
+  }
+
+  const categoryCommands = categorizedCommands[matchedCategory];
 
   if (categoryCommands.length === 0) {
     return interaction.reply({
-      content: `No commands found in the "${category}" category.`,
+      content: `No commands found in the "${matchedCategory}" category.`,
       ephemeral: true,
     });
   }
 
   const pages = createCommandPages(
     categoryCommands,
-    category,
+    matchedCategory,
     embedColor,
     prefix
   );
-
   let currentPage = 0;
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('prev_page')
-      .setLabel('Previous')
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(true),
-    new ButtonBuilder()
-      .setCustomId('next_page')
-      .setLabel('Next')
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(pages.length <= 1),
-    new ButtonBuilder()
-      .setCustomId('return_to_overview')
-      .setLabel('Return to Overview')
-      .setStyle(ButtonStyle.Secondary)
-  );
+  const row = createPaginationRow(pages.length);
 
   const response = await interaction.reply({
     embeds: [pages[currentPage]],
@@ -264,18 +249,19 @@ async function showCategoryCommands(
       });
     }
 
-    if (i.customId === 'prev_page') {
-      currentPage = Math.max(0, currentPage - 1);
-    } else if (i.customId === 'next_page') {
-      currentPage = Math.min(pages.length - 1, currentPage + 1);
-    } else if (i.customId === 'return_to_overview') {
-      await showCommandOverview(i, localCommands, embedColor, prefix);
-      return;
+    switch (i.customId) {
+      case 'prev_page':
+        currentPage = Math.max(0, currentPage - 1);
+        break;
+      case 'next_page':
+        currentPage = Math.min(pages.length - 1, currentPage + 1);
+        break;
+      case 'return_to_overview':
+        await showCommandOverview(i, localCommands, embedColor, prefix);
+        return;
     }
 
-    row.components[0].setDisabled(currentPage === 0);
-    row.components[1].setDisabled(currentPage === pages.length - 1);
-
+    updatePaginationRow(row, currentPage, pages.length);
     await i.update({ embeds: [pages[currentPage]], components: [row] });
   });
 
@@ -324,10 +310,7 @@ async function showCommandOverview(
 
   collector.on('collect', async (i) => {
     if (i.user.id !== interaction.user.id) {
-      return i.reply({
-        content: "You can't use this menu.",
-        ephemeral: true,
-      });
+      return i.reply({ content: "You can't use this menu.", ephemeral: true });
     }
 
     if (i.customId === 'category_select') {
@@ -350,22 +333,20 @@ async function showCommandOverview(
 }
 
 function createOverviewEmbed(categorizedCommands, embedColor, prefix) {
-  const overviewEmbed = new EmbedBuilder()
+  return new EmbedBuilder()
     .setTitle('📜 Command Categories')
     .setDescription(
       'Use the menu below to select a category or use `/help <command>` for specific command details.'
     )
     .setColor(embedColor)
     .addFields(
-      Object.keys(categorizedCommands).map((category) => ({
+      Object.entries(categorizedCommands).map(([category, commands]) => ({
         name: `${getCategoryEmoji(category)} ${category}`,
-        value: `${categorizedCommands[category].length} commands`,
+        value: `${commands.length} command${commands.length !== 1 ? 's' : ''}`,
         inline: true,
       }))
     )
-    .setFooter({ text: `Prefix: ${prefix}` });
-
-  return overviewEmbed;
+    .setFooter({ text: `Prefix for legacy commands: ${prefix}` });
 }
 
 function createCommandPages(categoryCommands, category, embedColor, prefix) {
@@ -374,21 +355,48 @@ function createCommandPages(categoryCommands, category, embedColor, prefix) {
   for (let i = 0; i < categoryCommands.length; i += COMMANDS_PER_PAGE) {
     const commandsSlice = categoryCommands.slice(i, i + COMMANDS_PER_PAGE);
     const embed = new EmbedBuilder()
-      .setTitle(`📜 ${category} Commands`)
+      .setTitle(`${getCategoryEmoji(category)} ${category} Commands`)
       .setColor(embedColor)
       .setDescription('Here are the available commands:')
       .addFields(
         commandsSlice.map((cmd) => ({
-          name: `\`${cmd.prefix ? prefix : '/'}${cmd.data.name}\``,
-          value: cmd.data.description ?? 'No description available.',
-          inline: true,
+          name: `\`${cmd.prefix ? prefix : '/'}${cmd.name}\``,
+          value: cmd.description ?? 'No description available.',
+          inline: false,
         }))
-      );
+      )
+      .setFooter({
+        text: `Page ${pages.length + 1}/${Math.ceil(categoryCommands.length / COMMANDS_PER_PAGE)}`,
+      });
 
     pages.push(embed);
   }
 
   return pages;
+}
+
+function createPaginationRow(pageCount) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('prev_page')
+      .setLabel('◀️ Previous')
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(true),
+    new ButtonBuilder()
+      .setCustomId('next_page')
+      .setLabel('Next ▶️')
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(pageCount <= 1),
+    new ButtonBuilder()
+      .setCustomId('return_to_overview')
+      .setLabel('🔍 Overview')
+      .setStyle(ButtonStyle.Secondary)
+  );
+}
+
+function updatePaginationRow(row, currentPage, pageCount) {
+  row.components[0].setDisabled(currentPage === 0);
+  row.components[1].setDisabled(currentPage === pageCount - 1);
 }
 
 function getCategoryEmoji(category) {
