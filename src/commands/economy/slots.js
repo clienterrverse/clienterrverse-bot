@@ -19,7 +19,9 @@ const spinningAnimation = '<a:slot_gif:1269381855468191854>';
 export default {
   data: new SlashCommandBuilder()
     .setName('slots')
-    .setDescription('Bet your money in the slot machine! Earn up to 10x your money!')
+    .setDescription(
+      'Bet your money in the slot machine! Earn up to 10x your money!'
+    )
     .addStringOption((option) =>
       option
         .setName('bet')

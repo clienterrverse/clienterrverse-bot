@@ -1,312 +1,365 @@
-import axios from 'axios';
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+/** @format */
 
-const data = new SlashCommandBuilder()
-   .setName('emoji-app')
-   .setDescription('Manage application emojis')
-   .addSubcommand((command) =>
-      command
-         .setName('create')
-         .setDescription('Create app emojis')
-         .addStringOption((option) =>
-            option
-               .setName('emojis')
-               .setDescription('The emojis to add (space-separated)')
-               .setRequired(true)
-         )
-         .addStringOption((option) =>
-            option
-               .setName('names')
-               .setDescription('The names of the emojis (comma-separated)')
-               .setRequired(true)
-         )
-   )
-   .addSubcommand((command) =>
-      command
-         .setName('remove')
-         .setDescription('Remove an app emoji')
-         .addStringOption((option) =>
-            option
-               .setName('emoji-id')
-               .setDescription('The ID of the emoji to remove')
-               .setRequired(true)
-         )
-   )
-   .addSubcommand((command) =>
-      command
-         .setName('edit')
-         .setDescription('Edit an app emoji name')
-         .addStringOption((option) =>
-            option
-               .setName('emoji-id')
-               .setDescription('The ID of the emoji to edit')
-               .setRequired(true)
-         )
-         .addStringOption((option) =>
-            option
-               .setName('new-name')
-               .setDescription('The new name for the emoji')
-               .setRequired(true)
-         )
-   )
-   .addSubcommand((command) =>
-      command.setName('list').setDescription('List all app emojis')
-   )
-   .toJSON();
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  PermissionFlagsBits,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} from 'discord.js';
+import buttonPagination from '../../utils/buttonPagination.js';
+import mconfig from '../../config/messageConfig.js';
 
 export default {
-   data,
-   userPermissions: [],
-   botPermissions: [],
-   category: 'Misc',
-   cooldown: 5,
-   nsfwMode: false,
-   testMode: false,
-   devOnly: false,
-   prefix: false,
+  data: new SlashCommandBuilder()
+    .setName('servers')
+    .setDescription('Manage and view information about servers the bot is in.')
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('list')
+        .setDescription('List servers the bot is in and provide invite links')
+        .addBooleanOption((option) =>
+          option
+            .setName('detailed')
+            .setDescription('Show detailed server information')
+            .setRequired(false)
+        )
+        .addStringOption((option) =>
+          option
+            .setName('sort')
+            .setDescription('Sort servers by a specific criteria')
+            .setRequired(false)
+            .addChoices(
+              { name: 'Name', value: 'name' },
+              { name: 'Member Count', value: 'memberCount' },
+              { name: 'Creation Date', value: 'createdAt' }
+            )
+        )
+    )
 
-   run: async (client, interaction) => {
-      await interaction.deferReply();
-      const { options } = interaction;
-      const subCommand = options.getSubcommand();
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('leave')
+        .setDescription('Make the bot leave a specified server by its ID.')
+        .addStringOption((option) =>
+          option
+            .setName('server-id')
+            .setDescription('The ID of the server the bot should leave.')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('check')
+        .setDescription(
+          'Check if the bot is in specified servers by their IDs.'
+        )
+        .addStringOption((option) =>
+          option
+            .setName('server-ids')
+            .setDescription('Comma-separated IDs of the servers to check.')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('user')
+        .setDescription('Show the number of servers a user owns.')
+        .addUserOption((option) =>
+          option
+            .setName('user')
+            .setDescription('The user to check.')
+            .setRequired(true)
+        )
+    )
+    .toJSON(),
+  userPermissions: [PermissionFlagsBits.Administrator],
+  botPermissions: [],
+  cooldown: 10,
+  nsfwMode: false,
+  testMode: false,
+  devOnly: true,
+  category: 'Developer',
 
-      const emojiManager = new EmojiManager(
-         process.env.APPLICATION_ID,
-         process.env.TOKEN
-      );
+  run: async (client, interaction) => {
+    await interaction.deferReply();
+    const subcommand = interaction.options.getSubcommand();
 
-      try {
-         switch (subCommand) {
-            case 'create':
-               await handleCreateCommand(emojiManager, options, interaction);
-               break;
-            case 'remove':
-               await handleRemoveCommand(emojiManager, options, interaction);
-               break;
-            case 'edit':
-               await handleEditCommand(emojiManager, options, interaction);
-               break;
-            case 'list':
-               await handleListCommand(emojiManager, interaction);
-               break;
-            default:
-               throw new Error('Invalid subcommand');
-         }
-      } catch (error) {
-         console.error('Command execution error:', error);
-         await sendErrorMessage(
-            interaction,
-            'An error occurred while processing the command. Please try again later.'
-         );
+    try {
+      switch (subcommand) {
+        case 'list':
+          await handleListSubcommand(client, interaction);
+          break;
+        case 'leave':
+          await handleLeaveSubcommand(client, interaction);
+          break;
+        case 'check':
+          await handleCheckSubcommand(client, interaction);
+          break;
+        case 'user':
+          await handleUserSubcommand(client, interaction);
+          break;
+        default:
+          throw new Error(`Unknown subcommand: ${subcommand}`);
       }
-   },
+    } catch (error) {
+      console.error(`Error in servers command (${subcommand}):`, error);
+      await interaction.editReply({
+        content:
+          'An error occurred while processing your request. Please try again later.',
+        ephemeral: true,
+      });
+    }
+  },
 };
 
-class EmojiManager {
-   constructor(applicationId, token) {
-      this.applicationId = applicationId;
-      this.token = token;
-      this.baseUrl = `https://discord.com/api/v10/applications/${this.applicationId}/emojis`;
-   }
+async function handleListSubcommand(client, interaction) {
+  const isDetailed = interaction.options.getBoolean('detailed') ?? false;
+  const sortOption = interaction.options.getString('sort') ?? 'name';
 
-   async apiCall(method, endpoint = '', data = null) {
-      const config = {
-         method,
-         url: `${this.baseUrl}${endpoint}`,
-         headers: { Authorization: `Bot ${this.token}` },
-         data,
+  let guilds = await Promise.all(
+    client.guilds.cache.map(async (guild) => {
+      let inviteLink = 'No invite link available';
+      try {
+        const channels = guild.channels.cache.filter(
+          (channel) =>
+            channel.type === 0 &&
+            channel
+              .permissionsFor(guild.members.me)
+              .has(PermissionFlagsBits.CreateInstantInvite)
+        );
+        if (channels.size > 0) {
+          const invite = await channels
+            .first()
+            .createInvite({ maxAge: 0, maxUses: 0 });
+          inviteLink = invite.url;
+        }
+      } catch (error) {
+        console.error(`Could not create invite for guild ${guild.id}:`, error);
+      }
+      return {
+        name: guild.name,
+        memberCount: guild.memberCount,
+        id: guild.id,
+        inviteLink,
+        owner: await guild.fetchOwner(),
+        createdAt: guild.createdAt,
+        boostLevel: guild.premiumTier,
       };
+    })
+  );
+  guilds.sort((a, b) => {
+    if (sortOption === 'memberCount') {
+      return b.memberCount - a.memberCount;
+    } else if (sortOption === 'createdAt') {
+      return b.createdAt - a.createdAt;
+    } else {
+      return a.name.localeCompare(b.name);
+    }
+  });
 
-      try {
-         const response = await axios(config);
-         return response.data;
-      } catch (error) {
-         console.error(
-            `API Call Error - ${method} ${endpoint}:`,
-            error.response?.data || error.message
-         );
-         throw error;
-      }
-   }
+  if (guilds.length === 0) {
+    return await interaction.editReply('The bot is not in any servers.');
+  }
 
-   async createEmoji(name, image) {
-      return this.apiCall('POST', '', { name, image });
-   }
-
-   async removeEmoji(emojiId) {
-      return this.apiCall('DELETE', `/${emojiId}`);
-   }
-
-   async editEmoji(emojiId, name) {
-      return this.apiCall('PATCH', `/${emojiId}`, { name });
-   }
-
-   async listEmojis() {
-      return this.apiCall('GET');
-   }
+  const embeds = createServerListEmbeds(
+    client,
+    interaction,
+    guilds,
+    isDetailed,
+    sortOption
+  );
+  await buttonPagination(interaction, embeds, {
+    time: 5 * 60 * 1000, // 5 minutes
+    showPageIndicator: true,
+    allowUserNavigation: true,
+  });
 }
 
-async function handleCreateCommand(emojiManager, options, interaction) {
-   const emojis = options.getString('emojis').split(' ');
-   const names = options
-      .getString('names')
-      .split(',')
-      .map((name) => name.trim());
+function createServerListEmbeds(
+  client,
+  interaction,
+  guilds,
+  isDetailed,
+  sortOption
+) {
+  const MAX_FIELDS = isDetailed ? 4 : 8;
+  const embeds = [];
 
-   if (emojis.length !== names.length) {
-      await sendErrorMessage(
-         interaction,
-         'The number of emojis and names must match.'
-      );
-      return;
-   }
+  for (let i = 0; i < guilds.length; i += MAX_FIELDS) {
+    const currentGuilds = guilds.slice(i, i + MAX_FIELDS);
+    const embed = new EmbedBuilder()
+      .setTitle('Servers List')
+      .setDescription(
+        `The bot is in **${guilds.length}** servers. Sorted by: ${sortOption}`
+      )
+      .setColor(mconfig.embedColorSuccess)
+      .setThumbnail(client.user.displayAvatarURL())
+      .setFooter({
+        text: `Requested by ${interaction.user.username}`,
+        iconURL: interaction.user.displayAvatarURL({
+          format: 'png',
+          dynamic: true,
+          size: 1024,
+        }),
+      });
 
-   const createdEmojis = [];
+    currentGuilds.forEach((guild) => {
+      const fieldValue = isDetailed
+        ? `ID: ${guild.id}\nMembers: ${guild.memberCount}\nOwner: ${guild.owner.user.tag}\nCreated: ${guild.createdAt.toDateString()}\nBoost Level: ${guild.boostLevel}\n[Invite Link](${guild.inviteLink})`
+        : `ID: ${guild.id}\nMembers: ${guild.memberCount}\n[Invite Link](${guild.inviteLink})`;
 
-   for (let i = 0; i < emojis.length; i++) {
-      try {
-         const { imageBuffer, isAnimated } = await getEmojiImage(emojis[i]);
-         const base64Image = imageBuffer.toString('base64');
-         const createData = {
-            name: names[i],
-            image: `data:image/${isAnimated ? 'gif' : 'png'};base64,${base64Image}`,
-         };
+      embed.addFields({ name: guild.name, value: fieldValue, inline: true });
+    });
 
-         const createdEmoji = await emojiManager.createEmoji(
-            createData.name,
-            createData.image
-         );
-         createdEmojis.push(
-            `<${isAnimated ? 'a' : ''}:${createdEmoji.name}:${createdEmoji.id}>`
-         );
-      } catch (error) {
-         console.error(`Error creating emoji ${emojis[i]}:`, error);
-         await sendErrorMessage(
-            interaction,
-            `Failed to create emoji ${emojis[i]}: ${error.message}`
-         );
-      }
-   }
+    embeds.push(embed);
+  }
 
-   if (createdEmojis.length > 0) {
-      await sendSuccessMessage(
-         interaction,
-         `Created emojis: ${createdEmojis.join(' ')}`
-      );
-   } else {
-      await sendErrorMessage(
-         interaction,
-         'No emojis were created. Please check the provided data and try again.'
-      );
-   }
+  return embeds;
 }
 
-async function handleRemoveCommand(emojiManager, options, interaction) {
-   const emojiId = options.getString('emoji-id');
-   try {
-      await emojiManager.removeEmoji(emojiId);
-      await sendSuccessMessage(
-         interaction,
-         `Removed emoji with ID: ${emojiId}`
-      );
-   } catch (error) {
-      await sendErrorMessage(
-         interaction,
-         `Failed to remove emoji: ${error.message}`
-      );
-   }
+async function handleLeaveSubcommand(client, interaction) {
+  const serverId = interaction.options.getString('server-id');
+  const guild = client.guilds.cache.get(serverId);
+
+  if (!guild) {
+    return await interaction.editReply(
+      `I am not in a server with the ID ${serverId}.`
+    );
+  }
+
+  const confirmButton = new ButtonBuilder()
+    .setCustomId('confirm_leave')
+    .setLabel('Confirm Leave')
+    .setStyle(ButtonStyle.Danger);
+
+  const cancelButton = new ButtonBuilder()
+    .setCustomId('cancel_leave')
+    .setLabel('Cancel')
+    .setStyle(ButtonStyle.Secondary);
+
+  const row = new ActionRowBuilder().addComponents(confirmButton, cancelButton);
+
+  const response = await interaction.editReply({
+    content: `Are you sure you want me to leave the server **${guild.name}** (ID: ${serverId})?`,
+    components: [row],
+  });
+  try {
+    const confirmation = await response.awaitMessageComponent({
+      filter: (i) => i.user.id === interaction.user.id,
+      time: 30000,
+    });
+
+    if (confirmation.customId === 'confirm_leave') {
+      await guild.leave();
+      await confirmation.update({
+        content: `I have left the server **${guild.name}** (ID: ${serverId}).`,
+        components: [],
+      });
+    } else {
+      await confirmation.update({
+        content: 'Server leave cancelled.',
+        components: [],
+      });
+    }
+  } catch (error) {
+    await interaction.editReply({
+      content:
+        'No response received within 30 seconds, cancelling server leave.',
+      components: [],
+    });
+    throw error;
+  }
 }
 
-async function handleEditCommand(emojiManager, options, interaction) {
-   const emojiId = options.getString('emoji-id');
-   const newName = options.getString('new-name');
-   try {
-      const editedEmoji = await emojiManager.editEmoji(emojiId, newName);
-      await sendSuccessMessage(
-         interaction,
-         `Emoji name updated successfully to: ${editedEmoji.name}`
-      );
-   } catch (error) {
-      await sendErrorMessage(
-         interaction,
-         `Failed to edit emoji: ${error.message}`
-      );
-   }
-}
+async function handleCheckSubcommand(client, interaction) {
+  const serverIds = interaction.options
+    .getString('server-ids')
+    .split(',')
+    .map((id) => id.trim());
+  if (serverIds.length > 10) {
+    return await interaction.editReply(
+      'Please provide 10 or fewer server IDs to check.'
+    );
+  }
 
-async function handleListCommand(emojiManager, interaction) {
-   try {
-      const { items: emojisList } = await emojiManager.listEmojis();
-
-      if (Array.isArray(emojisList) && emojisList.length > 0) {
-         // Format the emoji list message
-         const emojiListMessage = emojisList
-            .map(
-               (emoji) =>
-                  `<${emoji.animated ? 'a' : ''}:${emoji.name}:${emoji.id}> \`${emoji.name}\` (ID: ${emoji.id})`
-            )
-            .join('\n');
-
-         await sendSuccessMessage(
-            interaction,
-            `List of all emojis:\n${emojiListMessage}`
-         );
+  const results = await Promise.all(
+    serverIds.map(async (serverId) => {
+      const guild = client.guilds.cache.get(serverId);
+      if (guild) {
+        const owner = await guild.fetchOwner();
+        return new EmbedBuilder()
+          .setTitle(`Server Information: ${guild.name}`)
+          .setDescription(`The bot is in this server.`)
+          .addFields(
+            { name: 'Server ID', value: serverId, inline: true },
+            { name: 'Owner', value: owner.user.tag, inline: true },
+            {
+              name: 'Members',
+              value: guild.memberCount.toString(),
+              inline: true,
+            },
+            {
+              name: 'Created At',
+              value: guild.createdAt.toDateString(),
+              inline: true,
+            },
+            {
+              name: 'Boost Level',
+              value: guild.premiumTier.toString(),
+              inline: true,
+            }
+          )
+          .setColor(mconfig.embedColorSuccess);
       } else {
-         await sendInfoMessage(
-            interaction,
-            'No emojis found for this application.'
-         );
+        return new EmbedBuilder()
+          .setTitle(`Server Not Found`)
+          .setDescription(`The bot is not in a server with the ID ${serverId}.`)
+          .setColor(mconfig.embedColorError);
       }
-   } catch (error) {
-      // Send an error message if the emoji list retrieval fails
-      await sendErrorMessage(
-         interaction,
-         `Failed to retrieve emoji list: ${error.message}`
-      );
-   }
+    })
+  );
+
+  await buttonPagination(interaction, results, {
+    time: 5 * 60 * 1000, // 5 minutes
+    showPageIndicator: true,
+    allowUserNavigation: true,
+  });
 }
 
-async function getEmojiImage(emoji) {
-   let imageBuffer;
-   let isAnimated = false;
+async function handleUserSubcommand(client, interaction) {
+  const user = interaction.options.getUser('user');
+  const userServers = client.guilds.cache.filter(
+    (guild) => guild.ownerId === user.id
+  );
+  const serverCount = userServers.size;
 
-   if (emoji.startsWith('<:') || emoji.startsWith('<a:')) {
-      isAnimated = emoji.startsWith('<a:');
-      const emojiId = emoji.split(':')[2].slice(0, -1);
-      const extension = isAnimated ? 'gif' : 'png';
-      const url = `https://cdn.discordapp.com/emojis/${emojiId}.${extension}`;
-      const response = await axios.get(url, { responseType: 'arraybuffer' });
-      imageBuffer = Buffer.from(response.data, 'binary');
-   } else {
-      const codePoint = emoji.codePointAt(0).toString(16);
-      const url = `https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/${codePoint}.png`;
-      const response = await axios.get(url, { responseType: 'arraybuffer' });
-      imageBuffer = Buffer.from(response.data, 'binary');
-   }
+  const serverList = userServers
+    .map(
+      (guild) =>
+        `- ${guild.name} (ID: ${guild.id}, Members: ${guild.memberCount})`
+    )
+    .join('\n');
 
-   return { imageBuffer, isAnimated };
-}
+  const embed = new EmbedBuilder()
+    .setTitle(`Servers Owned by ${user.username}`)
+    .setDescription(
+      `User ${user.username} (ID: ${user.id}) owns **${serverCount}** server(s) that the bot is in.`
+    )
+    .setColor(mconfig.embedColorSuccess)
+    .addFields({
+      name: 'Server List',
+      value: serverList || 'No servers found.',
+    })
+    .setFooter({
+      text: `Requested by ${interaction.user.username}`,
+      iconURL: interaction.user.displayAvatarURL({
+        format: 'png',
+        dynamic: true,
+        size: 1024,
+      }),
+    });
 
-async function sendErrorMessage(interaction, message) {
-   const embed = new EmbedBuilder()
-      .setTitle('Error')
-      .setDescription(message)
-      .setColor('Red');
-   await interaction.editReply({ embeds: [embed] });
-}
-
-async function sendSuccessMessage(interaction, message) {
-   const embed = new EmbedBuilder()
-      .setTitle('Success')
-      .setDescription(message)
-      .setColor('Green');
-   await interaction.editReply({ embeds: [embed] });
-}
-
-async function sendInfoMessage(interaction, message) {
-   const embed = new EmbedBuilder()
-      .setTitle('Info')
-      .setDescription(message)
-      .setColor('Red');
-   await interaction.editReply({ embeds: [embed] });
+  await interaction.editReply({ embeds: [embed] });
 }

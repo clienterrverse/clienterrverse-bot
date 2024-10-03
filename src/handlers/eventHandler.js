@@ -13,10 +13,10 @@ const __dirname = path.dirname(__filename);
  * @param {Object} eventInfo - Information about the event handler.
  */
 const registerEvent = (eventRegistry, eventName, eventInfo) => {
-   if (!eventRegistry.has(eventName)) {
-      eventRegistry.set(eventName, []);
-   }
-   eventRegistry.get(eventName).push(eventInfo);
+  if (!eventRegistry.has(eventName)) {
+    eventRegistry.set(eventName, []);
+  }
+  eventRegistry.get(eventName).push(eventInfo);
 };
 
 /**
@@ -26,31 +26,31 @@ const registerEvent = (eventRegistry, eventName, eventInfo) => {
  * @param {Function} errorHandler - The error handler function.
  */
 const loadEventFile = async (
-   eventFile,
-   eventName,
-   errorHandler,
-   eventRegistry
+  eventFile,
+  eventName,
+  errorHandler,
+  eventRegistry
 ) => {
-   try {
-      const { default: eventFunction } = await import(
-         encodeURI(`file://${eventFile}`)
-      );
-      if (typeof eventFunction !== 'function') {
-         throw new Error(`Invalid or missing event function in ${eventFile}`);
-      }
-      const eventInfo = {
-         function: eventFunction,
-         fileName: path.basename(eventFile),
-         priority: eventFunction.priority || 0,
-      };
-      registerEvent(eventRegistry, eventName, eventInfo);
-   } catch (error) {
-      errorHandler.handleError(error, {
-         type: 'loadingEventFile',
-         eventFile,
-         eventName,
-      });
-   }
+  try {
+    const { default: eventFunction } = await import(
+      encodeURI(`file://${eventFile}`)
+    );
+    if (typeof eventFunction !== 'function') {
+      throw new Error(`Invalid or missing event function in ${eventFile}`);
+    }
+    const eventInfo = {
+      function: eventFunction,
+      fileName: path.basename(eventFile),
+      priority: eventFunction.priority || 0,
+    };
+    registerEvent(eventRegistry, eventName, eventInfo);
+  } catch (error) {
+    errorHandler.handleError(error, {
+      type: 'loadingEventFile',
+      eventFile,
+      eventName,
+    });
+  }
 };
 
 /**
@@ -60,27 +60,27 @@ const loadEventFile = async (
  * @param {Map} eventRegistry - The event registry.
  */
 const processEventFolder = async (eventFolder, errorHandler, eventRegistry) => {
-   try {
-      const eventFiles = getAllFiles(eventFolder);
-      let eventName = path.basename(eventFolder);
+  try {
+    const eventFiles = getAllFiles(eventFolder);
+    let eventName = path.basename(eventFolder);
 
-      if (eventName === 'validations') {
-         eventName = 'interactionCreate';
-      }
+    if (eventName === 'validations') {
+      eventName = 'interactionCreate';
+    }
 
-      const loadPromises = eventFiles
-         .filter((eventFile) => fs.lstatSync(eventFile).isFile())
-         .map((eventFile) =>
-            loadEventFile(eventFile, eventName, errorHandler, eventRegistry)
-         );
+    const loadPromises = eventFiles
+      .filter((eventFile) => fs.lstatSync(eventFile).isFile())
+      .map((eventFile) =>
+        loadEventFile(eventFile, eventName, errorHandler, eventRegistry)
+      );
 
-      await Promise.all(loadPromises);
-   } catch (error) {
-      errorHandler.handleError(error, {
-         type: 'processingEventFolder',
-         eventFolder,
-      });
-   }
+    await Promise.all(loadPromises);
+  } catch (error) {
+    errorHandler.handleError(error, {
+      type: 'processingEventFolder',
+      eventFolder,
+    });
+  }
 };
 
 /**
@@ -89,44 +89,44 @@ const processEventFolder = async (eventFolder, errorHandler, eventRegistry) => {
  * @param {Function} errorHandler - The error handler function.
  */
 const loadEventHandlers = async (client, errorHandler) => {
-   const eventRegistry = new Map();
-   const loadedEvents = new Set();
+  const eventRegistry = new Map();
+  const loadedEvents = new Set();
 
-   try {
-      const eventFolders = getAllFiles(
-         path.join(__dirname, '..', 'events'),
-         true
-      );
+  try {
+    const eventFolders = getAllFiles(
+      path.join(__dirname, '..', 'events'),
+      true
+    );
 
-      await Promise.all(
-         eventFolders.map((eventFolder) =>
-            processEventFolder(eventFolder, errorHandler, eventRegistry)
-         )
-      );
+    await Promise.all(
+      eventFolders.map((eventFolder) =>
+        processEventFolder(eventFolder, errorHandler, eventRegistry)
+      )
+    );
 
-      for (const [eventName, eventHandlers] of eventRegistry) {
-         eventHandlers.sort((a, b) => b.priority - a.priority);
+    for (const [eventName, eventHandlers] of eventRegistry) {
+      eventHandlers.sort((a, b) => b.priority - a.priority);
 
-         if (!loadedEvents.has(eventName)) {
-            client.on(eventName, async (...args) => {
-               for (const handler of eventHandlers) {
-                  try {
-                     await handler.function(client, errorHandler, ...args);
-                  } catch (error) {
-                     errorHandler.handleError(error, {
-                        type: 'executingEventHandler',
-                        handler: handler.fileName,
-                        eventName,
-                     });
-                  }
-               }
-            });
-            loadedEvents.add(eventName);
-         }
+      if (!loadedEvents.has(eventName)) {
+        client.on(eventName, async (...args) => {
+          for (const handler of eventHandlers) {
+            try {
+              await handler.function(client, errorHandler, ...args);
+            } catch (error) {
+              errorHandler.handleError(error, {
+                type: 'executingEventHandler',
+                handler: handler.fileName,
+                eventName,
+              });
+            }
+          }
+        });
+        loadedEvents.add(eventName);
       }
-   } catch (error) {
-      errorHandler.handleError(error, { type: 'settingUpEventHandlers' });
-   }
+    }
+  } catch (error) {
+    errorHandler.handleError(error, { type: 'settingUpEventHandlers' });
+  }
 };
 
 export default loadEventHandlers;
