@@ -243,6 +243,26 @@ export default function determineErrorCategory(error) {
         return 'Sticker frame rate is either too small or too large';
       case 170007:
         return 'Sticker animation duration exceeds maximum of 5 seconds';
+      case 180001:
+        return 'Invalid interaction application command';
+      case 180002:
+        return 'Interaction has already been acknowledged';
+      case 180003:
+        return 'Interaction token has expired';
+      case 180004:
+        return 'Invalid interaction response type';
+      case 180005:
+        return 'Invalid interaction response data';
+      case 180006:
+        return 'Interaction has already been responded to';
+      case 180007:
+        return 'Interaction has already been deferred';
+      case 180008:
+        return 'Interaction has already been deleted';
+      case 180009:
+        return 'Interaction has already been updated';
+      case 180010:
+        return 'Interaction has already been followed up';
       default:
         return 'Unknown Discord API Error';
     }

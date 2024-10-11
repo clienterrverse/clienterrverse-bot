@@ -51,6 +51,36 @@ export default function getRecoverySuggestions(error) {
         return 'API resource is currently overloaded. Try again later or reduce the load.';
       case 160002:
         return "Cannot reply without permission to read message history. Ensure the bot has the 'Read Message History' permission.";
+      case 10005:
+        return 'Unknown integration. Verify the integration ID and ensure it exists.';
+      case 10007:
+        return 'Unknown member. Check if the member ID is correct and the member is still in the server.';
+      case 10009:
+        return 'Unknown permission overwrite. Verify the overwrite ID and ensure it exists.';
+      case 10010:
+        return 'Unknown provider. Check if the provider ID is correct and the provider is still available.';
+      case 10013:
+        return 'Unknown user. Verify the user ID and ensure the user exists.';
+      case 10015:
+        return 'Unknown webhook. Check if the webhook ID is correct and the webhook is still active.';
+      case 20001:
+        return 'Bots cannot use this endpoint. Ensure the endpoint is intended for bot use.';
+      case 20002:
+        return 'Only bots can use this endpoint. Ensure the endpoint is intended for bot use.';
+      case 20009:
+        return "Explicit content cannot be sent to the desired recipient(s). Ensure the content complies with Discord's guidelines.";
+      case 20016:
+        return 'This action cannot be performed due to slowmode rate limit. Wait for the slowmode period to end before retrying.';
+      case 20018:
+        return 'Only the owner of this account can perform this action. Ensure the account owner is performing the action.';
+      case 20022:
+        return 'This message cannot be edited due to announcement rate limits. Wait for the rate limit to reset before retrying.';
+      case 20024:
+        return 'Under minimum age. Ensure the user meets the minimum age requirement.';
+      case 20028:
+        return 'The channel you are writing has hit the write rate limit. Wait for the rate limit to reset before retrying.';
+      case 20029:
+        return 'The write action you are performing on the server has hit the write rate limit. Wait for the rate limit to reset before retrying.';
       default:
         return "Review the Discord API documentation for this error code and ensure your bot is compliant with Discord's terms of service.";
     }
