@@ -2,41 +2,70 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * Retrieves a list of files and/or directories within a specified directory.
- * This function recursively traverses the directory tree to gather all files and directories.
+ * Recursively retrieves all files or folders from a specified directory.
+ * This function walks through a directory tree, either collecting all files or folders
+ * depending on the `foldersOnly` parameter. It logs errors if a directory cannot be read and skips that directory.
  *
- * @param {string} directory - The directory to read. This is the starting point for the file search.
- * @param {boolean} [foldersOnly=false] - Optional parameter to filter the results. If set to true, only directories will be included in the result.
- * @returns {string[]} - An array of strings representing the paths of files or directories found within the specified directory.
+ * @param {string} directory - The path of the starting directory.
+ * @param {boolean} [foldersOnly=false] - If true, the function returns only folder paths. If false (default), it returns file paths.
+ * @returns {string[]} - An array of full paths (strings) to either files or folders, depending on the `foldersOnly` parameter.
+ *
+ * @throws {Error} Throws an error if a directory cannot be read, though it continues processing other directories.
+ *
+ * @example
+ * // Basic usage to get all file paths from a directory
+ * const files = getAllFiles(path.join(__dirname, 'commands'));
+ * console.log(files);
+ *
+ * @example
+ * // To retrieve only folder paths
+ * const folders = getAllFiles(path.join(__dirname, 'commands'), true);
+ * console.log(folders);
+ *
+ * @note
+ * If the function encounters a directory that cannot be accessed (e.g., due to permission issues),
+ * it will log the error and skip that directory instead of terminating execution.
+ *
+ * @see {@link https://nodejs.org/api/fs.html#fsreaddirsyncpath-options} for more information on `fs.readdirSync`.
+ * @since 0.0.1
  */
 const getAllFiles = (directory, foldersOnly = false) => {
-  const stack = [directory]; // Initialize a stack with the starting directory
-  const result = []; // Initialize an empty array to store the results
+  const stack = [directory]; // Stack to track directories to explore
+  const result = []; // Result array to hold file or folder paths
 
+  // Process the stack until all directories are explored
   while (stack.length > 0) {
-    // Continue until all directories have been processed
-    const currentPath = stack.pop(); // Pop the next directory from the stack
-    const items = fs.readdirSync(currentPath, { withFileTypes: true }); // Read the contents of the current directory
+    const currentPath = stack.pop();
+
+    if (!currentPath) continue;
+
+    let items;
+    try {
+      items = fs.readdirSync(currentPath, {
+        withFileTypes: true,
+      });
+    } catch (error) {
+      console.error(`Error reading directory ${currentPath}:`, error);
+      continue;
+    }
+
+    if (!items) continue; // Ensure items is defined and iterable
 
     for (const item of items) {
-      // Iterate through each item in the directory
-      const fullPath = path.join(currentPath, item.name); // Construct the full path of the item
+      const fullPath = path.join(currentPath, item.name);
 
       if (item.isDirectory()) {
-        // If the item is a directory
         if (foldersOnly) {
-          // If foldersOnly is true, add the directory to the result
-          result.push(fullPath);
+          result.push(fullPath); // Add folder to result
         }
-        stack.push(fullPath); // Add the directory to the stack to be processed
+        stack.push(fullPath); // Add directory to stack for further exploration
       } else if (!foldersOnly && item.isFile()) {
-        // If the item is a file and foldersOnly is false, add the file to the result
-        result.push(fullPath);
+        result.push(fullPath); // Add file to result if foldersOnly is false
       }
     }
   }
 
-  return result; // Return the array of file and directory paths
+  return result;
 };
 
 export default getAllFiles;
