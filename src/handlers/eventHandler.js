@@ -1,5 +1,5 @@
 import path from 'path';
-import { fileURLToPath , pathToFileURL} from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import getAllFiles from '../utils/getAllFiles.js';
 import fs from 'fs';
 
